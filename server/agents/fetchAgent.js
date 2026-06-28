@@ -24,12 +24,12 @@ export async function fetchCompetitor(competitor) {
     return { ok: false, error: result?.error || 'No content returned (site may block scrapers).' };
   }
 
-  const latest = getLatestSnapshot(competitor.id);
+  const latest = await getLatestSnapshot(competitor.id);
   if (latest && latest.content_hash === hashContent(markdown)) {
     return { ok: true, unchanged: true, snapshot: latest };
   }
 
-  const snapshot = insertSnapshot(competitor.id, markdown);
+  const snapshot = await insertSnapshot(competitor.id, markdown);
   return { ok: true, unchanged: false, snapshot, previous: latest || null };
 }
 

@@ -1,0 +1,112 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signUp, signIn } from '../../../lib/auth';
+
+export default function SignupPage() {
+  const router = useRouter();
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [needsVerify, setNeedsVerify] = useState(false);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const result = await signUp({ email: form.email, password: form.password, name: form.name });
+      if (result?.requireEmailVerification) {
+        setNeedsVerify(true);
+      } else {
+        // Auto sign-in if email verification not required
+        await signIn({ email: form.email, password: form.password });
+        router.push('/');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (needsVerify) {
+    return (
+      <div className="card p-6 text-center space-y-3">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-950/40 border border-emerald-800/40">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </div>
+        <h2 className="text-lg font-semibold text-white">Check your email</h2>
+        <p className="text-sm text-slate-400">
+          We sent a verification link to <strong className="text-slate-200">{form.email}</strong>.
+          Click it to activate your account, then sign in.
+        </p>
+        <Link href="/login" className="btn-primary inline-flex mt-2">Sign in</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={submit} className="card space-y-4 p-6">
+        <div>
+          <label className="label">Name</label>
+          <input
+            type="text"
+            className="input"
+            value={form.name}
+            onChange={set('name')}
+            placeholder="Your name"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="label">Email</label>
+          <input
+            type="email"
+            className="input"
+            value={form.email}
+            onChange={set('email')}
+            placeholder="you@company.com"
+            required
+          />
+        </div>
+        <div>
+          <label className="label">Password</label>
+          <input
+            type="password"
+            className="input"
+            value={form.password}
+            onChange={set('password')}
+            placeholder="Min. 8 characters"
+            minLength={8}
+            required
+          />
+        </div>
+
+        {error && (
+          <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">
+            {error}
+          </p>
+        )}
+
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? 'Creating account…' : 'Create account'}
+        </button>
+      </form>
+
+      <p className="text-center text-sm text-slate-500">
+        Already have an account?{' '}
+        <Link href="/login" className="text-accent-soft hover:text-white transition">
+          Sign in
+        </Link>
+      </p>
+    </div>
+  );
+}

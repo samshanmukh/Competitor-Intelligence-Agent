@@ -3,45 +3,39 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import {
-  EmptyState, Icon, ImpactBadge, Spinner, StatusDot, timeAgo, useToast,
-} from './ui';
+import { Icon, KpiCard, ImpactBadge, StatusDot, Skeleton, EmptyState, timeAgo, NotificationBell, useToast } from './ui';
 
 export default function DashboardClient() {
-  const [competitors, setCompetitors] = useState([]);
-  const [changes, setChanges] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [competitors, setCompetitors] = useState(null);
+  const [changes, setChanges] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [unseen, setUnseen] = useState(0);
   const toast = useToast();
 
   const load = async () => {
     try {
-      const [{ competitors }, { changes }] = await Promise.all([
+      const [compData, changeData] = await Promise.all([
         api.listCompetitors('approved'),
-        api.changes(50),
+        api.changes(10),
       ]);
-      setCompetitors(competitors);
-      setChanges(changes);
+      setCompetitors(compData.competitors || []);
+      setChanges((changeData.changes || []).map((c) => {
+        try { return { ...c, analysis: typeof c.analysis === 'string' ? JSON.parse(c.analysis) : c.analysis }; } catch { return c; }
+      }));
+      setUnseen(changeData.unseen || 0);
     } catch (err) {
-      toast({ type: 'error', title: 'Failed to load', message: err.message });
-    } finally {
-      setLoading(false);
+      toast({ type: 'error', title: 'Failed to load dashboard', message: err.message });
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); api.recordVisit().catch(() => {}); }, []);
 
-  const refreshAll = async () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const { results } = await api.refreshAll();
-      const changed = results.filter((r) => r.status === 'changed');
-      const errored = results.filter((r) => r.status === 'error');
-      toast({
-        type: changed.length ? 'success' : 'info',
-        title: changed.length ? `${changed.length} pricing change(s) detected` : 'All up to date',
-        message: errored.length ? `${errored.length} page(s) could not be fetched.` : 'Snapshots refreshed.',
-      });
+      const result = await api.refreshAll();
+      const changed = (result.results || []).filter((r) => r.status === 'changed').length;
+      toast({ type: 'success', title: 'Refresh complete', message: `${changed} change${changed !== 1 ? 's' : ''} detected` });
       await load();
     } catch (err) {
       toast({ type: 'error', title: 'Refresh failed', message: err.message });
@@ -50,201 +44,143 @@ export default function DashboardClient() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center text-slate-500">
-        <Spinner /> <span className="ml-2 text-sm">Loading dashboard…</span>
-      </div>
-    );
-  }
+  const loading = competitors === null;
+  const approved = competitors || [];
+  const changesThisWeek = (changes || []).filter((c) => {
+    const d = new Date(c.detected_at);
+    return (Date.now() - d.getTime()) < 7 * 86400 * 1000;
+  });
+  const highImpact = (changes || []).filter((c) => c.analysis?.impact === 'high');
 
   return (
-    <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+    <div className="max-w-5xl space-y-8">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Monitoring {competitors.length} competitor{competitors.length === 1 ? '' : 's'}.
+          <p className="mt-1 text-sm text-slate-500">
+            Monitoring {loading ? '…' : `${approved.length} competitor${approved.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        {competitors.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Link href="/discover" className="btn-ghost">
-              <Icon name="plus" /> Add competitors
-            </Link>
-            <button onClick={refreshAll} disabled={refreshing} className="btn-primary">
-              {refreshing ? <Spinner /> : <Icon name="refresh" />}
-              {refreshing ? 'Refreshing…' : 'Refresh all'}
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <NotificationBell unseen={unseen} />
+          <button onClick={handleRefresh} disabled={refreshing} className="btn-primary">
+            <Icon name="refresh" className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing…' : 'Refresh all'}
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)
+        ) : (
+          <>
+            <KpiCard label="Competitors" value={approved.length} icon="users" color="accent" sub="tracked & approved" />
+            <KpiCard label="Changes (7d)" value={changesThisWeek.length} icon="activity" color={changesThisWeek.length > 0 ? 'amber' : 'green'} sub="pricing events" />
+            <KpiCard label="High Impact" value={highImpact.length} icon="alert" color={highImpact.length > 0 ? 'rose' : 'green'} sub="need attention" />
+            <KpiCard label="Unread" value={unseen} icon="bell" color={unseen > 0 ? 'amber' : 'green'} sub={unseen > 0 ? 'new since last visit' : 'all caught up'} />
+          </>
         )}
-      </header>
+      </div>
 
-      {competitors.length === 0 ? (
-        <EmptyState
-          icon="radar"
-          title="No competitors yet"
-          action={
-            <Link href="/discover" className="btn-primary">
-              <Icon name="search" /> Discover competitors
-            </Link>
-          }
-        >
-          Tell the agent what you build — in plain English, with your product URL, or by pasting
-          competitor pricing pages. It'll find competitors, snapshot their pricing, and flag every change.
-        </EmptyState>
-      ) : (
-        <>
-          <CompetitorTable competitors={competitors} onRefreshed={load} />
-          {changes.length > 0 && (
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-                  Recent changes
-                </h2>
-                <Link href="/changes" className="text-xs text-accent-soft hover:underline">
-                  View all
-                </Link>
-              </div>
-              <ChangeFeed changes={changes.slice(0, 5)} />
-            </section>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function CompetitorTable({ competitors, onRefreshed }) {
-  const [busyId, setBusyId] = useState(null);
-  const toast = useToast();
-
-  const refreshOne = async (e, id) => {
-    e.preventDefault();
-    setBusyId(id);
-    try {
-      const { result } = await api.refreshOne(id);
-      const map = {
-        changed: { type: 'success', title: 'Change detected', message: result.summary },
-        unchanged: { type: 'info', title: 'No change', message: 'Identical to last snapshot.' },
-        first_snapshot: { type: 'success', title: 'First snapshot saved' },
-        error: { type: 'error', title: 'Fetch failed', message: result.error },
-      };
-      toast(map[result.status] || { title: 'Done' });
-      onRefreshed();
-    } catch (err) {
-      toast({ type: 'error', title: 'Refresh failed', message: err.message });
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  return (
-    <div className="card overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-ink-800 text-left text-xs uppercase tracking-wide text-slate-500">
-            <th className="px-4 py-3 font-medium">Competitor</th>
-            <th className="px-4 py-3 font-medium">Last checked</th>
-            <th className="px-4 py-3 font-medium">Last change</th>
-            <th className="px-4 py-3 font-medium">Changes</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {competitors.map((c) => (
-            <tr key={c.id} className="border-b border-ink-850 last:border-0 hover:bg-ink-850/50">
-              <td className="px-4 py-3">
-                <Link href={`/competitors/${c.id}`} className="flex items-center gap-2.5">
-                  <StatusDot competitor={c} />
-                  <div>
-                    <div className="font-medium text-white">{c.name}</div>
-                    <div className="max-w-[260px] truncate text-xs text-slate-500">{c.pricing_url}</div>
-                  </div>
-                </Link>
-              </td>
-              <td className="px-4 py-3 text-slate-400">
-                {c.last_error ? (
-                  <span className="chip border-rose-800/60 bg-rose-950/40 text-rose-300">fetch error</span>
-                ) : (
-                  timeAgo(c.last_checked_at)
-                )}
-              </td>
-              <td className="px-4 py-3 text-slate-400">
-                {c.last_changed_at ? timeAgo(c.last_changed_at) : <span className="text-slate-600">—</span>}
-              </td>
-              <td className="px-4 py-3 text-slate-400">{c.changeCount || 0}</td>
-              <td className="px-4 py-3 text-right">
-                <button
-                  onClick={(e) => refreshOne(e, c.id)}
-                  disabled={busyId === c.id}
-                  className="btn-ghost px-2.5 py-1.5"
-                  title="Refresh"
-                >
-                  {busyId === c.id ? <Spinner /> : <Icon name="refresh" />}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function ChangeFeed({ changes }) {
-  if (!changes.length) {
-    return (
-      <EmptyState icon="bell" title="No changes detected yet">
-        Once you refresh, the agent diffs each pricing page against its last snapshot and Grok
-        summarizes exactly what moved — plan names, price points, features added or removed.
-      </EmptyState>
-    );
-  }
-  return (
-    <div className="space-y-3">
-      {changes.map((ch) => (
-        <Link
-          key={ch.id}
-          href={`/competitors/${ch.competitor_id}`}
-          className="card block px-4 py-3.5 transition hover:border-ink-600"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-white">{ch.competitor_name}</span>
-                {ch.analysis?.impact && <ImpactBadge impact={ch.analysis.impact} />}
-                {!ch.seen && (
-                  <span className="chip border-accent/40 bg-accent/10 text-accent-soft">new</span>
-                )}
-              </div>
-              <p className="mt-1 text-sm text-slate-300">{ch.summary || ch.analysis?.summary}</p>
-              <ChangeTags analysis={ch.analysis} />
-            </div>
-            <div className="shrink-0 text-xs text-slate-500">{timeAgo(ch.detected_at)}</div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Competitor list */}
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">Competitors</h2>
+            <Link href="/competitors" className="text-xs text-accent-soft hover:text-white transition">View all →</Link>
           </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
+          {loading ? (
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+          ) : approved.length === 0 ? (
+            <EmptyState icon="users" title="No competitors yet" action={
+              <Link href="/discover" className="btn-primary">Discover competitors</Link>
+            }>
+              Use Discover to find and track competitors in your market.
+            </EmptyState>
+          ) : (
+            <div className="space-y-2">
+              {approved.slice(0, 6).map((c) => (
+                <Link key={c.id} href={`/competitors/${c.id}`}
+                  className="card flex items-center gap-3 p-3.5 hover:border-ink-600 transition group">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink-800 text-sm font-bold text-slate-400">
+                    {c.name[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <StatusDot competitor={c} />
+                      <span className="text-sm font-medium text-white truncate">{c.name}</span>
+                      {c.value_score != null && (
+                        <span className="ml-auto shrink-0 text-xs text-slate-500">{c.value_score}/10 value</span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500 truncate">
+                      {c.last_checked_at ? `Checked ${timeAgo(c.last_checked_at)}` : 'Never checked'} · {c.changeCount || 0} changes
+                    </p>
+                  </div>
+                  <Icon name="chevronRight" className="h-4 w-4 text-slate-700 group-hover:text-slate-400 transition" />
+                </Link>
+              ))}
+              {approved.length > 6 && (
+                <Link href="/competitors" className="block text-center py-2 text-xs text-slate-500 hover:text-slate-300 transition">
+                  +{approved.length - 6} more
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
 
-export function ChangeTags({ analysis }) {
-  if (!analysis) return null;
-  const tags = [];
-  (analysis.price_changes || []).forEach((p) =>
-    tags.push(`${p.plan || 'Plan'}: ${p.old_price || '?'} → ${p.new_price || '?'}`)
-  );
-  (analysis.plans_added || []).forEach((p) => tags.push(`+ plan: ${p}`));
-  (analysis.plans_removed || []).forEach((p) => tags.push(`− plan: ${p}`));
-  (analysis.features_added || []).slice(0, 3).forEach((f) => tags.push(`+ ${f}`));
-  (analysis.features_removed || []).slice(0, 3).forEach((f) => tags.push(`− ${f}`));
-  if (!tags.length) return null;
-  return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {tags.slice(0, 6).map((t, i) => (
-        <span key={i} className="chip border-ink-700 bg-ink-850 text-slate-400">{t}</span>
-      ))}
+        {/* Recent changes */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">Recent Changes</h2>
+            <Link href="/changes" className="text-xs text-accent-soft hover:text-white transition">View all →</Link>
+          </div>
+          {loading ? (
+            <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
+          ) : !(changes?.length) ? (
+            <div className="card p-4 text-center text-sm text-slate-500">
+              No changes yet. Run a refresh to check pricing pages.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(changes || []).slice(0, 6).map((c) => (
+                <Link key={c.id} href="/changes" className="card block p-3 hover:border-ink-600 transition">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-xs font-medium text-slate-300 truncate">{c.competitor_name || '—'}</span>
+                    <ImpactBadge impact={c.analysis?.impact} />
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-2">{c.analysis?.summary || c.summary || 'Pricing page updated'}</p>
+                  <p className="mt-1 text-[10px] text-slate-600">{timeAgo(c.detected_at)}</p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-white">Quick Actions</h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { href: '/discover', icon: 'search', label: 'Discover', desc: 'Find new competitors' },
+            { href: '/compare', icon: 'bar', label: 'Compare', desc: 'Side-by-side analysis' },
+            { href: '/my-product', icon: 'shield', label: 'My Product', desc: 'Gap analysis' },
+            { href: '/reports', icon: 'share', label: 'Reports', desc: 'Export insights' },
+          ].map((a) => (
+            <Link key={a.href} href={a.href} className="card p-4 hover:border-ink-600 transition group">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-ink-800 text-accent-soft group-hover:bg-accent/15 transition">
+                <Icon name={a.icon} className="h-4 w-4" />
+              </div>
+              <p className="text-sm font-medium text-white">{a.label}</p>
+              <p className="text-xs text-slate-500">{a.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

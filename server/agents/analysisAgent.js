@@ -2,7 +2,7 @@
 // Grok to summarize what changed in the competitor's pricing.
 
 import { createTwoFilesPatch } from 'diff';
-import { completeJSON } from '../services/grok.js';
+import { completeJSON } from '../services/ai.js';
 
 const ANALYSIS_SYSTEM = `You are a competitive pricing analyst. You read diffs of competitor pricing pages and explain what changed.
 Be specific about plan names, price points, and features added or removed. Return ONLY valid JSON.`;

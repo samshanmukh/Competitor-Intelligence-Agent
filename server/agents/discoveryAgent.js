@@ -7,7 +7,7 @@
 //   3. Use Grok to extract clean, structured {name, website, pricing_url, notes}.
 
 import { research, fetchContents } from '../services/youcom.js';
-import { complete, completeJSON } from '../services/grok.js';
+import { complete, completeJSON } from '../services/ai.js';
 
 const EXTRACT_SYSTEM = `You are a market research analyst. You extract structured competitor data from web research.
 Return ONLY valid JSON. Never invent URLs — only use URLs present in the provided research text.`;
@@ -34,6 +34,9 @@ export async function inferMarketFromUrl(productUrl) {
 /**
  * Pull a compact, text-only view out of the You.com research payload so we can
  * feed it to Grok for extraction (and keep token usage reasonable).
+ *
+ * Supports new format: { output: { content, sources: [{url, title, snippets}] } }
+ * and legacy format:   { answer, results: [{title, url, snippet}], ... }
  */
 function flattenResearch(payload) {
   const parts = [];
@@ -41,7 +44,17 @@ function flattenResearch(payload) {
     if (typeof v === 'string' && v.trim()) parts.push(v.trim());
   };
 
-  // Common shapes: { answer, results: [{title,url,snippet}], search_results: [...] }
+  // New format (2026): { output: { content, sources: [{url, title, snippets:[]}] } }
+  if (payload.output) {
+    push(payload.output.content);
+    for (const src of payload.output.sources || []) {
+      const snippetText = (src.snippets || []).join(' ');
+      const line = [src.title, src.url, snippetText].filter(Boolean).join(' — ');
+      push(line);
+    }
+  }
+
+  // Legacy fallbacks: { answer, results/search_results/web_results/sources/citations/hits }
   push(payload.answer);
   push(payload.summary);
   push(payload.text);
@@ -57,16 +70,13 @@ function flattenResearch(payload) {
   for (const bucket of buckets) {
     if (!Array.isArray(bucket)) continue;
     for (const item of bucket) {
-      if (typeof item === 'string') {
-        push(item);
-        continue;
-      }
+      if (typeof item === 'string') { push(item); continue; }
       const line = [item.title || item.name, item.url || item.link, item.snippet || item.description || item.text]
-        .filter(Boolean)
-        .join(' — ');
+        .filter(Boolean).join(' — ');
       push(line);
     }
   }
+
   return parts.join('\n').slice(0, 16000);
 }
 

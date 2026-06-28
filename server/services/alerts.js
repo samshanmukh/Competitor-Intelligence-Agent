@@ -5,7 +5,7 @@
 import { getSetting } from '../db/index.js';
 
 export async function sendWebhook(change, competitor) {
-  const url = getSetting('webhook_url');
+  const url = await getSetting('webhook_url');
   if (!url) return { sent: false, reason: 'no webhook configured' };
 
   let analysis = {};

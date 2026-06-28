@@ -4,16 +4,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import {
-  EmptyState, Icon, ImpactBadge, Spinner, timeAgo, useToast,
-} from './ui';
-import { ChangeTags } from './DashboardClient';
+import { EmptyState, Icon, ImpactBadge, Skeleton, TabBar, ValueScore, timeAgo, useToast, ConfirmDialog } from './ui';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function CompetitorDetailClient({ id }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState('snapshot');
+  const [scoring, setScoring] = useState(false);
+  const [battlecard, setBattlecard] = useState(null);
+  const [loadingBattlecard, setLoadingBattlecard] = useState(false);
+  const [priceHistory, setPriceHistory] = useState(null);
+  const [tab, setTab] = useState('overview');
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const toast = useToast();
   const router = useRouter();
 
@@ -28,6 +31,14 @@ export default function CompetitorDetailClient({ id }) {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (tab === 'pricing') {
+      api.priceHistory(id)
+        .then(({ history }) => setPriceHistory(history || []))
+        .catch(() => setPriceHistory([]));
+    }
+  }, [tab, id]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -48,12 +59,36 @@ export default function CompetitorDetailClient({ id }) {
     }
   };
 
+  const runValueScore = async () => {
+    setScoring(true);
+    try {
+      const { score, reasoning } = await api.valueScore(id);
+      toast({ type: 'success', title: `Value score: ${score}/10` });
+      await load();
+    } catch (err) {
+      toast({ type: 'error', title: 'Scoring failed', message: err.message });
+    } finally {
+      setScoring(false);
+    }
+  };
+
+  const loadBattlecard = async () => {
+    setLoadingBattlecard(true);
+    try {
+      const { battlecard: bc } = await api.battlecard(id);
+      setBattlecard(bc);
+    } catch (err) {
+      toast({ type: 'error', title: 'Battlecard failed', message: err.message });
+    } finally {
+      setLoadingBattlecard(false);
+    }
+  };
+
   const remove = async () => {
-    if (!confirm('Stop monitoring and delete this competitor and all its history?')) return;
     try {
       await api.deleteCompetitor(id);
       toast({ type: 'success', title: 'Removed' });
-      router.push('/');
+      router.push('/competitors');
     } catch (err) {
       toast({ type: 'error', title: 'Could not remove', message: err.message });
     }
@@ -61,166 +96,314 @@ export default function CompetitorDetailClient({ id }) {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center text-slate-500">
-        <Spinner /> <span className="ml-2 text-sm">Loading…</span>
+      <div className="max-w-4xl space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-64" />
       </div>
     );
   }
   if (!data) return null;
 
   const { competitor, latestSnapshot, changes } = data;
+  const parsedChanges = (changes || []).map((c) => {
+    try { return { ...c, analysis: typeof c.analysis === 'string' ? JSON.parse(c.analysis) : c.analysis }; }
+    catch { return c; }
+  });
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: 'radar' },
+    { id: 'pricing', label: 'Price History', icon: 'trending' },
+    { id: 'snapshot', label: 'Snapshot', icon: 'clock' },
+    { id: 'changes', label: `Changes (${parsedChanges.length})`, icon: 'activity' },
+    { id: 'battlecard', label: 'Battlecard', icon: 'shield' },
+  ];
+
+  // Build chart data from price history
+  const chartData = (priceHistory || []).map((h) => ({
+    date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    ...Object.fromEntries((h.tiers || []).map((t) => [t.name, t.price_monthly])),
+  })).reverse();
+
+  const tierNames = [...new Set((priceHistory || []).flatMap((h) => (h.tiers || []).map((t) => t.name)))];
+  const COLORS = ['#6366f1', '#34d399', '#f59e0b', '#f87171', '#a78bfa'];
 
   return (
-    <div className="space-y-6">
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white">
-        <Icon name="chevronLeft" className="h-4 w-4" /> Back to dashboard
+    <div className="max-w-4xl space-y-6">
+      <Link href="/competitors" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white transition">
+        <Icon name="chevronLeft" className="h-4 w-4" /> Competitors
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-white">{competitor.name}</h1>
-          <a
-            href={competitor.pricing_url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-sm text-accent-soft hover:underline"
-          >
+          <a href={competitor.pricing_url} target="_blank" rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-sm text-accent-soft hover:underline">
             {competitor.pricing_url} <Icon name="external" className="h-3.5 w-3.5" />
           </a>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <span className="inline-flex items-center gap-1">
-              <Icon name="clock" className="h-3.5 w-3.5" /> Checked {timeAgo(competitor.last_checked_at)}
-            </span>
-            {competitor.last_changed_at && <span>Last change {timeAgo(competitor.last_changed_at)}</span>}
-            <span>{changes.length} change{changes.length === 1 ? '' : 's'} on record</span>
+            <span>Checked {timeAgo(competitor.last_checked_at)}</span>
+            {competitor.last_changed_at && <span>Changed {timeAgo(competitor.last_changed_at)}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refresh} disabled={refreshing} className="btn-primary">
-            {refreshing ? <Spinner /> : <Icon name="refresh" />}
+            <Icon name="refresh" className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing…' : 'Refresh'}
           </button>
-          <button onClick={remove} className="btn-danger px-2.5">
-            <Icon name="trash" />
+          <button onClick={() => setConfirmDelete(true)} className="btn-danger px-2.5">
+            <Icon name="trash" className="h-4 w-4" />
           </button>
         </div>
-      </header>
+      </div>
 
       {competitor.last_error && (
-        <div className="card flex items-start gap-2 border-rose-900/50 bg-rose-950/20 px-4 py-3 text-sm text-rose-300">
+        <div className="flex items-start gap-2 rounded-xl border border-rose-900/40 bg-rose-950/20 px-4 py-3 text-sm text-rose-300">
           <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <div className="font-medium">Last fetch failed</div>
-            <div className="text-rose-400/80">{competitor.last_error}</div>
-            <div className="mt-1 text-xs text-rose-400/60">
-              Some sites block automated scrapers. Try again later or verify the URL.
-            </div>
+            <div className="mt-0.5 text-rose-400/80 text-xs">{competitor.last_error}</div>
           </div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-ink-800">
-        {[
-          { id: 'snapshot', label: 'Current snapshot' },
-          { id: 'timeline', label: `Change history (${changes.length})` },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${
-              tab === t.id
-                ? 'border-accent text-white'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar tabs={tabs} active={tab} onChange={setTab} />
 
-      {tab === 'snapshot' ? (
+      {/* Overview */}
+      {tab === 'overview' && (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="card p-4 text-center space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Value Score</p>
+              <p className="text-2xl font-bold"><ValueScore score={competitor.value_score} /></p>
+              <button
+                onClick={runValueScore}
+                disabled={scoring}
+                className="text-xs text-accent-soft hover:text-white transition"
+              >
+                {scoring ? 'Scoring…' : competitor.value_score ? 'Re-score' : 'Run AI score'}
+              </button>
+            </div>
+            <div className="card p-4 text-center space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Changes</p>
+              <p className="text-2xl font-bold text-white">{parsedChanges.length}</p>
+              <p className="text-xs text-slate-600">pricing events detected</p>
+            </div>
+            <div className="card p-4 text-center space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Snapshots</p>
+              <p className="text-2xl font-bold text-white">{data.snapshots?.length || 0}</p>
+              <p className="text-xs text-slate-600">content captures</p>
+            </div>
+          </div>
+
+          {competitor.value_analysis && (
+            <div className="card p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Value Analysis</h3>
+              <p className="text-sm text-slate-300 leading-relaxed">{competitor.value_analysis}</p>
+            </div>
+          )}
+
+          {competitor.description && (
+            <div className="card p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Description</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">{competitor.description}</p>
+            </div>
+          )}
+
+          {parsedChanges.length > 0 && (
+            <div className="card p-4 space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recent Changes</h3>
+              {parsedChanges.slice(0, 3).map((c) => (
+                <div key={c.id} className="flex items-start gap-2">
+                  <ImpactBadge impact={c.analysis?.impact} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-300">{c.analysis?.summary || 'Pricing updated'}</p>
+                    <p className="text-xs text-slate-600">{timeAgo(c.detected_at)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Price History Chart */}
+      {tab === 'pricing' && (
+        <div className="card p-4 space-y-4">
+          <h2 className="text-sm font-semibold text-white">Price History</h2>
+          {priceHistory === null ? (
+            <div className="h-64 flex items-center justify-center">
+              <Icon name="refresh" className="h-5 w-5 animate-spin text-slate-500" />
+            </div>
+          ) : chartData.length < 2 ? (
+            <EmptyState icon="trending" title="Not enough history">
+              At least 2 snapshots are needed to chart price changes over time.
+            </EmptyState>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#181c24" />
+                <XAxis dataKey="date" tick={{ fill: '#64748b', fontSize: 11 }} />
+                <YAxis tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                <Tooltip
+                  contentStyle={{ background: '#0e1014', border: '1px solid #181c24', borderRadius: 8 }}
+                  labelStyle={{ color: '#e2e8f0' }}
+                  formatter={(v) => [`$${v}/mo`, '']}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} />
+                {tierNames.map((name, i) => (
+                  <Line key={name} type="monotone" dataKey={name} stroke={COLORS[i % COLORS.length]}
+                    strokeWidth={2} dot={{ r: 3, fill: COLORS[i % COLORS.length] }} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      )}
+
+      {/* Snapshot */}
+      {tab === 'snapshot' && (
         latestSnapshot ? (
           <div className="space-y-2">
-            <div className="text-xs text-slate-500">Captured {timeAgo(latestSnapshot.fetched_at)}</div>
+            <p className="text-xs text-slate-500">Captured {timeAgo(latestSnapshot.fetched_at)}</p>
             <pre className="card max-h-[600px] overflow-auto whitespace-pre-wrap p-5 font-mono text-xs leading-relaxed text-slate-300">
               {latestSnapshot.content}
             </pre>
           </div>
         ) : (
-          <EmptyState
-            icon="clock"
-            title="No snapshot yet"
-            action={
-              <button onClick={refresh} className="btn-primary">
-                <Icon name="refresh" /> Fetch now
-              </button>
-            }
-          >
-            Hit refresh to capture the first baseline snapshot via You.com.
+          <EmptyState icon="clock" title="No snapshot yet" action={
+            <button onClick={refresh} className="btn-primary"><Icon name="refresh" /> Fetch now</button>
+          }>
+            Hit refresh to capture the first baseline snapshot.
           </EmptyState>
         )
-      ) : (
-        <Timeline changes={changes} />
       )}
+
+      {/* Changes */}
+      {tab === 'changes' && (
+        parsedChanges.length === 0 ? (
+          <EmptyState icon="bell" title="No changes recorded">
+            The first refresh captures a baseline. Changes appear here on subsequent refreshes.
+          </EmptyState>
+        ) : (
+          <div className="space-y-3">
+            {parsedChanges.map((ch) => (
+              <DiffCard key={ch.id} change={ch} />
+            ))}
+          </div>
+        )
+      )}
+
+      {/* Battlecard */}
+      {tab === 'battlecard' && (
+        <div className="space-y-4">
+          {!battlecard && (
+            <div className="card p-5 text-center space-y-3">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent-soft">
+                <Icon name="shield" className="h-6 w-6" />
+              </div>
+              <h2 className="font-semibold text-white">Generate Battlecard</h2>
+              <p className="text-sm text-slate-400">
+                AI-generated sales battlecard with strengths, weaknesses, how to win, and objection handling.
+              </p>
+              <button onClick={loadBattlecard} disabled={loadingBattlecard || !latestSnapshot} className="btn-primary">
+                {loadingBattlecard
+                  ? <><Icon name="refresh" className="h-4 w-4 animate-spin" /> Generating…</>
+                  : <><Icon name="sparkle" className="h-4 w-4" /> Generate</>
+                }
+              </button>
+              {!latestSnapshot && <p className="text-xs text-slate-600">Refresh to capture a snapshot first.</p>}
+            </div>
+          )}
+
+          {battlecard && (
+            <div className="space-y-4">
+              {battlecard.elevator_pitch && (
+                <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+                  <p className="text-sm font-medium text-accent-soft">"{battlecard.elevator_pitch}"</p>
+                </div>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { label: 'Their Strengths', items: battlecard.strengths, color: 'rose' },
+                  { label: 'Their Weaknesses', items: battlecard.weaknesses, color: 'emerald' },
+                  { label: 'How to Win', items: battlecard.how_to_win, color: 'accent' },
+                ].map(({ label, items, color }) => items?.length ? (
+                  <div key={label} className="card p-4 space-y-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</h3>
+                    <ul className="space-y-1">
+                      {items.map((item, i) => (
+                        <li key={i} className={`flex items-start gap-2 text-sm ${
+                          color === 'rose' ? 'text-rose-300' : color === 'emerald' ? 'text-emerald-300' : 'text-slate-300'
+                        }`}>
+                          <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-current" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null)}
+              </div>
+              {battlecard.common_objections?.length > 0 && (
+                <div className="card p-4 space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Common Objections</h3>
+                  {battlecard.common_objections.map((obj, i) => (
+                    <div key={i} className="space-y-1">
+                      <p className="text-xs font-medium text-slate-400">"{obj.objection}"</p>
+                      <p className="text-sm text-slate-300 pl-2 border-l border-accent/30">{obj.response}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-end">
+                <button onClick={loadBattlecard} disabled={loadingBattlecard} className="btn-ghost text-xs">
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={remove}
+        title="Delete competitor"
+        message={`Remove ${competitor.name} and all its history? This cannot be undone.`}
+        danger
+      />
     </div>
   );
 }
 
-function Timeline({ changes }) {
-  if (!changes.length) {
-    return (
-      <EmptyState icon="bell" title="No changes recorded">
-        The first refresh captures a baseline. From then on, every difference is diffed, analyzed
-        by Grok, and listed here.
-      </EmptyState>
-    );
-  }
-  return (
-    <ol className="relative space-y-4 border-l border-ink-800 pl-6">
-      {changes.map((ch) => (
-        <li key={ch.id} className="relative">
-          <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-ink-950 bg-accent" />
-          <ChangeCard change={ch} />
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function ChangeCard({ change }) {
+function DiffCard({ change }) {
   const [showDiff, setShowDiff] = useState(false);
   const a = change.analysis || {};
   return (
-    <div className="card p-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="card p-4 space-y-2">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {a.impact && <ImpactBadge impact={a.impact} />}
           <span className="text-xs text-slate-500">{timeAgo(change.detected_at)}</span>
         </div>
-        <button onClick={() => setShowDiff((s) => !s)} className="text-xs text-accent-soft hover:underline">
-          {showDiff ? 'Hide diff' : 'View raw diff'}
-        </button>
+        {change.diff && (
+          <button onClick={() => setShowDiff((s) => !s)} className="text-xs text-accent-soft hover:text-white transition">
+            {showDiff ? 'Hide diff' : 'View diff'}
+          </button>
+        )}
       </div>
-
-      <p className="mt-2 text-sm font-medium text-white">{a.summary || change.summary}</p>
-      {a.details && <p className="mt-1 text-sm text-slate-400">{a.details}</p>}
-      <ChangeTags analysis={a} />
-
-      {showDiff && (
-        <pre className="mt-3 max-h-80 overflow-auto rounded-lg border border-ink-800 bg-ink-950 p-3 font-mono text-[11px] leading-relaxed">
+      {a.summary && <p className="text-sm text-white">{a.summary}</p>}
+      {a.details && <p className="text-sm text-slate-400">{a.details}</p>}
+      {showDiff && change.diff && (
+        <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-ink-800 bg-ink-950 p-3 font-mono text-[11px] leading-relaxed">
           {change.diff.split('\n').map((line, i) => (
-            <div
-              key={i}
-              className={
-                line.startsWith('+') && !line.startsWith('+++') ? 'text-emerald-400'
-                  : line.startsWith('-') && !line.startsWith('---') ? 'text-rose-400'
-                    : line.startsWith('@@') ? 'text-accent-soft'
-                      : 'text-slate-500'
-              }
-            >
-              {line || ' '}
-            </div>
+            <div key={i} className={
+              line.startsWith('+') && !line.startsWith('+++') ? 'text-emerald-400' :
+              line.startsWith('-') && !line.startsWith('---') ? 'text-rose-400' :
+              line.startsWith('@@') ? 'text-accent-soft' : 'text-slate-500'
+            }>{line || ' '}</div>
           ))}
         </pre>
       )}

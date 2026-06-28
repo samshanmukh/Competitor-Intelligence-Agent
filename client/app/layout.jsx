@@ -1,7 +1,7 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
-import Sidebar from '../components/Sidebar';
 import { ToastProvider } from '../components/ui';
+import AppShell from '../components/AppShell';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -15,12 +15,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className="dark">
       <body className={inter.className}>
         <ToastProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 mx-auto max-w-6xl px-5 py-8 md:px-8">
-              {children}
-            </main>
-          </div>
+          <AppShell>{children}</AppShell>
         </ToastProvider>
       </body>
     </html>

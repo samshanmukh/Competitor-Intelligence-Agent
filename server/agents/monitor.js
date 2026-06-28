@@ -13,12 +13,12 @@ export async function refreshCompetitor(competitor) {
   const result = await fetchCompetitor(competitor);
 
   if (!result.ok) {
-    setCompetitorChecked(competitor.id, { error: result.error });
+    await setCompetitorChecked(competitor.id, { error: result.error });
     return { id: competitor.id, name: competitor.name, status: 'error', error: result.error };
   }
 
   if (result.unchanged) {
-    setCompetitorChecked(competitor.id, { error: null, changed: false });
+    await setCompetitorChecked(competitor.id, { error: null, changed: false });
     return { id: competitor.id, name: competitor.name, status: 'unchanged' };
   }
 
@@ -26,14 +26,14 @@ export async function refreshCompetitor(competitor) {
 
   // First snapshot for this competitor — nothing to diff against yet.
   if (!previous) {
-    setCompetitorChecked(competitor.id, { error: null, changed: false });
+    await setCompetitorChecked(competitor.id, { error: null, changed: false });
     return { id: competitor.id, name: competitor.name, status: 'first_snapshot', snapshotId: snapshot.id };
   }
 
   const diff = buildDiff(previous.content, snapshot.content, competitor.name);
   const analysis = await analyzeDiff({ competitorName: competitor.name, diff });
 
-  const change = insertChange({
+  const change = await insertChange({
     competitor_id: competitor.id,
     snapshot_id: snapshot.id,
     prev_snapshot_id: previous.id,
@@ -42,7 +42,7 @@ export async function refreshCompetitor(competitor) {
     analysis,
   });
 
-  setCompetitorChecked(competitor.id, { error: null, changed: true });
+  await setCompetitorChecked(competitor.id, { error: null, changed: true });
 
   // Fire-and-await the webhook but never let it fail the refresh.
   let webhook = null;
@@ -70,7 +70,7 @@ export async function refreshCompetitor(competitor) {
 export async function refreshAll(competitors, onProgress) {
   const results = [];
   for (let i = 0; i < competitors.length; i++) {
-    const comp = getCompetitor(competitors[i].id) || competitors[i];
+    const comp = (await getCompetitor(competitors[i].id)) || competitors[i];
     const res = await refreshCompetitor(comp);
     results.push(res);
     if (onProgress) onProgress(res, i + 1, competitors.length);

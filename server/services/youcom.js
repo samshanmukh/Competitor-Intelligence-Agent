@@ -1,10 +1,14 @@
 // Thin client for the You.com Research + Contents APIs with simple
 // rate-limit awareness (serialized calls + spacing + 429 retry/backoff).
+//
+// Response shapes as of 2026:
+//   Research: POST /research { input } → { output: { content, content_type, sources:[{url,title,snippets}] } }
+//   Contents: POST /contents { urls }  → [{url, html, title}]  (direct array, content is raw HTML)
+
+import { getKey } from './keys.js';
 
 const BASE = 'https://api.you.com/v1';
 
-// You.com plans are rate limited; we keep calls polite by serializing them
-// and spacing requests. Tune via env if you have a higher quota.
 const MIN_INTERVAL_MS = Number(process.env.YOUCOM_MIN_INTERVAL_MS || 1200);
 const MAX_RETRIES = Number(process.env.YOUCOM_MAX_RETRIES || 3);
 
@@ -16,17 +20,15 @@ function sleep(ms) {
 }
 
 function apiKey() {
-  const key = process.env.YOUCOM_API_KEY;
+  const key = getKey('YOUCOM_API_KEY');
   if (!key) {
-    const err = new Error('YOUCOM_API_KEY is not set. Add it to your .env file.');
+    const err = new Error('YOUCOM_API_KEY is not set. Add it in Settings or your .env file.');
     err.code = 'MISSING_KEY';
     throw err;
   }
   return key;
 }
 
-// Run `fn` on a global serialized queue so we never exceed the rate limit by
-// firing concurrent requests. Each task also respects MIN_INTERVAL_MS spacing.
 function enqueue(fn) {
   const run = queue.then(async () => {
     const wait = MIN_INTERVAL_MS - (Date.now() - lastCallAt);
@@ -37,66 +39,44 @@ function enqueue(fn) {
       lastCallAt = Date.now();
     }
   });
-  // Keep the chain alive even if a task rejects.
-  queue = run.then(
-    () => undefined,
-    () => undefined
-  );
+  queue = run.then(() => undefined, () => undefined);
   return run;
 }
 
 async function request(path, body) {
-  // Validate the key up front so a missing key surfaces as MISSING_KEY (HTTP 400)
-  // rather than being rewrapped as a network error inside the retry loop.
   const key = apiKey();
   return enqueue(async () => {
     let attempt = 0;
-    // Retry on 429 / 5xx with exponential backoff.
     while (true) {
       let res;
       try {
         res = await fetch(`${BASE}${path}`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': key,
-          },
+          headers: { 'Content-Type': 'application/json', 'X-API-Key': key },
           body: JSON.stringify(body),
         });
       } catch (networkErr) {
-        if (attempt < MAX_RETRIES) {
-          await sleep(2 ** attempt * 1000);
-          attempt++;
-          continue;
-        }
+        if (attempt < MAX_RETRIES) { await sleep(2 ** attempt * 1000); attempt++; continue; }
         const err = new Error(`You.com network error: ${networkErr.message}`);
         err.code = 'NETWORK';
         throw err;
       }
 
-      if (res.status === 429 || res.status >= 500) {
-        if (attempt < MAX_RETRIES) {
-          const retryAfter = Number(res.headers.get('retry-after'));
-          const backoff = Number.isFinite(retryAfter) && retryAfter > 0
-            ? retryAfter * 1000
-            : 2 ** attempt * 1000;
-          await sleep(backoff);
-          attempt++;
-          continue;
-        }
+      if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+        const retryAfter = Number(res.headers.get('retry-after'));
+        const backoff = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2 ** attempt * 1000;
+        await sleep(backoff);
+        attempt++;
+        continue;
       }
 
       const text = await res.text();
       let json;
-      try {
-        json = text ? JSON.parse(text) : {};
-      } catch {
-        json = { raw: text };
-      }
+      try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
 
       if (!res.ok) {
         const err = new Error(
-          `You.com ${path} failed (${res.status}): ${json?.error || json?.message || text || res.statusText}`
+          `You.com ${path} failed (${res.status}): ${json?.error || json?.message || JSON.stringify(json) || res.statusText}`
         );
         err.code = res.status === 429 ? 'RATE_LIMITED' : 'API_ERROR';
         err.status = res.status;
@@ -110,34 +90,62 @@ async function request(path, body) {
 
 /**
  * Research API — used for competitor discovery.
- * Returns the raw research payload; the discovery agent extracts structure from it.
+ * Returns { output: { content, sources: [{url, title, snippets}] } }
  */
 export async function research(query) {
-  return request('/research', { query });
+  return request('/research', { input: query });
 }
 
 /**
- * Contents API — fetch clean Markdown for one or more URLs.
+ * Strip HTML to clean plain text suitable for diffing.
+ */
+function htmlToText(html) {
+  return html
+    .replace(/<(script|style|noscript|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<\/?(p|div|h[1-6]|li|tr|br|section|article|header|footer|nav|main|table|thead|tbody)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Contents API — fetch clean text for one or more URLs.
  * Returns a map of { url -> { markdown, error } }.
+ * (field kept as `markdown` for backwards compat with callers)
  */
 export async function fetchContents(urls) {
   const list = Array.isArray(urls) ? urls : [urls];
   const json = await request('/contents', { urls: list });
 
-  // The Contents API returns an array of result objects. Normalize defensively
-  // since field names can vary across API versions.
-  const results = json.results || json.contents || json.data || [];
+  // New format: direct array [{url, html, title}]
+  // Legacy fallback: object with results/contents/data key
+  const results = Array.isArray(json)
+    ? json
+    : json.results || json.contents || json.data || [];
+
   const map = {};
   for (const url of list) map[url] = { markdown: null, error: 'No content returned' };
 
-  for (const item of Array.isArray(results) ? results : []) {
+  for (const item of results) {
     const url = item.url || item.source || item.link;
-    const markdown =
-      item.markdown || item.content || item.text || item.body || (typeof item === 'string' ? item : null);
-    if (url) {
-      map[url] = markdown
-        ? { markdown, error: null }
-        : { markdown: null, error: item.error || 'Empty content (site may block scrapers)' };
+    if (!url) continue;
+
+    // New: html field; legacy: markdown/content/text/body
+    const raw = item.html || item.markdown || item.content || item.text || item.body
+      || (typeof item === 'string' ? item : null);
+
+    if (raw) {
+      // Convert HTML to clean text; if already plain text this is a no-op effectively
+      const text = item.html ? htmlToText(raw) : raw;
+      map[url] = text
+        ? { markdown: text, error: null }
+        : { markdown: null, error: 'Empty content after parsing' };
+    } else {
+      map[url] = { markdown: null, error: item.error || 'Empty content (site may block scrapers)' };
     }
   }
   return map;

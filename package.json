@@ -2,7 +2,7 @@
   "name": "competitor-pricing-intelligence-agent",
   "version": "1.0.0",
   "private": true,
-  "description": "Automatically discover, monitor, and analyze competitor pricing using You.com APIs and Claude.",
+  "description": "Automatically discover, monitor, and analyze competitor pricing using You.com APIs, Insforge, and OpenRouter.",
   "scripts": {
     "install:all": "npm install && npm install --prefix client",
     "server": "node server/index.js",
@@ -15,12 +15,15 @@
   },
   "type": "module",
   "dependencies": {
-    "better-sqlite3": "^11.7.0",
+    "@insforge/sdk": "^1.4.3",
     "cors": "^2.8.5",
     "diff": "^7.0.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "openai": "^6.45.0",
+    "resend": "^6.16.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

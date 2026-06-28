@@ -1,157 +1,205 @@
-import Database from 'better-sqlite3';
+import { createClient } from '@insforge/sdk';
 import { createHash } from 'node:crypto';
-import { readFileSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = join(__dirname, 'data');
-mkdirSync(DATA_DIR, { recursive: true });
-
-const db = new Database(join(DATA_DIR, 'app.sqlite'));
-db.exec(readFileSync(join(__dirname, 'schema.sql'), 'utf-8'));
+const insforge = createClient({
+  baseUrl: process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app',
+  anonKey: process.env.INSFORGE_ANON_KEY || 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
+});
 
 export function hashContent(content) {
   return createHash('sha256').update(content || '').digest('hex');
 }
 
 // ---------- Settings ----------
-export function getSetting(key, fallback = null) {
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
-  return row ? row.value : fallback;
+export async function getSetting(key, fallback = null) {
+  const { data } = await insforge.database.from('settings').select('value').eq('key', key).maybeSingle();
+  return data ? data.value : fallback;
 }
 
-export function setSetting(key, value) {
-  db.prepare(
-    `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`
-  ).run(key, value);
+export async function setSetting(key, value) {
+  await insforge.database
+    .from('settings')
+    .upsert({ key, value, updated_at: new Date().toISOString() });
 }
 
-export function getAllSettings() {
-  const rows = db.prepare('SELECT key, value FROM settings').all();
-  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+export async function getAllSettings() {
+  const { data } = await insforge.database.from('settings').select('key, value');
+  return Object.fromEntries((data || []).map((r) => [r.key, r.value]));
 }
 
 // ---------- Competitors ----------
-export function listCompetitors(status) {
-  if (status) {
-    return db
-      .prepare('SELECT * FROM competitors WHERE status = ? ORDER BY name COLLATE NOCASE')
-      .all(status);
-  }
-  return db.prepare('SELECT * FROM competitors ORDER BY name COLLATE NOCASE').all();
+export async function listCompetitors(status, workspaceId) {
+  let query = insforge.database.from('competitors').select().order('name', { ascending: true });
+  if (status) query = query.eq('status', status);
+  if (workspaceId) query = query.eq('workspace_id', workspaceId);
+  const { data } = await query;
+  return data || [];
 }
 
-export function getCompetitor(id) {
-  return db.prepare('SELECT * FROM competitors WHERE id = ?').get(id);
+export async function getCompetitor(id) {
+  const { data } = await insforge.database.from('competitors').select().eq('id', id).maybeSingle();
+  return data;
 }
 
-export function getCompetitorByPricingUrl(url) {
-  return db.prepare('SELECT * FROM competitors WHERE pricing_url = ?').get(url);
+export async function getCompetitorByPricingUrl(url) {
+  const { data } = await insforge.database.from('competitors').select().eq('pricing_url', url).maybeSingle();
+  return data;
 }
 
-// Insert; if the pricing_url already exists, return the existing row instead of throwing.
-export function upsertCompetitor({ name, website, pricing_url, notes, source = 'manual', status = 'pending' }) {
-  const existing = getCompetitorByPricingUrl(pricing_url);
+export async function upsertCompetitor({ name, website, pricing_url, notes, source = 'manual', status = 'pending', workspace_id = null }) {
+  const existing = await getCompetitorByPricingUrl(pricing_url);
   if (existing) return existing;
-  const info = db
-    .prepare(
-      `INSERT INTO competitors (name, website, pricing_url, notes, source, status)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(name, website || null, pricing_url, notes || null, source, status);
-  return getCompetitor(info.lastInsertRowid);
+  const { data } = await insforge.database
+    .from('competitors')
+    .insert({ name, website: website || null, pricing_url, notes: notes || null, source, status, workspace_id })
+    .select()
+    .maybeSingle();
+  return data;
 }
 
-export function updateCompetitorStatus(id, status) {
-  db.prepare('UPDATE competitors SET status = ? WHERE id = ?').run(status, id);
-  return getCompetitor(id);
+export async function updateCompetitorStatus(id, status) {
+  const { data } = await insforge.database
+    .from('competitors')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+  return data;
 }
 
-export function setCompetitorChecked(id, { error = null, changed = false } = {}) {
-  db.prepare(
-    `UPDATE competitors
-       SET last_checked_at = datetime('now'),
-           last_error = ?,
-           last_changed_at = CASE WHEN ? = 1 THEN datetime('now') ELSE last_changed_at END
-     WHERE id = ?`
-  ).run(error, changed ? 1 : 0, id);
-  return getCompetitor(id);
+export async function setCompetitorChecked(id, { error = null, changed = false } = {}) {
+  const updateData = {
+    last_checked_at: new Date().toISOString(),
+    last_error: error ?? null,
+  };
+  if (changed) updateData.last_changed_at = new Date().toISOString();
+  const { data } = await insforge.database
+    .from('competitors')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+  return data;
 }
 
-export function deleteCompetitor(id) {
-  db.prepare('DELETE FROM competitors WHERE id = ?').run(id);
+export async function deleteCompetitor(id) {
+  await insforge.database.from('competitors').delete().eq('id', id);
 }
 
 // ---------- Snapshots ----------
-export function getLatestSnapshot(competitorId) {
-  return db
-    .prepare('SELECT * FROM snapshots WHERE competitor_id = ? ORDER BY fetched_at DESC, id DESC LIMIT 1')
-    .get(competitorId);
+export async function getLatestSnapshot(competitorId) {
+  const { data } = await insforge.database
+    .from('snapshots')
+    .select()
+    .eq('competitor_id', competitorId)
+    .order('fetched_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
 }
 
-export function listSnapshots(competitorId) {
-  return db
-    .prepare('SELECT id, competitor_id, content_hash, fetched_at FROM snapshots WHERE competitor_id = ? ORDER BY fetched_at DESC, id DESC')
-    .all(competitorId);
+export async function listSnapshots(competitorId) {
+  const { data } = await insforge.database
+    .from('snapshots')
+    .select('id, competitor_id, content_hash, fetched_at')
+    .eq('competitor_id', competitorId)
+    .order('fetched_at', { ascending: false })
+    .order('id', { ascending: false });
+  return data || [];
 }
 
-export function getSnapshot(id) {
-  return db.prepare('SELECT * FROM snapshots WHERE id = ?').get(id);
+export async function getSnapshot(id) {
+  const { data } = await insforge.database.from('snapshots').select().eq('id', id).maybeSingle();
+  return data;
 }
 
-export function insertSnapshot(competitorId, content) {
+export async function insertSnapshot(competitorId, content) {
   const content_hash = hashContent(content);
-  const info = db
-    .prepare('INSERT INTO snapshots (competitor_id, content, content_hash) VALUES (?, ?, ?)')
-    .run(competitorId, content, content_hash);
-  return getSnapshot(info.lastInsertRowid);
+  const { data } = await insforge.database
+    .from('snapshots')
+    .insert({ competitor_id: competitorId, content, content_hash })
+    .select()
+    .maybeSingle();
+  return data;
 }
 
 // ---------- Changes ----------
-export function insertChange({ competitor_id, snapshot_id, prev_snapshot_id, diff, summary, analysis }) {
-  const info = db
-    .prepare(
-      `INSERT INTO changes (competitor_id, snapshot_id, prev_snapshot_id, diff, summary, analysis)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(
+export async function insertChange({ competitor_id, snapshot_id, prev_snapshot_id, diff, summary, analysis }) {
+  const { data } = await insforge.database
+    .from('changes')
+    .insert({
       competitor_id,
       snapshot_id,
-      prev_snapshot_id || null,
+      prev_snapshot_id: prev_snapshot_id || null,
       diff,
-      summary || null,
-      analysis ? JSON.stringify(analysis) : null
-    );
-  return db.prepare('SELECT * FROM changes WHERE id = ?').get(info.lastInsertRowid);
+      summary: summary || null,
+      analysis: analysis ? JSON.stringify(analysis) : null,
+    })
+    .select()
+    .maybeSingle();
+  return data;
 }
 
-export function listChanges(competitorId) {
-  return db
-    .prepare('SELECT * FROM changes WHERE competitor_id = ? ORDER BY detected_at DESC, id DESC')
-    .all(competitorId);
+export async function listChanges(competitorId) {
+  const { data } = await insforge.database
+    .from('changes')
+    .select()
+    .eq('competitor_id', competitorId)
+    .order('detected_at', { ascending: false })
+    .order('id', { ascending: false });
+  return data || [];
 }
 
-// Recent changes across all competitors, joined with competitor name.
-export function listRecentChanges(limit = 50) {
-  return db
-    .prepare(
-      `SELECT c.*, comp.name AS competitor_name
-         FROM changes c
-         JOIN competitors comp ON comp.id = c.competitor_id
-        ORDER BY c.detected_at DESC, c.id DESC
-        LIMIT ?`
-    )
-    .all(limit);
+export async function listRecentChanges(limit = 50, workspaceId = null) {
+  let query = insforge.database
+    .from('changes')
+    .select('*, competitors(name, workspace_id)')
+    .order('detected_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit);
+  const { data } = await query;
+  const rows = (data || []).map(({ competitors, ...rest }) => ({
+    ...rest,
+    competitor_name: competitors?.name ?? null,
+  }));
+  if (!workspaceId) return rows;
+  return rows.filter((r) => {
+    const comp = data?.find((d) => d.id === r.id);
+    return comp?.competitors?.workspace_id == workspaceId;
+  });
 }
 
-export function countUnseenChanges() {
-  return db.prepare('SELECT COUNT(*) AS n FROM changes WHERE seen = 0').get().n;
+export async function countUnseenChanges(workspaceId = null) {
+  if (!workspaceId) {
+    const { count } = await insforge.database
+      .from('changes')
+      .select('id', { count: 'exact', head: true })
+      .eq('seen', false);
+    return count || 0;
+  }
+  const { data } = await insforge.database
+    .from('changes')
+    .select('*, competitors(workspace_id)')
+    .eq('seen', false);
+  return (data || []).filter((c) => c.competitors?.workspace_id == workspaceId).length;
 }
 
-export function markChangesSeen() {
-  db.prepare('UPDATE changes SET seen = 1 WHERE seen = 0').run();
+export async function markChangesSeen(workspaceId = null) {
+  if (!workspaceId) {
+    await insforge.database.from('changes').update({ seen: true }).eq('seen', false);
+    return;
+  }
+  const { data } = await insforge.database
+    .from('changes')
+    .select('id, competitors(workspace_id)')
+    .eq('seen', false);
+  const ids = (data || [])
+    .filter((c) => c.competitors?.workspace_id == workspaceId)
+    .map((c) => c.id);
+  if (ids.length) {
+    await insforge.database.from('changes').update({ seen: true }).in('id', ids);
+  }
 }
 
-export default db;
+export default insforge;

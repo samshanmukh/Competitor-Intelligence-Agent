@@ -18,8 +18,29 @@ import {
 } from '../db/index.js';
 import { discoverCompetitors } from '../agents/discoveryAgent.js';
 import { refreshCompetitor, refreshAll } from '../agents/monitor.js';
+import { getKey, setKey } from '../services/keys.js';
+import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 
 const router = Router();
+
+// Optional auth — sets req.user and req.workspaceId if token provided, but doesn't fail without it.
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return next();
+  const token = authHeader.slice(7);
+  try {
+    const parts = token.split('.');
+    if (parts.length >= 2) {
+      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+      const data = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+      req.user = { id: data.sub, email: data.email };
+    }
+  } catch { /* ignore */ }
+  const wsHeader = req.headers['x-workspace-id'];
+  if (wsHeader) req.workspaceId = Number(wsHeader);
+  next();
+}
 
 // Small async wrapper so route handlers can throw.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -41,13 +62,16 @@ function normalizeUrl(u) {
   return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, '')}`;
 }
 
+// Apply optional auth to all routes
+router.use(optionalAuth);
+
 // ---------- Health / keys ----------
 router.get('/health', (req, res) => {
   res.json({
     ok: true,
-    youcom_key: Boolean(process.env.YOUCOM_API_KEY),
-    xai_key: Boolean(process.env.XAI_API_KEY),
-    model: process.env.XAI_MODEL || 'grok-4',
+    youcom_key: Boolean(getKey('YOUCOM_API_KEY')),
+    xai_key: Boolean(getKey('XAI_API_KEY')),
+    model: getKey('XAI_MODEL') || 'grok-4',
   });
 });
 
@@ -100,13 +124,16 @@ router.post(
 // ---------- Competitors ----------
 router.get(
   '/competitors',
-  wrap((req, res) => {
-    const competitors = listCompetitors(req.query.status).map((c) => ({
-      ...c,
-      changeCount: listChanges(c.id).length,
-      hasSnapshot: Boolean(getLatestSnapshot(c.id)),
-    }));
-    res.json({ competitors });
+  wrap(async (req, res) => {
+    const competitors = await listCompetitors(req.query.status, req.workspaceId);
+    const enriched = await Promise.all(
+      competitors.map(async (c) => ({
+        ...c,
+        changeCount: (await listChanges(c.id)).length,
+        hasSnapshot: Boolean(await getLatestSnapshot(c.id)),
+      }))
+    );
+    res.json({ competitors: enriched });
   })
 );
 
@@ -114,7 +141,7 @@ router.get(
 // Body: { competitors: [{ name, website, pricing_url, notes }], status }
 router.post(
   '/competitors',
-  wrap((req, res) => {
+  wrap(async (req, res) => {
     const incoming = Array.isArray(req.body?.competitors)
       ? req.body.competitors
       : [req.body].filter(Boolean);
@@ -125,13 +152,14 @@ router.post(
       const pricing_url = normalizeUrl(c.pricing_url || c.url);
       if (!pricing_url) continue;
       added.push(
-        upsertCompetitor({
+        await upsertCompetitor({
           name: (c.name || hostname(pricing_url)).trim(),
           website: normalizeUrl(c.website) || originOf(pricing_url),
           pricing_url,
           notes: c.notes || null,
           source: c.source || 'discovered',
           status,
+          workspace_id: req.workspaceId || null,
         })
       );
     }
@@ -141,47 +169,51 @@ router.post(
 
 router.get(
   '/competitors/:id',
-  wrap((req, res) => {
-    const competitor = getCompetitor(req.params.id);
+  wrap(async (req, res) => {
+    const competitor = await getCompetitor(req.params.id);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
-    const latest = getLatestSnapshot(competitor.id);
+    const [latest, snapshots, changes] = await Promise.all([
+      getLatestSnapshot(competitor.id),
+      listSnapshots(competitor.id),
+      listChanges(competitor.id),
+    ]);
     res.json({
       competitor,
       latestSnapshot: latest || null,
-      snapshots: listSnapshots(competitor.id),
-      changes: listChanges(competitor.id).map(parseAnalysis),
+      snapshots,
+      changes: changes.map(parseAnalysis),
     });
   })
 );
 
 router.patch(
   '/competitors/:id',
-  wrap((req, res) => {
-    const competitor = getCompetitor(req.params.id);
+  wrap(async (req, res) => {
+    const competitor = await getCompetitor(req.params.id);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
     const { status } = req.body || {};
     if (status && !['pending', 'approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
-    const updated = status ? updateCompetitorStatus(competitor.id, status) : competitor;
+    const updated = status ? await updateCompetitorStatus(competitor.id, status) : competitor;
     res.json({ competitor: updated });
   })
 );
 
 router.delete(
   '/competitors/:id',
-  wrap((req, res) => {
-    const competitor = getCompetitor(req.params.id);
+  wrap(async (req, res) => {
+    const competitor = await getCompetitor(req.params.id);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
-    deleteCompetitor(competitor.id);
+    await deleteCompetitor(competitor.id);
     res.json({ ok: true });
   })
 );
 
 router.get(
   '/competitors/:id/snapshots/:snapshotId',
-  wrap((req, res) => {
-    const snap = getSnapshot(req.params.snapshotId);
+  wrap(async (req, res) => {
+    const snap = await getSnapshot(req.params.snapshotId);
     if (!snap || String(snap.competitor_id) !== String(req.params.id)) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -193,17 +225,17 @@ router.get(
 router.post(
   '/competitors/:id/refresh',
   wrap(async (req, res) => {
-    const competitor = getCompetitor(req.params.id);
+    const competitor = await getCompetitor(req.params.id);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
     const result = await refreshCompetitor(competitor);
-    res.json({ result, competitor: getCompetitor(competitor.id) });
+    res.json({ result, competitor: await getCompetitor(competitor.id) });
   })
 );
 
 router.post(
   '/refresh',
   wrap(async (req, res) => {
-    const competitors = listCompetitors('approved');
+    const competitors = await listCompetitors('approved');
     if (!competitors.length) return res.json({ results: [] });
     const results = await refreshAll(competitors);
     res.json({ results });
@@ -213,25 +245,26 @@ router.post(
 // ---------- Changes / notifications ----------
 router.get(
   '/changes',
-  wrap((req, res) => {
-    res.json({
-      changes: listRecentChanges(Number(req.query.limit) || 50).map(parseAnalysis),
-      unseen: countUnseenChanges(),
-    });
+  wrap(async (req, res) => {
+    const [changes, unseen] = await Promise.all([
+      listRecentChanges(Number(req.query.limit) || 50, req.workspaceId),
+      countUnseenChanges(req.workspaceId),
+    ]);
+    res.json({ changes: changes.map(parseAnalysis), unseen });
   })
 );
 
 router.get(
   '/changes/unseen-count',
-  wrap((req, res) => {
-    res.json({ unseen: countUnseenChanges() });
+  wrap(async (req, res) => {
+    res.json({ unseen: await countUnseenChanges(req.workspaceId) });
   })
 );
 
 router.post(
   '/changes/mark-seen',
-  wrap((req, res) => {
-    markChangesSeen();
+  wrap(async (req, res) => {
+    await markChangesSeen(req.workspaceId);
     res.json({ ok: true, unseen: 0 });
   })
 );
@@ -239,23 +272,41 @@ router.post(
 // ---------- Settings ----------
 router.get(
   '/settings',
-  wrap((req, res) => {
-    const all = getAllSettings();
+  wrap(async (req, res) => {
+    const all = await getAllSettings();
     res.json({
       webhook_url: all.webhook_url || '',
       market: all.market || '',
       last_visit: all.last_visit || null,
       auto_refresh_enabled: (process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false',
+      // API keys — from in-memory cache (DB-saved or env-loaded)
+      youcom_api_key: getKey('YOUCOM_API_KEY') || '',
+      xai_api_key: getKey('XAI_API_KEY') || '',
+      xai_model: getKey('XAI_MODEL') || 'grok-4',
+      insforge_base_url: process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app',
+      insforge_anon_key: process.env.INSFORGE_ANON_KEY || 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
     });
   })
 );
 
 router.put(
   '/settings',
-  wrap((req, res) => {
-    const { webhook_url, market } = req.body || {};
-    if (webhook_url !== undefined) setSetting('webhook_url', normalizeUrl(webhook_url) || '');
-    if (market !== undefined) setSetting('market', market || '');
+  wrap(async (req, res) => {
+    const { webhook_url, market, youcom_api_key, xai_api_key, xai_model } = req.body || {};
+    if (webhook_url !== undefined) await setSetting('webhook_url', normalizeUrl(webhook_url) || '');
+    if (market !== undefined) await setSetting('market', market || '');
+    if (youcom_api_key !== undefined) {
+      await setSetting('key:YOUCOM_API_KEY', youcom_api_key);
+      setKey('YOUCOM_API_KEY', youcom_api_key);
+    }
+    if (xai_api_key !== undefined) {
+      await setSetting('key:XAI_API_KEY', xai_api_key);
+      setKey('XAI_API_KEY', xai_api_key);
+    }
+    if (xai_model !== undefined) {
+      await setSetting('key:XAI_MODEL', xai_model);
+      setKey('XAI_MODEL', xai_model);
+    }
     res.json({ ok: true });
   })
 );
@@ -263,9 +314,9 @@ router.put(
 // Record the time of the user's visit (used to compute "new since last visit").
 router.post(
   '/visit',
-  wrap((req, res) => {
-    const prev = getSetting('last_visit');
-    setSetting('last_visit', new Date().toISOString());
+  wrap(async (req, res) => {
+    const prev = await getSetting('last_visit');
+    await setSetting('last_visit', new Date().toISOString());
     res.json({ previous_visit: prev });
   })
 );
