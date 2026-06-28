@@ -1,0 +1,28 @@
+{
+  "name": "competitor-pricing-intelligence-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automatically discover, monitor, and analyze competitor pricing using You.com APIs and Claude.",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix client",
+    "server": "node server/index.js",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "concurrently -n server,client -c blue,magenta \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "npm run build --prefix client",
+    "start:server": "node server/index.js",
+    "start": "concurrently -n server,client -c blue,magenta \"node server/index.js\" \"npm run start --prefix client\""
+  },
+  "type": "module",
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "diff": "^7.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

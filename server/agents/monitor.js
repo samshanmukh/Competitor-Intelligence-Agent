@@ -1,0 +1,81 @@
+// Orchestrates a refresh for one competitor: fetch -> diff -> analyze -> store -> alert.
+
+import { fetchCompetitor } from './fetchAgent.js';
+import { buildDiff, analyzeDiff } from './analysisAgent.js';
+import { insertChange, setCompetitorChecked, getCompetitor } from '../db/index.js';
+import { sendWebhook } from '../services/alerts.js';
+
+/**
+ * Refresh a single competitor. Returns a result describing what happened.
+ * status: 'changed' | 'unchanged' | 'first_snapshot' | 'error'
+ */
+export async function refreshCompetitor(competitor) {
+  const result = await fetchCompetitor(competitor);
+
+  if (!result.ok) {
+    setCompetitorChecked(competitor.id, { error: result.error });
+    return { id: competitor.id, name: competitor.name, status: 'error', error: result.error };
+  }
+
+  if (result.unchanged) {
+    setCompetitorChecked(competitor.id, { error: null, changed: false });
+    return { id: competitor.id, name: competitor.name, status: 'unchanged' };
+  }
+
+  const { snapshot, previous } = result;
+
+  // First snapshot for this competitor — nothing to diff against yet.
+  if (!previous) {
+    setCompetitorChecked(competitor.id, { error: null, changed: false });
+    return { id: competitor.id, name: competitor.name, status: 'first_snapshot', snapshotId: snapshot.id };
+  }
+
+  const diff = buildDiff(previous.content, snapshot.content, competitor.name);
+  const analysis = await analyzeDiff({ competitorName: competitor.name, diff });
+
+  const change = insertChange({
+    competitor_id: competitor.id,
+    snapshot_id: snapshot.id,
+    prev_snapshot_id: previous.id,
+    diff,
+    summary: analysis.summary,
+    analysis,
+  });
+
+  setCompetitorChecked(competitor.id, { error: null, changed: true });
+
+  // Fire-and-await the webhook but never let it fail the refresh.
+  let webhook = null;
+  try {
+    webhook = await sendWebhook(change, competitor);
+  } catch {
+    webhook = { sent: false };
+  }
+
+  return {
+    id: competitor.id,
+    name: competitor.name,
+    status: 'changed',
+    changeId: change.id,
+    summary: analysis.summary,
+    impact: analysis.impact,
+    webhook,
+  };
+}
+
+/**
+ * Refresh many competitors sequentially (the You.com client serializes calls
+ * anyway, and sequential keeps us rate-limit friendly). Returns an array of results.
+ */
+export async function refreshAll(competitors, onProgress) {
+  const results = [];
+  for (let i = 0; i < competitors.length; i++) {
+    const comp = getCompetitor(competitors[i].id) || competitors[i];
+    const res = await refreshCompetitor(comp);
+    results.push(res);
+    if (onProgress) onProgress(res, i + 1, competitors.length);
+  }
+  return results;
+}
+
+export const monitor = { refreshCompetitor, refreshAll };
