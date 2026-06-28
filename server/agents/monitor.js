@@ -4,6 +4,7 @@ import { fetchCompetitor } from './fetchAgent.js';
 import { buildDiff, analyzeDiff } from './analysisAgent.js';
 import { insertChange, setCompetitorChecked, getCompetitor } from '../db/index.js';
 import { sendWebhook } from '../services/alerts.js';
+import { sendPushToWorkspace } from '../services/push.js';
 
 /**
  * Refresh a single competitor. Returns a result describing what happened.
@@ -50,6 +51,24 @@ export async function refreshCompetitor(competitor) {
     webhook = await sendWebhook(change, competitor);
   } catch {
     webhook = { sent: false };
+  }
+
+  // Send web push notifications to the workspace (never let it fail the refresh).
+  if (competitor.workspace_id) {
+    try {
+      await sendPushToWorkspace(
+        competitor.workspace_id,
+        {
+          title: `${competitor.name} changed pricing`,
+          body: analysis.summary || 'A pricing change was detected.',
+          url: `/competitors/${competitor.id}`,
+          tag: `change-${change.id}`,
+        },
+        analysis.impact === 'high' ? 'high-impact' : 'any'
+      );
+    } catch (err) {
+      console.warn('[push] notification failed:', err.message);
+    }
   }
 
   return {

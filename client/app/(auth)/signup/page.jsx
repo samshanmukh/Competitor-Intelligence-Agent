@@ -10,7 +10,6 @@ export default function SignupPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [needsVerify, setNeedsVerify] = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -21,7 +20,8 @@ export default function SignupPage() {
     try {
       const result = await signUp({ email: form.email, password: form.password, name: form.name });
       if (result?.requireEmailVerification) {
-        setNeedsVerify(true);
+        // Code-based verification — route to the verify page to enter the 6-digit code.
+        router.push(`/verify?email=${encodeURIComponent(form.email)}`);
       } else {
         // Auto sign-in if email verification not required
         await signIn({ email: form.email, password: form.password });
@@ -33,24 +33,6 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
-
-  if (needsVerify) {
-    return (
-      <div className="card p-6 text-center space-y-3">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-950/40 border border-emerald-800/40">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-            <path d="M20 6 9 17l-5-5"/>
-          </svg>
-        </div>
-        <h2 className="text-lg font-semibold text-white">Check your email</h2>
-        <p className="text-sm text-slate-400">
-          We sent a verification link to <strong className="text-slate-200">{form.email}</strong>.
-          Click it to activate your account, then sign in.
-        </p>
-        <Link href="/login" className="btn-primary inline-flex mt-2">Sign in</Link>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">

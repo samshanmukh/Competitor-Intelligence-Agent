@@ -60,6 +60,8 @@ export const api = {
   me: () => request('/auth/me', { headers: {} }),
   workspaces: () => request('/auth/workspaces', { headers: {} }),
   createWorkspace: (name) => request('/auth/workspaces', { method: 'POST', body: { name } }),
+  workspaceMembers: (id) => request(`/auth/workspaces/${id}/members`, { headers: {} }),
+  inviteMember: (id, email, role) => request(`/auth/workspaces/${id}/members`, { method: 'POST', body: { email, role } }),
 
   // Intelligence
   priceHistory: (id) => request(`/intelligence/competitors/${id}/price-history`),

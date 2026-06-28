@@ -218,17 +218,21 @@ export function NotificationBell({ unseen = 0 }) {
     if (permission !== 'default') return;
     const p = await Notification.requestPermission();
     setPermission(p);
-    if (p === 'granted') {
-      // Register service worker and subscribe
-      if ('serviceWorker' in navigator) {
+    if (p === 'granted' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      try {
         const reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
         const { api } = await import('../lib/api');
         const { key } = await api.vapidKey();
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) await existing.unsubscribe();
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(key),
         });
         await api.pushSubscribe(sub.toJSON(), ['any', 'high-impact']);
+      } catch {
+        // Silent on the bell — the Settings → Notifications tab surfaces the detailed error.
       }
     }
   };

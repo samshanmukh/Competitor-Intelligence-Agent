@@ -1,8 +1,11 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/competitors/page": "app/competitors/page.js",
   "/discover/page": "app/discover/page.js",
   "/changes/page": "app/changes/page.js",
-  "/settings/page": "app/settings/page.js",
   "/competitors/[id]/page": "app/competitors/[id]/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js"
+  "/my-product/page": "app/my-product/page.js",
+  "/compare/page": "app/compare/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/signup/page": "app/(auth)/signup/page.js"
 }

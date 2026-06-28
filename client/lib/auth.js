@@ -75,6 +75,29 @@ export async function signInWithOAuth(provider) {
   if (error) throw new Error(error.message || 'OAuth sign in failed');
 }
 
+// Verify a 6-digit email code, store the resulting session, and bootstrap the workspace.
+export async function verifyEmailCode({ email, otp }) {
+  const { data, error } = await getClient().auth.verifyEmail({ email, otp });
+  if (error) throw new Error(error.message || 'Invalid or expired code');
+  if (!data?.accessToken) throw new Error('Verification did not return a session token');
+
+  setToken(data.accessToken);
+  const ws = await ensureWorkspace(data.accessToken);
+  if (ws) setWorkspace(ws);
+  return { user: data.user, token: data.accessToken, workspace: ws };
+}
+
+export async function resendCode(email) {
+  const { error } = await getClient().auth.resendVerificationEmail({ email });
+  if (error) throw new Error(error.message || 'Could not resend code');
+}
+
+// True if the signed-in user's email is verified (best-effort).
+export async function isEmailVerified() {
+  const user = await getCurrentUser();
+  return Boolean(user?.emailVerified);
+}
+
 export async function signOut() {
   await getClient().auth.signOut().catch(() => {});
   clearAuth();
