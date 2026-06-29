@@ -15,7 +15,7 @@ const AXIS = { fill: '#64748b', fontSize: 11 };
  * Props: { competitors, matrix, positioning, reviews, take }
  * Works for both the live analysis and a saved report snapshot.
  */
-export default function ReportView({ competitors = [], matrix, positioning, reviews, take, market, product }) {
+export default function ReportView({ competitors = [], matrix, positioning, reviews, take, market, product, strategy }) {
   const youName = (product?.name || matrix?.productName || '').toLowerCase();
   return (
     <div className="space-y-8">
@@ -99,6 +99,8 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
       </ReportSection>
 
       {reviews && <ReviewsSection reviews={reviews} />}
+
+      {strategy && <StrategySection strategy={strategy} productName={product?.name} />}
 
       {take && (
         <ReportSection icon="sparkle" title="Analyst take">
@@ -353,6 +355,79 @@ function ReviewsSection({ reviews }) {
             ))}
           </div>
         </>
+      )}
+    </ReportSection>
+  );
+}
+
+function StrategySection({ strategy, productName }) {
+  const swot = strategy.swot || {};
+  const positioning = strategy.positioning || [];
+  const quadrants = [
+    { key: 'strengths', label: 'Strengths', color: 'emerald', sign: '+' },
+    { key: 'weaknesses', label: 'Weaknesses', color: 'rose', sign: '−' },
+    { key: 'opportunities', label: 'Opportunities', color: 'accent', sign: '↗' },
+    { key: 'threats', label: 'Threats', color: 'amber', sign: '!' },
+  ];
+  const tone = {
+    emerald: 'border-emerald-900/40 bg-emerald-950/10 text-emerald-400',
+    rose: 'border-rose-900/40 bg-rose-950/10 text-rose-400',
+    accent: 'border-accent/30 bg-accent/5 text-accent-soft',
+    amber: 'border-amber-900/40 bg-amber-950/10 text-amber-400',
+  };
+  const hasSwot = quadrants.some((q) => (swot[q.key] || []).length);
+
+  return (
+    <ReportSection icon="shield" title="Strategy">
+      {hasSwot && (
+        <>
+          <p className="mb-3 text-xs text-slate-500">
+            SWOT for <span className="text-slate-300">{productName || 'your product'}</span> against this competitive set.
+          </p>
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            {quadrants.map((q) => (
+              <div key={q.key} className={`rounded-lg border p-3 ${tone[q.color]}`}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide">{q.label}</p>
+                <ul className="space-y-1">
+                  {(swot[q.key] || []).map((item, i) => (
+                    <li key={i} className="flex gap-1.5 text-xs text-slate-300">
+                      <span className="shrink-0">{q.sign}</span>{item}
+                    </li>
+                  ))}
+                  {(swot[q.key] || []).length === 0 && <li className="text-xs text-slate-600">—</li>}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {positioning.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">How each competitor positions itself</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-ink-700">
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-slate-500">Competitor</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-slate-500">Positioning</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-slate-500">Targets</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-slate-500">Messaging</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-800">
+                {positioning.map((p, i) => (
+                  <tr key={i} className="align-top">
+                    <td className="py-2 pr-4 text-sm font-medium text-white">{p.name}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.positioning || '—'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.target_audience || '—'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.messaging_angle || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </ReportSection>
   );

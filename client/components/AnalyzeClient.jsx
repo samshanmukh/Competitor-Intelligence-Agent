@@ -74,6 +74,7 @@ function ProductStage({ product, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [inferring, setInferring] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const toast = useToast();
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -123,7 +124,22 @@ function ProductStage({ product, onSaved }) {
                   {product.pricing_url} <Icon name="external" className="h-3 w-3" />
                 </a>
               )}
-              {product.description && <p className="mt-1.5 text-sm text-slate-400 line-clamp-2">{product.description}</p>}
+              {product.description && (
+                <>
+                  <p className={`mt-1.5 text-sm text-slate-400 whitespace-pre-line ${expanded ? '' : 'line-clamp-2'}`}>
+                    {product.description}
+                  </p>
+                  {product.description.length > 140 && (
+                    <button
+                      onClick={() => setExpanded((e) => !e)}
+                      className="mt-1 inline-flex items-center gap-1 text-xs text-accent-soft hover:text-white transition"
+                    >
+                      {expanded ? 'Show less' : 'Show more'}
+                      <Icon name={expanded ? 'chevronUp' : 'chevronDown'} className="h-3 w-3" />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
           <button onClick={() => setEditing(true)} className="btn-ghost shrink-0 py-1.5 px-3 text-xs">Edit</button>
@@ -415,6 +431,7 @@ function ReportStage({ competitors, onScored }) {
   const [positioning, setPositioning] = useState(null);
   const [reviews, setReviews] = useState(null);
   const [take, setTake] = useState(null);
+  const [strategy, setStrategy] = useState(null);
   const [product, setProduct] = useState(null);
   const [market, setMarket] = useState(null);
   const [marketLoading, setMarketLoading] = useState(false);
@@ -495,7 +512,7 @@ function ReportStage({ competitors, onScored }) {
   const runAll = async () => {
     setRunning(true);
     setSaved(false);
-    setMatrix(null); setPositioning(null); setReviews(null); setTake(null); setMarket(null); setProduct(null);
+    setMatrix(null); setPositioning(null); setReviews(null); setTake(null); setMarket(null); setProduct(null); setStrategy(null);
     try {
       // Score any unscored competitors first (so value comparison has data).
       setProgress('Scoring value-for-money…');
@@ -514,6 +531,10 @@ function ReportStage({ competitors, onScored }) {
       const p = await api.positioning().catch(() => null);
       setPositioning(p?.analysis || null);
 
+      setProgress('Building SWOT & positioning…');
+      const s = await api.strategy().catch(() => null);
+      setStrategy(s?.strategy || null);
+
       setProgress('Fetching user reviews…');
       const r = await api.reviews(ids).catch(() => null);
       setReviews(r?.reviews || []);
@@ -531,7 +552,7 @@ function ReportStage({ competitors, onScored }) {
     }
   };
 
-  const hasReport = matrix || positioning || reviews || take;
+  const hasReport = matrix || positioning || reviews || take || strategy;
 
   const saveToHistory = async () => {
     setSaving(true);
@@ -541,7 +562,7 @@ function ReportStage({ competitors, onScored }) {
           id: c.id, name: c.name, value_score: c.value_score ?? null,
           value_analysis: c.value_analysis ?? null, pricing_url: c.pricing_url ?? null,
         })),
-        matrix, positioning, reviews, take, market, product,
+        matrix, positioning, reviews, take, market, product, strategy,
         generatedAt: new Date().toISOString(),
       };
       const title = `Report · ${competitors.length} competitors · ${new Date().toLocaleDateString()}`;
@@ -579,7 +600,7 @@ function ReportStage({ competitors, onScored }) {
 
       {hasReport && (
         <div className="space-y-6">
-          <ReportView competitors={competitors} matrix={matrix} positioning={positioning} reviews={reviews} take={take} market={market} product={product} />
+          <ReportView competitors={competitors} matrix={matrix} positioning={positioning} reviews={reviews} take={take} market={market} product={product} strategy={strategy} />
 
           {/* Opt-in market intelligence (slow, finance research) */}
           {!market && !marketLoading && (

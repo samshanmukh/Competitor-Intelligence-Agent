@@ -79,6 +79,9 @@ export const api = {
   createWorkspace: (name) => request('/auth/workspaces', { method: 'POST', body: { name } }),
   workspaceMembers: (id) => request(`/auth/workspaces/${id}/members`, { headers: {} }),
   inviteMember: (id, email, role) => request(`/auth/workspaces/${id}/members`, { method: 'POST', body: { email, role } }),
+  getWorkspace: (id) => request(`/auth/workspaces/${id}`, { headers: {} }),
+  updateWorkspace: (id, updates) => request(`/auth/workspaces/${id}`, { method: 'PATCH', body: updates }),
+  digestTest: (id, email) => request(`/auth/workspaces/${id}/digest-test`, { method: 'POST', body: { email } }),
 
   // Product
   getProduct: () => request('/products', { headers: {} }),
@@ -94,6 +97,7 @@ export const api = {
   valueScore: (id) => request(`/intelligence/competitors/${id}/value-score`, { method: 'POST' }),
   reviews: (ids) => request('/intelligence/reviews', { method: 'POST', body: { competitorIds: ids } }),
   analystTake: () => request('/intelligence/analyst-take', { method: 'POST' }),
+  strategy: () => request('/intelligence/strategy', { method: 'POST' }),
   marketStart: (effort) => request('/intelligence/market/start', { method: 'POST', body: { effort } }),
   marketStatus: (jobId) => request(`/intelligence/market/status/${jobId}`),
 

@@ -16,6 +16,7 @@ import { listCompetitors, getSetting } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
 import { loadKeysFromDB } from './services/keys.js';
 import { reconcileStaleJobs } from './services/jobs.js';
+import { sendWeeklyDigests } from './services/digest.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
@@ -81,3 +82,12 @@ if ((process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false') {
     }
   });
 }
+
+// Weekly digest email — Sundays at 09:00 server time.
+cron.schedule('0 9 * * 0', async () => {
+  try {
+    await sendWeeklyDigests();
+  } catch (err) {
+    console.error('[cron] weekly digest failed:', err.message);
+  }
+});

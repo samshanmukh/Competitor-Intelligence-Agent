@@ -74,6 +74,14 @@ export async function removeWorkspaceMember(workspaceId, userId) {
     .eq('user_id', userId);
 }
 
+export async function listDigestWorkspaces() {
+  const { data } = await insforge.database
+    .from('workspaces')
+    .select()
+    .eq('digest_enabled', true);
+  return (data || []).filter((w) => w.digest_email);
+}
+
 export async function updateWorkspace(id, updates) {
   const { data } = await insforge.database
     .from('workspaces')

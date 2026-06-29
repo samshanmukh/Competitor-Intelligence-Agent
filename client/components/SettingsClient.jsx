@@ -23,7 +23,33 @@ export default function SettingsClient() {
   const [verifyOtp, setVerifyOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
+  const [digest, setDigest] = useState({ enabled: false, email: '' });
+  const [savingDigest, setSavingDigest] = useState(false);
   const toast = useToast();
+
+  const saveDigest = async () => {
+    if (!workspace?.id) return;
+    setSavingDigest(true);
+    try {
+      await api.updateWorkspace(workspace.id, { digest_enabled: digest.enabled, digest_email: digest.email });
+      toast({ type: 'success', title: 'Digest settings saved' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not save', message: err.message });
+    } finally {
+      setSavingDigest(false);
+    }
+  };
+
+  const sendTestDigest = async () => {
+    if (!workspace?.id || !digest.email) return;
+    try {
+      const res = await api.digestTest(workspace.id, digest.email);
+      if (res.sent) toast({ type: 'success', title: 'Test sent', message: `Check ${digest.email}` });
+      else toast({ type: 'error', title: 'Not sent', message: res.reason === 'not_configured' ? 'Email not configured on the server (RESEND_API_KEY).' : res.reason });
+    } catch (err) {
+      toast({ type: 'error', title: 'Test failed', message: err.message });
+    }
+  };
 
   useEffect(() => {
     const ws = getWorkspace();
@@ -44,6 +70,13 @@ export default function SettingsClient() {
         if (ws?.id) {
           const { members } = await api.workspaceMembers(ws.id).catch(() => ({ members: [] }));
           setMembers(members || []);
+          const wsFull = await api.getWorkspace(ws.id).then((r) => r.workspace).catch(() => null);
+          if (wsFull) {
+            setDigest({
+              enabled: Boolean(wsFull.digest_enabled),
+              email: wsFull.digest_email || (await getCurrentUser().then((u) => u?.email).catch(() => '')) || '',
+            });
+          }
         }
       } catch (err) {
         toast({ type: 'error', title: 'Failed to load settings', message: err.message });
@@ -366,6 +399,43 @@ export default function SettingsClient() {
             <p className="text-xs text-slate-600 text-center">
               You'll be asked to grant notification permission.
             </p>
+          </section>
+
+          {/* Weekly email digest */}
+          <section className="card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">Weekly Email Digest</h2>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={digest.enabled}
+                  onChange={(e) => setDigest((d) => ({ ...d, enabled: e.target.checked }))}
+                  className="h-4 w-4 accent-indigo-500"
+                />
+                <span className="text-xs text-slate-400">{digest.enabled ? 'On' : 'Off'}</span>
+              </label>
+            </div>
+            <p className="text-sm text-slate-400">
+              A summary of the past week's competitor changes, emailed every Sunday.
+            </p>
+            <div>
+              <label className="label">Send to</label>
+              <input
+                type="email"
+                className="input"
+                placeholder="you@company.com"
+                value={digest.email}
+                onChange={(e) => setDigest((d) => ({ ...d, email: e.target.value }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <button onClick={sendTestDigest} disabled={!digest.email} className="btn-ghost py-1.5 px-3 text-xs">
+                Send test
+              </button>
+              <button onClick={saveDigest} disabled={savingDigest} className="btn-primary">
+                {savingDigest ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="check" className="h-4 w-4" />} Save digest
+              </button>
+            </div>
           </section>
         </div>
       )}

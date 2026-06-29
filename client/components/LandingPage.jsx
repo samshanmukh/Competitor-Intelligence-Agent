@@ -27,7 +27,6 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-6 text-sm text-slate-400 md:flex">
             <a href="#features" className="hover:text-white transition">Features</a>
             <a href="#how" className="hover:text-white transition">How it works</a>
-            <a href="#pricing" className="hover:text-white transition">Pricing</a>
           </nav>
           <div className="flex items-center gap-2">
             {!authed && <Link href="/login" className="btn-ghost py-1.5 px-3 text-sm">Sign in</Link>}
@@ -58,7 +57,7 @@ export default function LandingPage() {
             </Link>
             <a href="#how" className="btn-ghost px-5 py-2.5 text-base">See how it works</a>
           </div>
-          <p className="mt-4 text-xs text-slate-600">No credit card required · Free plan tracks 3 competitors</p>
+          <p className="mt-4 text-xs text-slate-600">Free while in early access · No credit card required</p>
         </div>
 
         {/* Product preview mock */}
@@ -179,54 +178,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="border-y border-ink-800/60 bg-ink-900/30">
-        <div className="mx-auto max-w-5xl px-5 py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-white md:text-4xl">Simple, scalable pricing</h2>
-            <p className="mt-3 text-slate-400">Start free. Upgrade when you're ready to track your whole market.</p>
-          </div>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {PLANS.map((plan) => (
-              <div key={plan.name}
-                className={`card flex flex-col p-6 ${plan.featured ? 'border-accent/50 ring-1 ring-accent/30' : ''}`}>
-                {plan.featured && (
-                  <span className="mb-3 w-fit chip border-accent/40 bg-accent/10 text-accent-soft">Most popular</span>
-                )}
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{plan.name}</h3>
-                <div className="mt-2 flex items-end gap-1">
-                  <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  {plan.per && <span className="mb-1 text-sm text-slate-500">{plan.per}</span>}
-                </div>
-                <p className="mt-1 text-sm text-slate-500">{plan.tagline}</p>
-                <ul className="mt-5 space-y-2.5">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                      <Icon name="check" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href={primaryHref}
-                  className={`mt-6 w-full justify-center ${plan.featured ? 'btn-primary' : 'btn-ghost'}`}>
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA */}
-      <section className="mx-auto max-w-4xl px-5 py-24 text-center">
-        <h2 className="text-3xl font-bold text-white md:text-4xl">See where you really stand</h2>
-        <p className="mx-auto mt-3 max-w-xl text-slate-400">
-          Add your product and get a full competitive report — pricing, value, reviews, and a clear next move — in minutes.
-        </p>
-        <div className="mt-8">
-          <Link href={primaryHref} className="btn-primary px-6 py-3 text-base">
-            <Icon name="sparkle" className="h-4 w-4" /> {primaryLabel}
-          </Link>
+      <section className="border-y border-ink-800/60 bg-ink-900/30">
+        <div className="mx-auto max-w-4xl px-5 py-24 text-center">
+          <span className="chip border-emerald-800/50 bg-emerald-950/30 text-emerald-300">Free while in early access</span>
+          <h2 className="mt-4 text-3xl font-bold text-white md:text-4xl">See where you really stand</h2>
+          <p className="mx-auto mt-3 max-w-xl text-slate-400">
+            Add your product and get a full competitive report — pricing, value, reviews, and a clear next move — in minutes.
+          </p>
+          <div className="mt-8">
+            <Link href={primaryHref} className="btn-primary px-6 py-3 text-base">
+              <Icon name="sparkle" className="h-4 w-4" /> {primaryLabel}
+            </Link>
+          </div>
+          <p className="mt-4 text-xs text-slate-600">No credit card required.</p>
         </div>
       </section>
 
@@ -241,7 +206,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-5">
             <a href="#features" className="hover:text-slate-300 transition">Features</a>
-            <a href="#pricing" className="hover:text-slate-300 transition">Pricing</a>
+            <a href="#how" className="hover:text-slate-300 transition">How it works</a>
             <Link href="/login" className="hover:text-slate-300 transition">Sign in</Link>
           </div>
           <span className="text-xs text-slate-600">© {new Date().getFullYear()} · Powered by You.com + Grok</span>
@@ -281,22 +246,4 @@ const PERSONAS = [
   { icon: 'trending', title: 'Product & pricing', desc: 'Back every pricing decision with continuous, structured competitive data.' },
   { icon: 'shield', title: 'Sales teams', desc: 'Win more deals with always-current battlecards and competitor intel.' },
   { icon: 'users', title: 'Strategy & research', desc: 'Replace stale spreadsheets with a live view of the whole landscape.' },
-];
-
-const PLANS = [
-  {
-    name: 'Free', price: '$0', per: '', tagline: 'For getting started',
-    cta: 'Start free',
-    features: ['Track up to 3 competitors', 'Pricing & feature comparison', 'Value scoring', 'Manual refresh'],
-  },
-  {
-    name: 'Pro', price: '$49', per: '/mo', tagline: 'For growing teams', featured: true,
-    cta: 'Start Pro',
-    features: ['Track up to 20 competitors', 'Review sentiment + analyst take', 'Change monitoring & alerts', 'Reports & CSV export', 'Up to 5 team members'],
-  },
-  {
-    name: 'Enterprise', price: '$199', per: '/mo', tagline: 'For the whole org',
-    cta: 'Contact sales',
-    features: ['Unlimited competitors', 'Unlimited team members', 'Battlecards & CRM integration', 'White-label reports', 'Priority support'],
-  },
 ];

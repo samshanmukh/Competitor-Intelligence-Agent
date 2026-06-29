@@ -347,6 +347,57 @@ Keep it tight and high-signal.`,
   res.json({ take });
 }));
 
+// Strategy — SWOT for the user's own product vs the field + per-competitor
+// positioning / target-audience / messaging (closes the gap with Competely-style reports).
+router.post('/strategy', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const [product, competitors] = await Promise.all([
+    getProduct(req.workspaceId),
+    listCompetitors('approved', req.workspaceId),
+  ]);
+  if (!competitors.length) return res.json({ strategy: null });
+
+  const competitorSummaries = await Promise.all(
+    competitors.map(async (c) => {
+      const snap = await getLatestSnapshot(c.id);
+      return `### ${c.name}${c.value_score != null ? ` (value ${c.value_score}/10)` : ''}\n${(snap?.content || '').slice(0, 1500)}`;
+    })
+  );
+
+  const productContext = product
+    ? `OUR PRODUCT: ${product.name}\n${product.description || ''}`
+    : 'OUR PRODUCT: (not yet defined — infer from the market)';
+
+  const strategy = await completeJSON({
+    system: 'You are a product/GTM strategist. Return ONLY valid JSON. Be specific and reference real competitor names.',
+    user: `${productContext}
+
+COMPETITORS:
+${competitorSummaries.join('\n\n')}
+
+Produce strategic analysis as JSON:
+{
+  "swot": {
+    "strengths": ["our product's real strengths vs this set"],
+    "weaknesses": ["where we're behind"],
+    "opportunities": ["underserved segments / market gaps we could win"],
+    "threats": ["competitive/market risks to watch"]
+  },
+  "positioning": [
+    {
+      "name": "competitor name",
+      "positioning": "how they position themselves, one line",
+      "target_audience": "who they target (e.g. SMB, enterprise, a niche)",
+      "messaging_angle": "their core marketing message / hook"
+    }
+  ]
+}
+3-5 items per SWOT list. Include every competitor in "positioning".`,
+    maxTokens: 1800,
+  });
+
+  res.json({ strategy: strategy || null });
+}));
+
 // Market intelligence — uses You.com Finance Research for market size, growth
 // timeline, and competitor funding/revenue. Slow (1–3 min), so it runs as a
 // background job (see /market/start + /market/status below).

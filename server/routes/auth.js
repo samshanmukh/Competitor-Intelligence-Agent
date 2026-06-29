@@ -42,13 +42,33 @@ router.get('/workspaces/:id', requireAuth, wrap(async (req, res) => {
   res.json({ workspace: ws });
 }));
 
-// Update workspace
+// Update workspace (name and/or weekly-digest settings)
 router.patch('/workspaces/:id', requireAuth, wrap(async (req, res) => {
-  const { name } = req.body || {};
+  const { name, digest_enabled, digest_email } = req.body || {};
   const updates = {};
   if (name) updates.name = name.trim();
+  if (digest_enabled !== undefined) updates.digest_enabled = Boolean(digest_enabled);
+  if (digest_email !== undefined) updates.digest_email = (digest_email || '').trim() || null;
   const ws = await updateWorkspace(req.params.id, updates);
   res.json({ workspace: ws });
+}));
+
+// Send a test digest immediately (to verify email setup).
+router.post('/workspaces/:id/digest-test', requireAuth, wrap(async (req, res) => {
+  const { getWorkspace: getWs } = await import('../db/workspace.js');
+  const { sendEmail, emailConfigured } = await import('../services/email.js');
+  if (!emailConfigured()) {
+    return res.status(400).json({ error: 'Email is not configured (set RESEND_API_KEY on the server).', code: 'EMAIL_NOT_CONFIGURED' });
+  }
+  const ws = await getWs(req.params.id);
+  const to = req.body?.email || ws?.digest_email;
+  if (!to) return res.status(400).json({ error: 'No digest email set' });
+  const result = await sendEmail({
+    to,
+    subject: 'Test — Competitor Intelligence weekly digest',
+    html: `<div style="font-family:sans-serif;padding:24px;"><h2>It works ✅</h2><p>Weekly digests will arrive here every Sunday with the past week's competitor changes.</p></div>`,
+  });
+  res.json(result);
 }));
 
 // Get workspace members
