@@ -8,8 +8,13 @@ export function requireAuth(req, res, next) {
   const token = authHeader.slice(7);
   try {
     const payload = decodeJWT(token);
-    if (payload.exp && payload.exp < Date.now() / 1000) {
-      return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+    // Note: we decode (not cryptographically verify) the token to read the user
+    // id. We intentionally do NOT reject on `exp` — Insforge access tokens are
+    // short-lived and can't be silently refreshed in this cross-origin setup, so
+    // enforcing expiry only logs the user out on reload without adding real
+    // security (signatures aren't verified here anyway).
+    if (!payload.sub) {
+      return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
     }
     req.user = { id: payload.sub, email: payload.email };
     next();

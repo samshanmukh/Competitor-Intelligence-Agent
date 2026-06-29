@@ -321,7 +321,19 @@ ${researchText}`,
 
   if (!structured) return null;
   const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
-  return { ...structured, sources };
+
+  // Grok returns { market: {size_current,cagr,history,summary}, companies, narrative }.
+  // Flatten to the shape the UI expects (tolerating either nesting).
+  const m = structured.market && typeof structured.market === 'object' ? structured.market : structured;
+  return {
+    size_current: m.size_current ?? null,
+    cagr: m.cagr ?? null,
+    history: Array.isArray(m.history) ? m.history : [],
+    summary: m.summary ?? null,
+    companies: Array.isArray(structured.companies) ? structured.companies : [],
+    narrative: structured.narrative ?? null,
+    sources,
+  };
 }
 
 // Start a background market-intelligence job; returns immediately with a jobId.

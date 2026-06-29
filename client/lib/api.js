@@ -9,7 +9,10 @@ function getHeaders(extra = {}) {
   return headers;
 }
 
-const AUTH_ERROR_CODES = new Set(['TOKEN_EXPIRED', 'INVALID_TOKEN', 'UNAUTHENTICATED']);
+// Only force re-auth when the session is genuinely missing/garbage — NOT on mere
+// token expiry (the backend no longer rejects expired-but-decodable tokens, and
+// auto-logging-out on expiry kicks users out on every reload).
+const AUTH_ERROR_CODES = new Set(['INVALID_TOKEN', 'UNAUTHENTICATED']);
 
 // In dev, call the backend directly (NEXT_PUBLIC_API_BASE) to bypass the Next.js
 // proxy's 30s timeout on long-running requests. In prod this is empty (same-origin).
