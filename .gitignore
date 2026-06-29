@@ -12,3 +12,7 @@ server/db/data/
 # Local env files (never commit — they bake dev values into prod builds)
 .env*.local
 client/.env*.local
+
+# Next.js build output (regenerated on every build — never commit)
+client/.next/
+.next/
