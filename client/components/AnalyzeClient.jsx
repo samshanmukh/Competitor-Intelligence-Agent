@@ -415,6 +415,7 @@ function ReportStage({ competitors, onScored }) {
   const [positioning, setPositioning] = useState(null);
   const [reviews, setReviews] = useState(null);
   const [take, setTake] = useState(null);
+  const [product, setProduct] = useState(null);
   const [market, setMarket] = useState(null);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketElapsed, setMarketElapsed] = useState(0);
@@ -494,15 +495,19 @@ function ReportStage({ competitors, onScored }) {
   const runAll = async () => {
     setRunning(true);
     setSaved(false);
-    setMatrix(null); setPositioning(null); setReviews(null); setTake(null); setMarket(null);
+    setMatrix(null); setPositioning(null); setReviews(null); setTake(null); setMarket(null); setProduct(null);
     try {
       // Score any unscored competitors first (so value comparison has data).
       setProgress('Scoring value-for-money…');
       await Promise.all(competitors.filter((c) => c.value_score == null).map((c) => api.valueScore(c.id).catch(() => {})));
       onScored?.();
 
+      setProgress('Analyzing your product…');
+      const pr = await api.productAnalysis().catch(() => null);
+      if (pr?.product) setProduct(pr.product);
+
       setProgress('Building pricing & feature matrix…');
-      const m = await api.featureMatrix(ids).catch(() => null);
+      const m = await api.featureMatrix(ids, true).catch(() => null);
       setMatrix(m);
 
       setProgress('Comparing business value…');
@@ -536,7 +541,7 @@ function ReportStage({ competitors, onScored }) {
           id: c.id, name: c.name, value_score: c.value_score ?? null,
           value_analysis: c.value_analysis ?? null, pricing_url: c.pricing_url ?? null,
         })),
-        matrix, positioning, reviews, take, market,
+        matrix, positioning, reviews, take, market, product,
         generatedAt: new Date().toISOString(),
       };
       const title = `Report · ${competitors.length} competitors · ${new Date().toLocaleDateString()}`;
@@ -574,7 +579,7 @@ function ReportStage({ competitors, onScored }) {
 
       {hasReport && (
         <div className="space-y-6">
-          <ReportView competitors={competitors} matrix={matrix} positioning={positioning} reviews={reviews} take={take} market={market} />
+          <ReportView competitors={competitors} matrix={matrix} positioning={positioning} reviews={reviews} take={take} market={market} product={product} />
 
           {/* Opt-in market intelligence (slow, finance research) */}
           {!market && !marketLoading && (

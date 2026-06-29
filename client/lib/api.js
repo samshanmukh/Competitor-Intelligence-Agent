@@ -87,7 +87,8 @@ export const api = {
 
   // Intelligence
   priceHistory: (id) => request(`/intelligence/competitors/${id}/price-history`),
-  featureMatrix: (ids) => request('/intelligence/feature-matrix', { method: 'POST', body: { competitorIds: ids } }),
+  featureMatrix: (ids, includeProduct = true) => request('/intelligence/feature-matrix', { method: 'POST', body: { competitorIds: ids, includeProduct } }),
+  productAnalysis: () => request('/intelligence/product-analysis', { method: 'POST' }),
   positioning: () => request('/intelligence/positioning', { method: 'POST' }),
   battlecard: (id) => request(`/intelligence/competitors/${id}/battlecard`, { method: 'POST' }),
   valueScore: (id) => request(`/intelligence/competitors/${id}/value-score`, { method: 'POST' }),

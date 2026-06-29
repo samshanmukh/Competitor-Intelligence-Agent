@@ -8,3 +8,7 @@ client/dist/
 server/db/data/
 .DS_Store
 *.log
+
+# Local env files (never commit — they bake dev values into prod builds)
+.env*.local
+client/.env*.local

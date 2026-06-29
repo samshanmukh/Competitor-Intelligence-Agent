@@ -15,29 +15,21 @@ const AXIS = { fill: '#64748b', fontSize: 11 };
  * Props: { competitors, matrix, positioning, reviews, take }
  * Works for both the live analysis and a saved report snapshot.
  */
-export default function ReportView({ competitors = [], matrix, positioning, reviews, take, market }) {
+export default function ReportView({ competitors = [], matrix, positioning, reviews, take, market, product }) {
+  const youName = (product?.name || matrix?.productName || '').toLowerCase();
   return (
     <div className="space-y-8">
-      <ChartsSection competitors={competitors} matrix={matrix} reviews={reviews} />
+      <ChartsSection competitors={competitors} matrix={matrix} reviews={reviews} product={product} />
 
       {market && <MarketSection market={market} />}
 
-      {matrix?.competitors?.length > 0 && (
+      {(matrix?.competitors?.length > 0 || product?.tiers?.length > 0) && (
         <ReportSection icon="card" title="Pricing & plans">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {matrix.competitors.map((c) => (
-              <div key={c.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-                <p className="text-sm font-semibold text-white">{c.name}</p>
-                <div className="mt-2 space-y-1.5">
-                  {(c.tiers || []).map((t, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">{t.name}</span>
-                      <span className="font-medium text-slate-200">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {product?.tiers?.length > 0 && <PricingCard name={product.name} tiers={product.tiers} you />}
+            {(matrix?.competitors || [])
+              .filter((c) => (c.name || '').toLowerCase() !== youName)
+              .map((c) => <PricingCard key={c.name} name={c.name} tiers={c.tiers} />)}
           </div>
         </ReportSection>
       )}
@@ -49,9 +41,14 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
               <thead>
                 <tr className="border-b border-ink-700">
                   <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-slate-500">Feature</th>
-                  {matrix.competitors.map((c) => (
-                    <th key={c.name} className="px-3 py-2 text-center text-xs font-medium text-slate-300">{c.name}</th>
-                  ))}
+                  {matrix.competitors.map((c) => {
+                    const isYou = (c.name || '').toLowerCase() === youName;
+                    return (
+                      <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium ${isYou ? 'text-accent-soft' : 'text-slate-300'}`}>
+                        {c.name}{isYou && <span className="block text-[9px] font-normal text-accent-soft/70">you</span>}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-800">
@@ -59,9 +56,10 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
                   <tr key={fi}>
                     <td className="py-2 pr-4 text-xs text-slate-300">{f}</td>
                     {matrix.competitors.map((c) => {
+                      const isYou = (c.name || '').toLowerCase() === youName;
                       const has = c.tiers?.[0]?.features?.[fi];
                       return (
-                        <td key={c.name} className="px-3 py-2 text-center">
+                        <td key={c.name} className={`px-3 py-2 text-center ${isYou ? 'bg-accent/5' : ''}`}>
                           {has === true ? <Icon name="check" className="mx-auto h-3.5 w-3.5 text-emerald-400" />
                             : has === false ? <Icon name="x" className="mx-auto h-3.5 w-3.5 text-slate-700" />
                             : <span className="text-slate-700">–</span>}
@@ -78,6 +76,15 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
 
       <ReportSection icon="trending" title="Business value">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mb-4">
+          {product && (product.value_score != null || product.value_analysis) && (
+            <div className="rounded-lg border border-accent/40 bg-accent/5 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-accent-soft">{product.name} <span className="text-[10px] font-normal">(you)</span></span>
+                <ValueScore score={product.value_score} />
+              </div>
+              {product.value_analysis && <p className="mt-1 text-xs text-slate-400 line-clamp-3">{product.value_analysis}</p>}
+            </div>
+          )}
           {competitors.map((c) => (
             <div key={c.id ?? c.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
               <div className="flex items-center justify-between">
@@ -119,8 +126,29 @@ function ChartCard({ title, hint, children }) {
   );
 }
 
-function ChartsSection({ competitors, matrix, reviews }) {
-  const data = competitors.map((c, i) => {
+function PricingCard({ name, tiers, you }) {
+  return (
+    <div className={`rounded-lg border p-3 ${you ? 'border-accent/40 bg-accent/5' : 'border-ink-700 bg-ink-850'}`}>
+      <p className={`text-sm font-semibold ${you ? 'text-accent-soft' : 'text-white'}`}>
+        {name}{you && <span className="text-[10px] font-normal"> (you)</span>}
+      </p>
+      <div className="mt-2 space-y-1.5">
+        {(tiers || []).length === 0 && <p className="text-xs text-slate-600">No pricing extracted</p>}
+        {(tiers || []).map((t, i) => (
+          <div key={i} className="flex items-center justify-between text-xs">
+            <span className="text-slate-400">{t.name}</span>
+            <span className="font-medium text-slate-200">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const YOU_COLOR = '#f472b6';
+
+function ChartsSection({ competitors, matrix, reviews, product }) {
+  const comp = competitors.map((c, i) => {
     const m = findByName(matrix?.competitors, c.name);
     const r = findByName(reviews, c.name);
     return {
@@ -129,12 +157,28 @@ function ChartsSection({ competitors, matrix, reviews }) {
       price: m ? entryPrice(m) : null,
       rating: r?.rating ?? null,
       color: CHART_COLORS[i % CHART_COLORS.length],
+      isYou: false,
     };
   });
+
+  // Your own product as a highlighted entry.
+  let you = null;
+  if (product && (product.value_score != null || (product.tiers || []).length)) {
+    you = {
+      name: `${product.name} (you)`,
+      value: product.value_score ?? null,
+      price: entryPrice(product),
+      color: YOU_COLOR,
+      isYou: true,
+    };
+  }
+  const data = you ? [you, ...comp] : comp;
 
   const valueData = data.filter((d) => d.value != null);
   const priceData = data.filter((d) => d.price != null);
   const mapData = data.filter((d) => d.value != null && d.price != null);
+  const youOnMap = mapData.filter((d) => d.isYou);
+  const compOnMap = mapData.filter((d) => !d.isYou);
   const avgPrice = priceData.length ? priceData.reduce((s, d) => s + d.price, 0) / priceData.length : null;
 
   if (!valueData.length && !priceData.length) return null;
@@ -143,7 +187,7 @@ function ChartsSection({ competitors, matrix, reviews }) {
     <ReportSection icon="bar" title="Visual analysis">
       {mapData.length >= 2 && (
         <div className="mb-4">
-          <ChartCard title="Positioning map" hint="Entry price vs. value score — top-left is best value, bottom-right is overpriced.">
+          <ChartCard title="Positioning map" hint="Entry price vs. value score — top-left is best value, bottom-right is overpriced. Your product is the pink star.">
             <ResponsiveContainer width="100%" height={280}>
               <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid stroke="#181c24" />
@@ -156,10 +200,15 @@ function ChartsSection({ competitors, matrix, reviews }) {
                 <ReferenceLine y={5} stroke="#2c3340" strokeDasharray="4 4" />
                 <Tooltip contentStyle={TIP_STYLE} cursor={{ strokeDasharray: '3 3' }}
                   formatter={(v, n) => n === 'Entry price' ? [`$${v}/mo`, n] : [v, n]} />
-                <Scatter data={mapData}>
-                  {mapData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                <Scatter data={compOnMap}>
+                  {compOnMap.map((d, i) => <Cell key={i} fill={d.color} />)}
                   <LabelList dataKey="name" position="top" style={{ fill: '#cbd5e1', fontSize: 10 }} />
                 </Scatter>
+                {youOnMap.length > 0 && (
+                  <Scatter data={youOnMap} fill={YOU_COLOR} shape="star">
+                    <LabelList dataKey="name" position="top" style={{ fill: YOU_COLOR, fontSize: 11, fontWeight: 700 }} />
+                  </Scatter>
+                )}
               </ScatterChart>
             </ResponsiveContainer>
           </ChartCard>

@@ -1864,6 +1864,9 @@ video {
   --tw-text-opacity: 1;
   color: rgb(44 51 64 / var(--tw-text-opacity, 1));
 }
+.text-accent-soft\/70 {
+  color: rgb(129 140 248 / 0.7);
+}
 .accent-indigo-500 {
   accent-color: #6366f1;
 }

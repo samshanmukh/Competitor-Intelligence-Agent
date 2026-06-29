@@ -3,7 +3,7 @@ import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors } from '../db/index.js';
 import { getProduct } from '../db/products.js';
 import { completeJSON, complete } from '../services/ai.js';
-import { research, financeResearch } from '../services/youcom.js';
+import { research, financeResearch, fetchContents } from '../services/youcom.js';
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
 import { sendPushToWorkspace } from '../services/push.js';
 
@@ -40,9 +40,64 @@ router.get('/competitors/:id/price-history', requireAuth, resolveWorkspace, wrap
   res.json({ competitor: { id: competitor.id, name: competitor.name }, history });
 }));
 
-// Feature matrix — compare multiple competitors side by side
+// Helper: fetch the best available content describing the user's own product.
+async function getProductContent(product) {
+  if (!product) return null;
+  let content = product.description || '';
+  if (product.pricing_url) {
+    try {
+      const map = await fetchContents([product.pricing_url]);
+      const md = map[product.pricing_url]?.markdown;
+      if (md) content = md;
+    } catch { /* fall back to description */ }
+  }
+  if (product.pricing_data) content += `\n\nManual pricing details: ${product.pricing_data}`;
+  return content || null;
+}
+
+// Analyze the user's OWN product (pricing tiers + value score) so it can be
+// shown alongside competitors in the report.
+router.post('/product-analysis', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const product = await getProduct(req.workspaceId);
+  if (!product) return res.json({ product: null });
+
+  const content = await getProductContent(product);
+  if (!content) {
+    return res.json({ product: { name: product.name, pricing_url: product.pricing_url, tiers: [], value_score: null } });
+  }
+
+  const result = await completeJSON({
+    system: "You analyze a software product's pricing and positioning. Return ONLY valid JSON.",
+    user: `Analyze the product "${product.name}". Extract its pricing tiers and rate its value-for-money.
+Return:
+{
+  "tiers": [ { "name": "string", "price_monthly": number|null } ],
+  "value_score": number,        // 1-10 value for money
+  "value_analysis": "2-3 sentences on its value vs price",
+  "summary": "one line on how it's positioned"
+}
+Use numbers only where present in the content.
+
+CONTENT:
+${content.slice(0, 5000)}`,
+    maxTokens: 700,
+  });
+
+  res.json({
+    product: {
+      name: product.name,
+      pricing_url: product.pricing_url,
+      tiers: result?.tiers || [],
+      value_score: result?.value_score ?? null,
+      value_analysis: result?.value_analysis || null,
+      summary: result?.summary || null,
+    },
+  });
+}));
+
+// Feature matrix — compare competitors (and optionally the user's product) side by side
 router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const { competitorIds } = req.body || {};
+  const { competitorIds, includeProduct } = req.body || {};
   if (!Array.isArray(competitorIds) || !competitorIds.length) {
     return res.status(400).json({ error: 'competitorIds array required' });
   }
@@ -55,16 +110,29 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
     })
   );
 
-  const prompt = snapshots
+  // Optionally prepend the user's own product so it appears as a column.
+  let productName = null;
+  let productEntry = '';
+  if (includeProduct) {
+    const product = await getProduct(req.workspaceId);
+    const pc = await getProductContent(product);
+    if (product && pc) {
+      productName = product.name;
+      productEntry = `== ${product.name} (THIS IS THE USER'S OWN PRODUCT) ==\n${pc.slice(0, 3000)}\n\n`;
+    }
+  }
+
+  const competitorPrompt = snapshots
     .filter((s) => s.competitor && s.content)
     .map((s) => `== ${s.competitor.name} ==\n${s.content?.slice(0, 3000)}`)
     .join('\n\n');
 
-  if (!prompt) return res.json({ features: [], competitors: [] });
+  const prompt = productEntry + competitorPrompt;
+  if (!prompt.trim()) return res.json({ features: [], competitors: [] });
 
   const matrix = await completeJSON({
     system: 'You extract feature comparison data from pricing pages. Return ONLY valid JSON.',
-    user: `Compare these competitors and extract a feature matrix. Return:
+    user: `Compare these products and extract a feature matrix.${productName ? ` Include "${productName}" (the user's own product) as one of the entries, using that exact name.` : ''} Return:
 {
   "features": ["feature1", "feature2", ...],
   "competitors": [
@@ -80,10 +148,10 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
 Make features concise (3-5 words max). Include 10-20 meaningful differentiating features.
 
 ${prompt}`,
-    maxTokens: 2000,
+    maxTokens: 2200,
   });
 
-  res.json(matrix || { features: [], competitors: [] });
+  res.json({ ...(matrix || { features: [], competitors: [] }), productName });
 }));
 
 // Positioning analysis — market overview for all workspace competitors
