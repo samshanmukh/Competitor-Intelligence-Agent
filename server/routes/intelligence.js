@@ -280,11 +280,12 @@ Keep it tight and high-signal.`,
 }));
 
 // Market intelligence — uses You.com Finance Research for market size, growth
-// timeline, and competitor funding/revenue. Slow (1–3 min); opt-in only.
-router.post('/market', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+// timeline, and competitor funding/revenue. Slow (1–3 min), so it runs as a
+// background job (see /market/start + /market/status below).
+async function runMarketIntel(workspaceId, effort = 'deep') {
   const [product, competitors] = await Promise.all([
-    getProduct(req.workspaceId),
-    listCompetitors('approved', req.workspaceId),
+    getProduct(workspaceId),
+    listCompetitors('approved', workspaceId),
   ]);
 
   const marketName = product?.description?.slice(0, 200) || product?.name || 'this market';
@@ -292,9 +293,9 @@ router.post('/market', requireAuth, resolveWorkspace, wrap(async (req, res) => {
 
   const input = `For the market "${marketName}": estimate the total market size for the last 5 years (give a number per year if possible) and the annual growth rate (CAGR). Then for each of these companies estimate funding raised, annual revenue, and valuation where known: ${names.join(', ')}. Provide concrete numbers and cite sources.`;
 
-  const payload = await financeResearch(input, req.body?.effort === 'exhaustive' ? 'exhaustive' : 'deep');
+  const payload = await financeResearch(input, effort === 'exhaustive' ? 'exhaustive' : 'deep');
   const researchText = flattenResearch(payload).slice(0, 12000);
-  if (!researchText) return res.json({ market: null });
+  if (!researchText) return null;
 
   const structured = await completeJSON({
     system: 'You convert financial research text into structured JSON for charts. Use only numbers present in the text. Return ONLY valid JSON.',
@@ -318,8 +319,38 @@ ${researchText}`,
     maxTokens: 1600,
   });
 
+  if (!structured) return null;
   const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
-  res.json({ market: structured ? { ...structured, sources } : null });
+  return { ...structured, sources };
+}
+
+// Start a background market-intelligence job; returns immediately with a jobId.
+router.post('/market/start', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const effort = req.body?.effort === 'exhaustive' ? 'exhaustive' : 'deep';
+  const workspaceId = req.workspaceId;
+  const jobId = createJob({ workspaceId, userId: req.user.id, type: 'market' });
+
+  // Run without blocking the response.
+  runMarketIntel(workspaceId, effort)
+    .then((market) => {
+      completeJob(jobId, { market });
+      sendPushToWorkspace(workspaceId, {
+        title: 'Market intelligence ready',
+        body: 'Your deep market research has finished — open the report to view it.',
+        url: '/app',
+        tag: `market-${jobId}`,
+      }, 'any').catch(() => {});
+    })
+    .catch((err) => failJob(jobId, err.message));
+
+  res.json({ jobId });
+}));
+
+// Poll a market-intelligence job.
+router.get('/market/status/:jobId', requireAuth, wrap(async (req, res) => {
+  const job = getJob(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  res.json({ status: job.status, result: job.result, error: job.error });
 }));
 
 // Helper: flatten You.com research payload to text (mirrors discoveryAgent).

@@ -90,7 +90,8 @@ export const api = {
   valueScore: (id) => request(`/intelligence/competitors/${id}/value-score`, { method: 'POST' }),
   reviews: (ids) => request('/intelligence/reviews', { method: 'POST', body: { competitorIds: ids } }),
   analystTake: () => request('/intelligence/analyst-take', { method: 'POST' }),
-  marketIntel: (effort) => request('/intelligence/market', { method: 'POST', body: { effort } }),
+  marketStart: (effort) => request('/intelligence/market/start', { method: 'POST', body: { effort } }),
+  marketStatus: (jobId) => request(`/intelligence/market/status/${jobId}`),
 
   // Saved report history
   saveReport: (title, content) => request('/reports', { method: 'POST', body: { title, content } }),

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { getWorkspace } from '../lib/auth';
 import { Icon, Skeleton, useToast } from './ui';
 import ReportView from './ReportView';
 
@@ -423,23 +424,72 @@ function ReportStage({ competitors, onScored }) {
   const [saved, setSaved] = useState(false);
   const toast = useToast();
 
-  const loadMarket = async () => {
+  const pollRef = useRef(null);
+  const tickRef = useRef(null);
+
+  const jobKey = () => `cia_market_job_${getWorkspace()?.id || 'x'}`;
+
+  const stopPolling = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (tickRef.current) clearInterval(tickRef.current);
+    pollRef.current = null;
+    tickRef.current = null;
+    setMarketLoading(false);
+    try { localStorage.removeItem(jobKey()); } catch {}
+  };
+
+  const beginPolling = (jobId, startedAt) => {
+    try { localStorage.setItem(jobKey(), JSON.stringify({ jobId, startedAt })); } catch {}
     setMarketLoading(true);
-    setMarketElapsed(0);
+    setMarketElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    tickRef.current = setInterval(() => setMarketElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+
+    const check = async () => {
+      try {
+        const { status, result, error } = await api.marketStatus(jobId);
+        if (status === 'done') {
+          stopPolling();
+          if (result?.market) { setMarket(result.market); setSaved(false); toast({ type: 'success', title: 'Market intelligence ready' }); }
+          else toast({ type: 'info', title: 'No market data found' });
+        } else if (status === 'error') {
+          stopPolling();
+          toast({ type: 'error', title: 'Market research failed', message: error });
+        }
+      } catch (err) {
+        if (err.code === 'JOB_NOT_FOUND') {
+          stopPolling();
+          toast({ type: 'error', title: 'Market job expired', message: 'Please run it again.' });
+        }
+        // transient network errors: keep polling
+      }
+    };
+    pollRef.current = setInterval(check, 5000);
+    check();
+  };
+
+  const loadMarket = async () => {
     setSaved(false);
-    const t0 = Date.now();
-    const timer = setInterval(() => setMarketElapsed(Math.floor((Date.now() - t0) / 1000)), 1000);
     try {
-      const { market } = await api.marketIntel();
-      if (market) { setMarket(market); toast({ type: 'success', title: 'Market intelligence added' }); }
-      else toast({ type: 'info', title: 'No market data found' });
+      const { jobId } = await api.marketStart();
+      beginPolling(jobId, Date.now());
     } catch (err) {
-      toast({ type: 'error', title: 'Market research failed', message: err.message });
-    } finally {
-      clearInterval(timer);
-      setMarketLoading(false);
+      toast({ type: 'error', title: 'Could not start research', message: err.message });
     }
   };
+
+  // Resume an in-flight market job after a refresh / navigation.
+  useEffect(() => {
+    let raw;
+    try { raw = localStorage.getItem(jobKey()); } catch {}
+    if (raw) {
+      try {
+        const { jobId, startedAt } = JSON.parse(raw);
+        if (jobId) beginPolling(jobId, startedAt || Date.now());
+      } catch {}
+    }
+    return () => stopPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const runAll = async () => {
     setRunning(true);
@@ -543,11 +593,12 @@ function ReportStage({ competitors, onScored }) {
             <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-center">
               <div className="flex items-center justify-center gap-2 text-sm text-accent-soft">
                 <Icon name="refresh" className="h-4 w-4 animate-spin" />
-                Researching market financials…
+                Researching market financials in the background…
                 <span className="tabular-nums text-slate-400">{Math.floor(marketElapsed / 60)}:{String(marketElapsed % 60).padStart(2, '0')}</span>
               </div>
               <p className="mt-2 text-xs text-slate-500">
-                Deep finance research typically takes 2–3 minutes — it's working, you can keep this tab open.
+                Deep finance research takes 2–3 minutes. You can navigate away — it keeps running and we'll
+                notify you (and drop the results in here) when it's done.
               </p>
             </div>
           )}
