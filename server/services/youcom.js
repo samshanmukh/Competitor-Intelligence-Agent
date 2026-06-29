@@ -97,6 +97,16 @@ export async function research(query) {
 }
 
 /**
+ * Finance Research API — agentic financial/market research.
+ * effort must be 'deep' or 'exhaustive'. Slow (1–3 min) but returns market
+ * sizing, growth/CAGR, funding and revenue estimates with sources.
+ * Returns { output: { content, sources: [...] } }.
+ */
+export async function financeResearch(input, effort = 'deep') {
+  return request('/finance_research', { input, research_effort: effort });
+}
+
+/**
  * Strip HTML to clean plain text suitable for diffing.
  */
 function htmlToText(html) {

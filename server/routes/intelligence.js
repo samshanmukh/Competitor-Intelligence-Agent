@@ -3,7 +3,7 @@ import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors } from '../db/index.js';
 import { getProduct } from '../db/products.js';
 import { completeJSON, complete } from '../services/ai.js';
-import { research } from '../services/youcom.js';
+import { research, financeResearch } from '../services/youcom.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -275,6 +275,49 @@ Keep it tight and high-signal.`,
   });
 
   res.json({ take });
+}));
+
+// Market intelligence — uses You.com Finance Research for market size, growth
+// timeline, and competitor funding/revenue. Slow (1–3 min); opt-in only.
+router.post('/market', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const [product, competitors] = await Promise.all([
+    getProduct(req.workspaceId),
+    listCompetitors('approved', req.workspaceId),
+  ]);
+
+  const marketName = product?.description?.slice(0, 200) || product?.name || 'this market';
+  const names = competitors.map((c) => c.name).slice(0, 8);
+
+  const input = `For the market "${marketName}": estimate the total market size for the last 5 years (give a number per year if possible) and the annual growth rate (CAGR). Then for each of these companies estimate funding raised, annual revenue, and valuation where known: ${names.join(', ')}. Provide concrete numbers and cite sources.`;
+
+  const payload = await financeResearch(input, req.body?.effort === 'exhaustive' ? 'exhaustive' : 'deep');
+  const researchText = flattenResearch(payload).slice(0, 12000);
+  if (!researchText) return res.json({ market: null });
+
+  const structured = await completeJSON({
+    system: 'You convert financial research text into structured JSON for charts. Use only numbers present in the text. Return ONLY valid JSON.',
+    user: `From the finance research below, extract:
+{
+  "market": {
+    "size_current": "e.g. $1.0B (2024)",
+    "cagr": "e.g. ~18% CAGR",
+    "history": [ { "year": 2019, "size_usd_millions": 500 } ],  // yearly market size if available, ascending
+    "summary": "2-3 sentence market overview"
+  },
+  "companies": [
+    { "name": "", "funding": "e.g. $40M or null", "revenue": "e.g. $20M est or null", "valuation": "or null", "note": "one line" }
+  ],
+  "narrative": "a short paragraph on market dynamics and what it means for pricing/positioning"
+}
+Only include years/companies actually supported by the text. Use null when unknown.
+
+FINANCE RESEARCH:
+${researchText}`,
+    maxTokens: 1600,
+  });
+
+  const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
+  res.json({ market: structured ? { ...structured, sources } : null });
 }));
 
 // Helper: flatten You.com research payload to text (mirrors discoveryAgent).
