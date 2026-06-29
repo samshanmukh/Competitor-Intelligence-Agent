@@ -12,6 +12,9 @@ function getClient() {
 const TOKEN_KEY = 'cia_token';
 const WORKSPACE_KEY = 'cia_workspace';
 
+// Match api.js: hit the backend directly in dev to bypass the Next proxy timeout.
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+
 export function getToken() {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
@@ -42,7 +45,7 @@ function clearAuth() {
 }
 
 async function ensureWorkspace(token) {
-  const res = await fetch('/api/auth/ensure-workspace', {
+  const res = await fetch(`${API_BASE}/api/auth/ensure-workspace`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -54,6 +57,13 @@ async function ensureWorkspace(token) {
 export async function signUp({ email, password, name }) {
   const { data, error } = await getClient().auth.signUp({ email, password, name });
   if (error) throw new Error(error.message || 'Sign up failed');
+  // If verification is disabled, Insforge returns a session immediately — store it
+  // and bootstrap the workspace so the user can go straight into the app.
+  if (data?.accessToken) {
+    setToken(data.accessToken);
+    const ws = await ensureWorkspace(data.accessToken);
+    if (ws) setWorkspace(ws);
+  }
   return data;
 }
 
@@ -115,10 +125,36 @@ export async function getCurrentUser() {
   }
 }
 
+// Attempt to silently obtain a fresh access token using the Insforge SDK's
+// refresh mechanism (httpOnly refresh cookie). Returns the new token or null.
+export async function refreshAccessToken() {
+  try {
+    const client = getClient();
+    const { data, error } = await client.auth.getCurrentUser();
+    if (error || !data?.user) return null;
+    const token = client.auth.getAccessToken?.();
+    if (token) {
+      setToken(token);
+      return token;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Hard sign-out used when the session can't be recovered.
+export function forceLogout() {
+  clearAuth();
+  if (typeof window !== 'undefined') {
+    window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;
+  }
+}
+
 export async function fetchWorkspaces() {
   const token = getToken();
   if (!token) return [];
-  const res = await fetch('/api/auth/workspaces', {
+  const res = await fetch(`${API_BASE}/api/auth/workspaces`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return [];

@@ -10,6 +10,8 @@ import apiRouter from './routes/api.js';
 import authRouter from './routes/auth.js';
 import pushRouter from './routes/push.js';
 import intelligenceRouter from './routes/intelligence.js';
+import productsRouter from './routes/products.js';
+import reportsRouter from './routes/reports.js';
 import { listCompetitors, getSetting } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
 import { loadKeysFromDB } from './services/keys.js';
@@ -18,13 +20,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  origin: true,
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Workspace-Id'],
+}));
 app.use(express.json({ limit: '2mb' }));
 
 app.use('/api', apiRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/push', pushRouter);
 app.use('/api/intelligence', intelligenceRouter);
+app.use('/api/products', productsRouter);
+app.use('/api/reports', reportsRouter);
 
 // Centralized error handler — turns thrown errors into JSON with sensible codes.
 app.use((err, req, res, _next) => {

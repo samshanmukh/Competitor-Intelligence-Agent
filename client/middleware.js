@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/signup', '/verify', '/auth'];
+// Public pages anyone can see without a session.
+const PUBLIC_EXACT = ['/'];                                  // landing page
+const PUBLIC_PREFIX = ['/login', '/signup', '/verify', '/auth'];
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('cia_auth')?.value;
 
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic =
+    PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
 
   if (!token && !isPublic) {
     const url = request.nextUrl.clone();
@@ -15,13 +18,14 @@ export function middleware(request) {
     return NextResponse.redirect(url);
   }
 
-  if (token && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
+  // Logged-in users hitting an auth page go straight to the app.
+  if (token && PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
+    return NextResponse.redirect(new URL('/app', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.json).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|sw.js|manifest.json).*)'],
 };

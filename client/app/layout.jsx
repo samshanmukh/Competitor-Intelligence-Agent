@@ -6,7 +6,7 @@ import AppShell from '../components/AppShell';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: { default: 'Competitor Pricing Intelligence', template: '%s · Pricing Intel' },
+  title: { default: 'Competitor Intelligence Agent', template: '%s · Competitor Intelligence Agent' },
   description: 'Automatically discover, monitor, and analyze competitor pricing.',
 };
 

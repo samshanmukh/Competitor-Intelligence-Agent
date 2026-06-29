@@ -4,7 +4,7 @@ self.addEventListener('push', (event) => {
   try { payload = event.data.json(); } catch { payload = { title: 'Pricing change', body: event.data.text() }; }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Pricing Intel', {
+    self.registration.showNotification(payload.title || 'Competitor Intelligence Agent', {
       body: payload.body || 'A competitor pricing change was detected.',
       icon: '/favicon.ico',
       badge: '/favicon.ico',

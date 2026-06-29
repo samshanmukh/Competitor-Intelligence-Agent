@@ -1,50 +1,29 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@insforge/sdk';
-import { signIn } from '../../../lib/auth';
+import { verifyEmailCode, resendCode } from '../../../lib/auth';
 
 function VerifyForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const email = params.get('email') || '';
+
+  const [email, setEmail] = useState(params.get('email') || '');
   const [otp, setOtp] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
-
-  const insforge = createClient({
-    baseUrl: 'https://tpq6mvqe.us-east.insforge.app',
-    anonKey: 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
-  });
+  const [resentMsg, setResentMsg] = useState('');
 
   const verify = async (e) => {
     e.preventDefault();
+    if (!email.trim()) { setError('Enter your email first.'); return; }
     setLoading(true);
     setError('');
     try {
-      const { data, error } = await insforge.auth.verifyEmail({ email, otp: otp.trim() });
-      if (error) throw new Error(error.message || 'Invalid code');
-      if (data?.accessToken) {
-        localStorage.setItem('cia_token', data.accessToken);
-        document.cookie = `cia_auth=${data.accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-        const res = await fetch('/api/auth/ensure-workspace', {
-          method: 'POST', headers: { Authorization: `Bearer ${data.accessToken}` },
-        });
-        if (res.ok) {
-          const { workspace } = await res.json();
-          localStorage.setItem('cia_workspace', JSON.stringify(workspace));
-          document.cookie = `cia_workspace_id=${workspace.id}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-        }
-        router.push('/');
-      } else if (password) {
-        await signIn({ email, password });
-        router.push('/');
-      } else {
-        router.push('/login');
-      }
+      await verifyEmailCode({ email: email.trim(), otp: otp.trim() });
+      router.push('/app');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,10 +32,13 @@ function VerifyForm() {
   };
 
   const resend = async () => {
+    if (!email.trim()) { setError('Enter your email to receive a code.'); return; }
     setResending(true);
     setError('');
+    setResentMsg('');
     try {
-      await insforge.auth.resendVerificationEmail({ email });
+      await resendCode(email.trim());
+      setResentMsg(`A new code was sent to ${email.trim()}.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -68,7 +50,20 @@ function VerifyForm() {
     <form onSubmit={verify} className="card space-y-4 p-6">
       <div className="text-center space-y-1">
         <h2 className="text-lg font-semibold text-white">Verify your email</h2>
-        <p className="text-sm text-slate-400">Enter the 6-digit code sent to <strong className="text-slate-200">{email}</strong></p>
+        <p className="text-sm text-slate-400">Enter the 6-digit code we emailed you.</p>
+      </div>
+
+      <div>
+        <label className="label">Email</label>
+        <input
+          type="email"
+          className="input"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          autoFocus={!email}
+          required
+        />
       </div>
 
       <div>
@@ -79,11 +74,14 @@ function VerifyForm() {
           onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
           placeholder="000000"
           maxLength={6}
-          autoFocus
+          autoFocus={!!email}
           inputMode="numeric"
         />
       </div>
 
+      {resentMsg && (
+        <p className="rounded-lg border border-emerald-800/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">{resentMsg}</p>
+      )}
       {error && (
         <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
       )}
@@ -92,9 +90,13 @@ function VerifyForm() {
         {loading ? 'Verifying…' : 'Verify & continue'}
       </button>
 
-      <button type="button" onClick={resend} disabled={resending} className="w-full text-center text-xs text-slate-500 hover:text-slate-300 transition">
-        {resending ? 'Resending…' : "Didn't get a code? Resend"}
+      <button type="button" onClick={resend} disabled={resending} className="btn-ghost w-full justify-center">
+        {resending ? 'Sending…' : 'Resend code to email'}
       </button>
+
+      <p className="text-center text-xs text-slate-500">
+        <Link href="/login" className="text-accent-soft hover:text-white transition">Back to sign in</Link>
+      </p>
     </form>
   );
 }

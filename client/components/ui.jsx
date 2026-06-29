@@ -210,9 +210,13 @@ export function ConfirmDialog({ open, onClose, onConfirm, title, message, danger
 
 // ─── Notification Bell ───────────────────────────────────────────────────────
 export function NotificationBell({ unseen = 0 }) {
-  const [permission, setPermission] = useState(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default'
-  );
+  // Start with a stable value for SSR; read the real permission only after mount
+  // to avoid a server/client hydration mismatch.
+  const [permission, setPermission] = useState('default');
+
+  useEffect(() => {
+    if (typeof Notification !== 'undefined') setPermission(Notification.permission);
+  }, []);
 
   const enable = async () => {
     if (permission !== 'default') return;

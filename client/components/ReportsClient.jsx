@@ -2,189 +2,148 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Icon, Skeleton, EmptyState, timeAgo, useToast } from './ui';
+import { Icon, Skeleton, EmptyState, timeAgo, useToast, ConfirmDialog } from './ui';
+import ReportView from './ReportView';
 
 export default function ReportsClient() {
-  const [competitors, setCompetitors] = useState(null);
-  const [generating, setGenerating] = useState(false);
-  const [positionReport, setPositionReport] = useState(null);
+  const [reports, setReports] = useState(null);
+  const [active, setActive] = useState(null);   // { ...report, content }
+  const [loadingId, setLoadingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const toast = useToast();
 
-  useEffect(() => {
-    api.listCompetitors('approved')
-      .then(({ competitors }) => setCompetitors(competitors || []))
-      .catch((err) => toast({ type: 'error', title: 'Failed to load', message: err.message }));
-  }, []);
-
-  const generatePositioning = async () => {
-    setGenerating(true);
+  const load = async () => {
     try {
-      const { analysis, competitors: comps } = await api.positioning();
-      setPositionReport({ analysis, competitors: comps, generatedAt: new Date().toISOString() });
-      toast({ type: 'success', title: 'Report generated' });
+      const { reports } = await api.listReports();
+      setReports(reports || []);
     } catch (err) {
-      toast({ type: 'error', title: 'Generation failed', message: err.message });
-    } finally {
-      setGenerating(false);
+      toast({ type: 'error', title: 'Failed to load history', message: err.message });
+      setReports([]);
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast({ type: 'success', title: 'Copied to clipboard' });
+  useEffect(() => { load(); }, []);
+
+  const open = async (id) => {
+    setLoadingId(id);
+    try {
+      const { report } = await api.getReport(id);
+      setActive(report);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not open report', message: err.message });
+    } finally {
+      setLoadingId(null);
+    }
   };
 
-  const exportCSV = () => {
-    if (!competitors?.length) return;
-    const rows = [
-      ['Name', 'Website', 'Pricing URL', 'Value Score', 'Last Checked', 'Change Count'],
-      ...competitors.map((c) => [
-        c.name, c.website || '', c.pricing_url || '', c.value_score || '',
-        c.last_checked_at || '', c.changeCount || 0,
-      ]),
-    ];
-    const csv = rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `pricing-intel-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ type: 'success', title: 'CSV downloaded' });
+  const del = async (id) => {
+    try {
+      await api.deleteReport(id);
+      setReports((r) => r.filter((x) => x.id !== id));
+      if (active?.id === id) setActive(null);
+      toast({ type: 'success', title: 'Deleted' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not delete', message: err.message });
+    }
   };
+
+  // Viewing a single saved report
+  if (active) {
+    const c = active.content || {};
+    return (
+      <div className="max-w-3xl space-y-6 pb-20">
+        <button onClick={() => setActive(null)} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white transition">
+          <Icon name="chevronLeft" className="h-4 w-4" /> Back to history
+        </button>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-white">{active.title}</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Saved {timeAgo(active.created_at)} · {c.competitors?.length || 0} competitors · cached (no re-run)
+            </p>
+          </div>
+          <button onClick={() => setConfirmDelete(active.id)} className="btn-danger px-2.5">
+            <Icon name="trash" className="h-4 w-4" />
+          </button>
+        </div>
+
+        {c.competitors ? (
+          <div className="card p-5">
+            <ReportView
+              competitors={c.competitors}
+              matrix={c.matrix}
+              positioning={c.positioning}
+              reviews={c.reviews}
+              take={c.take}
+            />
+          </div>
+        ) : (
+          <EmptyState icon="alert" title="Report data unavailable">
+            This saved report couldn't be read.
+          </EmptyState>
+        )}
+
+        <ConfirmDialog
+          open={confirmDelete !== null}
+          onClose={() => setConfirmDelete(null)}
+          onConfirm={() => del(confirmDelete)}
+          title="Delete report"
+          message="Permanently delete this saved report?"
+          danger
+        />
+      </div>
+    );
+  }
+
+  const loading = reports === null;
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-white">Reports</h1>
-        <p className="mt-1 text-sm text-slate-500">Generate, export, and share competitive intelligence reports.</p>
-      </div>
+    <div className="max-w-3xl space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold text-white">Report History</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Saved analyses you can reopen anytime — no re-running, no extra tokens spent.
+        </p>
+      </header>
 
-      {/* Export actions */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          {
-            icon: 'download',
-            label: 'Export CSV',
-            desc: 'Competitor list with pricing data',
-            action: exportCSV,
-            disabled: !competitors?.length,
-          },
-          {
-            icon: 'sparkle',
-            label: 'Positioning Report',
-            desc: 'AI-generated market analysis',
-            action: generatePositioning,
-            disabled: !competitors?.length || generating,
-            loading: generating,
-          },
-          {
-            icon: 'copy',
-            label: 'Copy as Markdown',
-            desc: 'Report as formatted markdown',
-            action: () => positionReport && copyToClipboard(positionReport.analysis || ''),
-            disabled: !positionReport,
-          },
-        ].map((item) => (
-          <button
-            key={item.label}
-            onClick={item.action}
-            disabled={item.disabled}
-            className="card p-4 text-left hover:border-ink-600 transition disabled:opacity-50 disabled:cursor-not-allowed group"
-          >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-ink-800 text-accent-soft group-hover:bg-accent/15 group-disabled:group-hover:bg-ink-800 transition">
-              <Icon name={item.loading ? 'refresh' : item.icon} className={`h-4 w-4 ${item.loading ? 'animate-spin' : ''}`} />
-            </div>
-            <p className="text-sm font-medium text-white">{item.label}</p>
-            <p className="mt-0.5 text-xs text-slate-500">{item.desc}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Positioning report */}
-      {positionReport && (
-        <div className="card p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Market Positioning Report</h2>
-              <p className="text-xs text-slate-500">Generated {timeAgo(positionReport.generatedAt)} · {positionReport.competitors?.length || 0} competitors</p>
-            </div>
-            <button
-              onClick={() => copyToClipboard(positionReport.analysis || '')}
-              className="btn-ghost py-1 px-2 text-xs"
-            >
-              <Icon name="copy" className="h-3.5 w-3.5" />
-              Copy
-            </button>
-          </div>
-          <div className="space-y-1">
-            {(positionReport.analysis || '').split('\n').map((line, i) => {
-              if (line.startsWith('**') && line.endsWith('**')) {
-                return <h3 key={i} className="mt-4 mb-1 text-sm font-semibold text-slate-200">{line.slice(2, -2)}</h3>;
-              }
-              if (line.startsWith('# ')) {
-                return <h2 key={i} className="mt-4 mb-1 text-base font-semibold text-white">{line.slice(2)}</h2>;
-              }
-              if (line.startsWith('- ')) {
-                return <li key={i} className="ml-4 text-sm text-slate-400 list-disc">{line.slice(2)}</li>;
-              }
-              return line ? <p key={i} className="text-sm text-slate-400 leading-relaxed">{line}</p> : <br key={i} />;
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Competitors summary */}
-      {competitors === null ? (
-        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-      ) : competitors.length === 0 ? (
-        <EmptyState icon="share" title="No competitors to report on">
-          Add and approve competitors first, then come back to generate reports.
+      {loading ? (
+        <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+      ) : reports.length === 0 ? (
+        <EmptyState icon="share" title="No saved reports yet" action={
+          <a href="/app" className="btn-primary">Run an analysis</a>
+        }>
+          Run a full analysis on the Analysis page, then click <strong className="text-slate-300">Save to history</strong> to keep it here.
         </EmptyState>
       ) : (
-        <div className="card overflow-hidden">
-          <div className="border-b border-ink-700 px-4 py-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-white">Competitor Summary</h2>
-            <button onClick={exportCSV} className="btn-ghost py-1 px-2 text-xs">
-              <Icon name="download" className="h-3.5 w-3.5" />
-              Export CSV
-            </button>
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-ink-700">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Competitor</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 hidden md:table-cell">Value Score</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Changes</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 hidden lg:table-cell">Pricing URL</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-ink-800">
-              {competitors.map((c) => (
-                <tr key={c.id} className="hover:bg-ink-850/30 transition">
-                  <td className="px-4 py-3 font-medium text-white">{c.name}</td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    {c.value_score != null
-                      ? <span className="tabular-nums text-emerald-400">{c.value_score}/10</span>
-                      : <span className="text-slate-600">—</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">{c.changeCount || 0}</td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    {c.pricing_url && (
-                      <a href={c.pricing_url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-accent-soft hover:text-white transition truncate block max-w-48">
-                        {c.pricing_url}
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {reports.map((r) => (
+            <div key={r.id} className="card flex items-center gap-3 p-4 hover:border-ink-600 transition">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent-soft">
+                <Icon name="bar" className="h-4 w-4" />
+              </div>
+              <button onClick={() => open(r.id)} className="flex-1 min-w-0 text-left">
+                <p className="truncate text-sm font-medium text-white">{r.title}</p>
+                <p className="text-xs text-slate-500">Saved {timeAgo(r.created_at)}</p>
+              </button>
+              {loadingId === r.id && <Icon name="refresh" className="h-4 w-4 animate-spin text-slate-500" />}
+              <button onClick={() => open(r.id)} className="btn-ghost py-1.5 px-3 text-xs">Open</button>
+              <button onClick={() => setConfirmDelete(r.id)} className="text-slate-600 hover:text-rose-400 transition p-1.5">
+                <Icon name="trash" className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => del(confirmDelete)}
+        title="Delete report"
+        message="Permanently delete this saved report?"
+        danger
+      />
     </div>
   );
 }

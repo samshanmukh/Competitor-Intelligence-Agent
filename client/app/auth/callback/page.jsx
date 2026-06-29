@@ -35,7 +35,7 @@ function CallbackHandler() {
         document.cookie = `cia_auth=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 
         // Ensure a workspace exists for this user.
-        const res = await fetch('/api/auth/ensure-workspace', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || ''}/api/auth/ensure-workspace`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -44,7 +44,7 @@ function CallbackHandler() {
           localStorage.setItem('cia_workspace', JSON.stringify(workspace));
           document.cookie = `cia_workspace_id=${workspace.id}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         }
-        router.push('/');
+        router.push('/app');
       } catch (err) {
         setError(err.message);
       }

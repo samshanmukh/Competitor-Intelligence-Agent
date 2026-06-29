@@ -1,7 +1,9 @@
 {
   "components/ui.jsx -> ../lib/api": {
     "id": "components/ui.jsx -> ../lib/api",
-    "files": []
+    "files": [
+      "static/chunks/_app-pages-browser_lib_api_js.js"
+    ]
   },
   "node_modules/@insforge/sdk/dist/index.mjs -> crypto": {
     "id": "node_modules/@insforge/sdk/dist/index.mjs -> crypto",

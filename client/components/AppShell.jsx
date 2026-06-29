@@ -3,13 +3,14 @@
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 
-const AUTH_PATHS = ['/login', '/signup', '/auth'];
+const NO_SHELL_PREFIXES = ['/login', '/signup', '/verify', '/auth'];
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
-  const isAuthPage = AUTH_PATHS.some((p) => pathname?.startsWith(p));
+  // Landing page (root) and auth pages render full-width without the app sidebar.
+  const noShell = pathname === '/' || NO_SHELL_PREFIXES.some((p) => pathname?.startsWith(p));
 
-  if (isAuthPage) return children;
+  if (noShell) return children;
 
   return (
     <div className="flex min-h-screen">

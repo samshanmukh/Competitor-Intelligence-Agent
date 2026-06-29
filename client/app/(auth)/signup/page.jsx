@@ -19,13 +19,16 @@ export default function SignupPage() {
     setError('');
     try {
       const result = await signUp({ email: form.email, password: form.password, name: form.name });
-      if (result?.requireEmailVerification) {
-        // Code-based verification — route to the verify page to enter the 6-digit code.
+      if (result?.accessToken) {
+        // Verification disabled → session issued at signup → go straight in.
+        router.push('/app');
+      } else if (result?.requireEmailVerification) {
+        // Verification still required → enter the 6-digit code.
         router.push(`/verify?email=${encodeURIComponent(form.email)}`);
       } else {
-        // Auto sign-in if email verification not required
+        // Fallback: try an immediate sign-in.
         await signIn({ email: form.email, password: form.password });
-        router.push('/');
+        router.push('/app');
       }
     } catch (err) {
       setError(err.message);

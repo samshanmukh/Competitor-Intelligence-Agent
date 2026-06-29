@@ -16,6 +16,7 @@ function LoginForm() {
   const [needsVerify, setNeedsVerify] = useState(false);
   const [otp, setOtp] = useState('');
   const [resending, setResending] = useState(false);
+  const [resentMsg, setResentMsg] = useState('');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -25,7 +26,7 @@ function LoginForm() {
     setError('');
     try {
       await signIn({ email: form.email, password: form.password });
-      router.push('/');
+      router.push('/app');
     } catch (err) {
       // If the account exists but isn't verified, switch to inline code entry.
       if (/verif/i.test(err.message)) {
@@ -44,7 +45,7 @@ function LoginForm() {
     setError('');
     try {
       await verifyEmailCode({ email: form.email, otp: otp.trim() });
-      router.push('/');
+      router.push('/app');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,8 +56,10 @@ function LoginForm() {
   const resend = async () => {
     setResending(true);
     setError('');
+    setResentMsg('');
     try {
       await resendCode(form.email);
+      setResentMsg('A new code was sent to your email.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -82,6 +85,9 @@ function LoginForm() {
           autoFocus
           inputMode="numeric"
         />
+        {resentMsg && (
+          <p className="rounded-lg border border-emerald-800/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">{resentMsg}</p>
+        )}
         {error && (
           <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
         )}

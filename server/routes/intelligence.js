@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors } from '../db/index.js';
+import { getProduct } from '../db/products.js';
 import { completeJSON, complete } from '../services/ai.js';
+import { research } from '../services/youcom.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -189,5 +191,111 @@ Return: { "score": number, "reasoning": "2-3 sentences" }`,
 
   res.json({ score: result?.score || null, reasoning: result?.reasoning || null });
 }));
+
+// Review sentiment — fetch reviews via You.com Research and summarize per competitor.
+router.post('/reviews', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const { competitorIds } = req.body || {};
+  const competitors = competitorIds?.length
+    ? await Promise.all(competitorIds.map((id) => getCompetitor(id)))
+    : await listCompetitors('approved', req.workspaceId);
+
+  const valid = competitors.filter(Boolean);
+  const reviews = [];
+
+  for (const c of valid) {
+    try {
+      const payload = await research(
+        `${c.name} software customer reviews ratings pros and cons on G2, Capterra, Trustpilot`
+      );
+      const researchText = flattenResearch(payload).slice(0, 6000);
+      if (!researchText) { reviews.push({ name: c.name, id: c.id, sentiment: null }); continue; }
+
+      const summary = await completeJSON({
+        system: 'You summarize software product reviews into structured sentiment. Return ONLY valid JSON.',
+        user: `Summarize the customer review sentiment for ${c.name} from this research.
+
+Return JSON:
+{
+  "rating": number|null,        // average star rating out of 5 if mentioned
+  "sentiment": "positive" | "mixed" | "negative",
+  "pros": ["..."],              // top 3-4 praised points
+  "cons": ["..."],              // top 3-4 complaints
+  "summary": "one-sentence overall take"
+}
+
+RESEARCH:
+${researchText}`,
+        maxTokens: 700,
+      });
+      reviews.push({ name: c.name, id: c.id, ...(summary || { sentiment: null }) });
+    } catch (err) {
+      reviews.push({ name: c.name, id: c.id, sentiment: null, error: err.message });
+    }
+  }
+
+  res.json({ reviews });
+}));
+
+// Analyst take — the LLM's personal research commentary on the whole landscape,
+// framed against the workspace's own product.
+router.post('/analyst-take', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const [product, competitors] = await Promise.all([
+    getProduct(req.workspaceId),
+    listCompetitors('approved', req.workspaceId),
+  ]);
+
+  if (!competitors.length) return res.json({ take: null });
+
+  const competitorSummaries = await Promise.all(
+    competitors.map(async (c) => {
+      const snap = await getLatestSnapshot(c.id);
+      return `### ${c.name}\nValue score: ${c.value_score ?? 'n/a'}\n${(snap?.content || '').slice(0, 1500)}`;
+    })
+  );
+
+  const productContext = product
+    ? `MY PRODUCT: ${product.name}\n${product.description || ''}\nPricing: ${product.pricing_url || 'n/a'}`
+    : 'MY PRODUCT: (not yet defined)';
+
+  const take = await complete({
+    system: `You are a senior competitive intelligence analyst writing a candid, opinionated briefing for a founder. Write in first person ("I"). Be direct, specific, and useful — cite real names and prices. Avoid hedging and filler.`,
+    user: `${productContext}
+
+COMPETITORS:
+${competitorSummaries.join('\n\n')}
+
+Write your personal analyst briefing with these clearly-labelled sections (use **bold** headers):
+**My Read on the Market** — what's really going on with pricing/positioning here
+**Where You Win** — specific advantages my product has or could press
+**Where You're Exposed** — honest risks and gaps vs these competitors
+**What I'd Do Next** — 3-4 concrete, prioritized recommendations
+
+Keep it tight and high-signal.`,
+    maxTokens: 1400,
+  });
+
+  res.json({ take });
+}));
+
+// Helper: flatten You.com research payload to text (mirrors discoveryAgent).
+function flattenResearch(payload) {
+  const parts = [];
+  const push = (v) => { if (typeof v === 'string' && v.trim()) parts.push(v.trim()); };
+  if (payload?.output) {
+    push(payload.output.content);
+    for (const src of payload.output.sources || []) {
+      push([src.title, src.url, (src.snippets || []).join(' ')].filter(Boolean).join(' — '));
+    }
+  }
+  push(payload?.answer); push(payload?.summary); push(payload?.text);
+  for (const bucket of [payload?.results, payload?.sources, payload?.citations, payload?.web_results]) {
+    if (!Array.isArray(bucket)) continue;
+    for (const item of bucket) {
+      if (typeof item === 'string') { push(item); continue; }
+      push([item.title || item.name, item.url || item.link, item.snippet || item.description].filter(Boolean).join(' — '));
+    }
+  }
+  return parts.join('\n');
+}
 
 export default router;
