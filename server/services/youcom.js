@@ -43,23 +43,32 @@ function enqueue(fn) {
   return run;
 }
 
-async function request(path, body) {
+async function request(path, body, { timeoutMs = 120000, retries = MAX_RETRIES } = {}) {
   const key = apiKey();
   return enqueue(async () => {
     let attempt = 0;
     while (true) {
       let res;
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
         res = await fetch(`${BASE}${path}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-API-Key': key },
           body: JSON.stringify(body),
+          signal: ctrl.signal,
         });
       } catch (networkErr) {
-        if (attempt < MAX_RETRIES) { await sleep(2 ** attempt * 1000); attempt++; continue; }
-        const err = new Error(`You.com network error: ${networkErr.message}`);
-        err.code = 'NETWORK';
+        clearTimeout(to);
+        const aborted = networkErr?.name === 'AbortError';
+        if (!aborted && attempt < retries) { await sleep(2 ** attempt * 1000); attempt++; continue; }
+        const err = new Error(aborted
+          ? `You.com ${path} timed out after ${Math.round(timeoutMs / 1000)}s`
+          : `You.com network error: ${networkErr.message}`);
+        err.code = aborted ? 'TIMEOUT' : 'NETWORK';
         throw err;
+      } finally {
+        clearTimeout(to);
       }
 
       if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
@@ -103,7 +112,9 @@ export async function research(query) {
  * Returns { output: { content, sources: [...] } }.
  */
 export async function financeResearch(input, effort = 'deep') {
-  return request('/finance_research', { input, research_effort: effort });
+  // Deep finance research can run several minutes; allow up to 6 and don't retry
+  // (a retry would multiply an already-long, costly call).
+  return request('/finance_research', { input, research_effort: effort }, { timeoutMs: 360000, retries: 0 });
 }
 
 /**

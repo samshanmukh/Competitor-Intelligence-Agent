@@ -340,12 +340,12 @@ ${researchText}`,
 router.post('/market/start', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const effort = req.body?.effort === 'exhaustive' ? 'exhaustive' : 'deep';
   const workspaceId = req.workspaceId;
-  const jobId = createJob({ workspaceId, userId: req.user.id, type: 'market' });
+  const jobId = await createJob({ workspaceId, userId: req.user.id, type: 'market' });
 
   // Run without blocking the response.
   runMarketIntel(workspaceId, effort)
-    .then((market) => {
-      completeJob(jobId, { market });
+    .then(async (market) => {
+      await completeJob(jobId, { market });
       sendPushToWorkspace(workspaceId, {
         title: 'Market intelligence ready',
         body: 'Your deep market research has finished — open the report to view it.',
@@ -353,14 +353,17 @@ router.post('/market/start', requireAuth, resolveWorkspace, wrap(async (req, res
         tag: `market-${jobId}`,
       }, 'any').catch(() => {});
     })
-    .catch((err) => failJob(jobId, err.message));
+    .catch((err) => {
+      console.error(`[market job ${jobId}] failed:`, err.message);
+      failJob(jobId, err.message);
+    });
 
   res.json({ jobId });
 }));
 
 // Poll a market-intelligence job.
 router.get('/market/status/:jobId', requireAuth, wrap(async (req, res) => {
-  const job = getJob(req.params.jobId);
+  const job = await getJob(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
   res.json({ status: job.status, result: job.result, error: job.error });
 }));

@@ -15,6 +15,7 @@ import reportsRouter from './routes/reports.js';
 import { listCompetitors, getSetting } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
 import { loadKeysFromDB } from './services/keys.js';
+import { reconcileStaleJobs } from './services/jobs.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
@@ -54,6 +55,10 @@ if (existsSync(clientDist)) {
 loadKeysFromDB(getSetting).catch((err) => {
   console.warn('[startup] Could not load keys from DB:', err.message);
 });
+
+// Any job left 'running' was interrupted by a restart — mark it failed so clients
+// get a clear "please re-run" instead of polling forever / hitting JOB_NOT_FOUND.
+reconcileStaleJobs().catch(() => {});
 
 app.listen(PORT, () => {
   console.log(`\n  Competitor Intelligence Agent (Enterprise)`);
