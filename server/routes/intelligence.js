@@ -4,6 +4,8 @@ import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors } from
 import { getProduct } from '../db/products.js';
 import { completeJSON, complete } from '../services/ai.js';
 import { research, financeResearch } from '../services/youcom.js';
+import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
+import { sendPushToWorkspace } from '../services/push.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);

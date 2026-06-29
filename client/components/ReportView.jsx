@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, ZAxis, Cell, ReferenceLine, LabelList,
 } from 'recharts';
 import { Icon, ValueScore } from './ui';
@@ -15,10 +15,12 @@ const AXIS = { fill: '#64748b', fontSize: 11 };
  * Props: { competitors, matrix, positioning, reviews, take }
  * Works for both the live analysis and a saved report snapshot.
  */
-export default function ReportView({ competitors = [], matrix, positioning, reviews, take }) {
+export default function ReportView({ competitors = [], matrix, positioning, reviews, take, market }) {
   return (
     <div className="space-y-8">
       <ChartsSection competitors={competitors} matrix={matrix} reviews={reviews} />
+
+      {market && <MarketSection market={market} />}
 
       {matrix?.competitors?.length > 0 && (
         <ReportSection icon="card" title="Pricing & plans">
@@ -304,6 +306,90 @@ function ReviewsSection({ reviews }) {
         </>
       )}
     </ReportSection>
+  );
+}
+
+function MarketSection({ market }) {
+  const history = (market.history || []).filter((h) => h.year && typeof h.size_usd_millions === 'number');
+  const companies = (market.companies || []).filter((c) => c.name);
+
+  return (
+    <ReportSection icon="trending" title="Market intelligence">
+      {/* Market size + CAGR */}
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        {market.size_current && (
+          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
+            <p className="text-xs text-slate-500">Market size</p>
+            <p className="text-lg font-bold text-white">{market.size_current}</p>
+          </div>
+        )}
+        {market.cagr && (
+          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
+            <p className="text-xs text-slate-500">Growth</p>
+            <p className="text-lg font-bold text-emerald-400">{market.cagr}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Market-size timeline */}
+      {history.length >= 2 && (
+        <div className="mb-4">
+          <ChartCard title="Market size over time" hint="Estimated total market size ($M).">
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={history} margin={{ left: 4, right: 16, top: 8 }}>
+                <CartesianGrid stroke="#181c24" />
+                <XAxis dataKey="year" tick={AXIS} />
+                <YAxis tick={AXIS} tickFormatter={(v) => `$${v}M`} />
+                <Tooltip contentStyle={TIP_STYLE} formatter={(v) => [`$${v}M`, 'Market size']} />
+                <Line type="monotone" dataKey="size_usd_millions" stroke="#818cf8" strokeWidth={2}
+                  dot={{ r: 3, fill: '#818cf8' }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+      )}
+
+      {market.summary && <p className="mb-4 text-sm text-slate-400 leading-relaxed">{market.summary}</p>}
+
+      {/* Company financials */}
+      {companies.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {companies.map((c) => (
+            <div key={c.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
+              <p className="text-sm font-semibold text-white">{c.name}</p>
+              <div className="mt-2 space-y-1 text-xs">
+                {c.funding && c.funding !== 'null' && <Row label="Funding" value={c.funding} />}
+                {c.revenue && c.revenue !== 'null' && <Row label="Revenue" value={c.revenue} />}
+                {c.valuation && c.valuation !== 'null' && <Row label="Valuation" value={c.valuation} />}
+              </div>
+              {c.note && <p className="mt-2 text-xs text-slate-500">{c.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {market.narrative && <div className="mt-4"><Prose text={market.narrative} /></div>}
+
+      {market.sources?.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {market.sources.map((s, i) => (
+            <a key={i} href={s.url} target="_blank" rel="noreferrer"
+              className="chip border-ink-700 bg-ink-850 text-slate-500 hover:text-accent-soft transition text-[10px]">
+              <Icon name="external" className="h-2.5 w-2.5" /> {s.title?.slice(0, 32) || 'source'}
+            </a>
+          ))}
+        </div>
+      )}
+    </ReportSection>
+  );
+}
+
+function Row({ label, value }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium text-slate-200">{value}</span>
+    </div>
   );
 }
 

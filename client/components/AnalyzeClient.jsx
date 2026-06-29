@@ -414,16 +414,37 @@ function ReportStage({ competitors, onScored }) {
   const [positioning, setPositioning] = useState(null);
   const [reviews, setReviews] = useState(null);
   const [take, setTake] = useState(null);
+  const [market, setMarket] = useState(null);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketElapsed, setMarketElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const toast = useToast();
 
+  const loadMarket = async () => {
+    setMarketLoading(true);
+    setMarketElapsed(0);
+    setSaved(false);
+    const t0 = Date.now();
+    const timer = setInterval(() => setMarketElapsed(Math.floor((Date.now() - t0) / 1000)), 1000);
+    try {
+      const { market } = await api.marketIntel();
+      if (market) { setMarket(market); toast({ type: 'success', title: 'Market intelligence added' }); }
+      else toast({ type: 'info', title: 'No market data found' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Market research failed', message: err.message });
+    } finally {
+      clearInterval(timer);
+      setMarketLoading(false);
+    }
+  };
+
   const runAll = async () => {
     setRunning(true);
     setSaved(false);
-    setMatrix(null); setPositioning(null); setReviews(null); setTake(null);
+    setMatrix(null); setPositioning(null); setReviews(null); setTake(null); setMarket(null);
     try {
       // Score any unscored competitors first (so value comparison has data).
       setProgress('Scoring value-for-money…');
@@ -465,7 +486,7 @@ function ReportStage({ competitors, onScored }) {
           id: c.id, name: c.name, value_score: c.value_score ?? null,
           value_analysis: c.value_analysis ?? null, pricing_url: c.pricing_url ?? null,
         })),
-        matrix, positioning, reviews, take,
+        matrix, positioning, reviews, take, market,
         generatedAt: new Date().toISOString(),
       };
       const title = `Report · ${competitors.length} competitors · ${new Date().toLocaleDateString()}`;
@@ -503,7 +524,33 @@ function ReportStage({ competitors, onScored }) {
 
       {hasReport && (
         <div className="space-y-6">
-          <ReportView competitors={competitors} matrix={matrix} positioning={positioning} reviews={reviews} take={take} />
+          <ReportView competitors={competitors} matrix={matrix} positioning={positioning} reviews={reviews} take={take} market={market} />
+
+          {/* Opt-in market intelligence (slow, finance research) */}
+          {!market && !marketLoading && (
+            <div className="rounded-xl border border-dashed border-ink-700 p-4 text-center">
+              <p className="text-sm text-slate-400">
+                Add <strong className="text-slate-200">market size, growth timeline, and competitor funding</strong> via deep finance research.
+              </p>
+              <button onClick={loadMarket} className="btn-ghost mt-3">
+                <Icon name="trending" className="h-4 w-4" /> Add market intelligence
+              </button>
+              <p className="mt-2 text-xs text-slate-600">Deep research — takes ~2–3 minutes. Saved with the report so you only run it once.</p>
+            </div>
+          )}
+
+          {marketLoading && (
+            <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-center">
+              <div className="flex items-center justify-center gap-2 text-sm text-accent-soft">
+                <Icon name="refresh" className="h-4 w-4 animate-spin" />
+                Researching market financials…
+                <span className="tabular-nums text-slate-400">{Math.floor(marketElapsed / 60)}:{String(marketElapsed % 60).padStart(2, '0')}</span>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Deep finance research typically takes 2–3 minutes — it's working, you can keep this tab open.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2 border-t border-ink-800 pt-4">
             <button onClick={runAll} disabled={running || saving} className="btn-ghost text-sm">
