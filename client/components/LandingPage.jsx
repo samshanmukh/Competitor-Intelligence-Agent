@@ -70,6 +70,7 @@ function WaitlistForm({ variant = 'hero', source = 'landing' }) {
 
 export default function LandingPage() {
   const [authed, setAuthed] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   useEffect(() => {
     setAuthed(Boolean(typeof window !== 'undefined' && localStorage.getItem('cia_token')));
   }, []);
@@ -93,7 +94,7 @@ export default function LandingPage() {
             {authed ? (
               <Link href="/app" className="btn-primary py-1.5 px-3 text-sm">Go to app</Link>
             ) : (
-              <a href="#waitlist" className="btn-primary py-1.5 px-3 text-sm">Join waitlist</a>
+              <button type="button" onClick={() => setModalOpen(true)} className="btn-primary py-1.5 px-3 text-sm">Join waitlist</button>
             )}
           </div>
         </div>
@@ -286,6 +287,39 @@ export default function LandingPage() {
           <span className="text-xs text-slate-600">© {new Date().getFullYear()} · Powered by You.com + Grok</span>
         </div>
       </footer>
+
+      {/* Waitlist modal — opened by the header button */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setModalOpen(false)}
+        >
+          <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-ink-700 bg-ink-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              aria-label="Close"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-ink-800 hover:text-slate-300"
+            >
+              <Icon name="x" className="h-4 w-4" />
+            </button>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent-soft">
+              <Icon name="sparkle" className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold text-white">Join the waitlist</h3>
+            <p className="mt-1.5 text-sm text-slate-400">
+              Enter your email and we'll send your early-access invite to Mira AI when it's ready.
+            </p>
+            <div className="mt-5">
+              <WaitlistForm variant="cta" source="header-modal" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
