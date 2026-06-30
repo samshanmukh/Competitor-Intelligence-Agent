@@ -107,14 +107,15 @@ export default function LandingPage() {
         </div>
         <div className="mx-auto max-w-4xl px-5 pt-20 pb-16 text-center md:pt-28">
           <span className="chip border-accent/30 bg-accent/10 text-accent-soft">
-            <Icon name="sparkle" className="h-3 w-3" /> AI-powered competitive intelligence
+            <Icon name="sparkle" className="h-3 w-3" /> AI market & competitive intelligence
           </span>
           <h1 className="mt-5 text-4xl font-bold leading-[1.1] tracking-tight text-white md:text-6xl">
-            Know your market<br className="hidden sm:block" /> in minutes, not weeks
+            Understand your market<br className="hidden sm:block" /> in minutes, not weeks
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400">
-            Add your product. The agent finds your closest competitors, compares pricing and value,
-            reads real user reviews, and tells you exactly how to position and price.
+            Add your product and Mira AI maps your whole market — its size and growth, your closest
+            competitors, how you stack up on features, value and pricing, and what real customers say.
+            You get the full landscape plus a clear analyst take on where the gaps are and how to win.
           </p>
           <div className="mt-8" id="waitlist">
             {authed ? (
@@ -220,11 +221,12 @@ export default function LandingPage() {
       <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
-            <h2 className="text-3xl font-bold text-white md:text-4xl">Turn competitive noise into pricing decisions</h2>
+            <h2 className="text-3xl font-bold text-white md:text-4xl">Turn market noise into clear strategy</h2>
             <p className="mt-4 text-slate-400">
-              Most teams check competitors a few times a year, in a spreadsheet that's stale the day it's made.
-              The agent monitors continuously and translates raw pricing pages into clear, defensible moves —
-              so you price with confidence and never get blindsided by a competitor's change.
+              Most teams understand their market through scattered research and spreadsheets that are stale the day
+              they're made. Mira AI continuously sizes the market, tracks competitors, and turns raw signals —
+              pricing, features, funding, reviews — into clear, defensible moves, so you act on evidence and never
+              get blindsided.
             </p>
             <ul className="mt-6 space-y-3">
               {OUTCOMES.map((o) => (
@@ -255,8 +257,8 @@ export default function LandingPage() {
           <span className="chip border-emerald-800/50 bg-emerald-950/30 text-emerald-300">Early access — limited spots</span>
           <h2 className="mt-4 text-3xl font-bold text-white md:text-4xl">Be first in line</h2>
           <p className="mx-auto mt-3 max-w-xl text-slate-400">
-            Join the waitlist and we'll email you the moment your early-access invite is ready — pricing, value, reviews,
-            and a clear next move, all in minutes.
+            Join the waitlist and we'll email you the moment your early-access invite is ready — market size,
+            competitors, pricing, value, reviews, and a clear next move, all in minutes.
           </p>
           <div className="mt-8">
             {authed ? (
@@ -326,27 +328,30 @@ export default function LandingPage() {
 
 const FEATURES = [
   { icon: 'search', title: 'Automatic competitor discovery', desc: 'Describe your product or paste a URL — the agent searches the web and confirms your closest competitors. Or add your own by name, URL and description and discover more like them.' },
+  { icon: 'activity', title: 'Market intelligence', desc: 'Real market sizing — total market value, a multi-year growth timeline, and competitor funding, valuation and revenue — pulled from live finance research.' },
+  { icon: 'eye', title: 'Company deep dive', desc: 'A full dossier on any company: overview, financials and valuation, web traffic, and customer reviews — organized and visualized in one place.' },
   { icon: 'bar', title: 'Visual positioning map', desc: 'An interactive price-vs-value chart that instantly shows who’s best-value, premium, budget, or overpriced — with your field plotted side by side.' },
   { icon: 'card', title: 'Pricing & plans comparison', desc: 'Every competitor’s tiers and prices extracted and laid out side by side, with comparison bar charts.' },
   { icon: 'grid', title: 'Feature matrix', desc: 'See exactly which features each competitor offers across tiers in one interactive grid.' },
   { icon: 'trending', title: 'Value-for-money scoring', desc: 'AI scores each competitor on value vs. price and explains the reasoning, charted for quick comparison.' },
   { icon: 'users', title: 'Voice of the customer', desc: 'Pulls real reviews from G2, Capterra and Trustpilot — star ratings, sentiment, and what users love vs. complain about.' },
+  { icon: 'shield', title: 'SWOT & strategy', desc: 'Strengths, weaknesses, opportunities and threats — for you and each rival — with concrete moves to defend your position and win.' },
   { icon: 'sparkle', title: 'AI analyst take', desc: 'A candid, first-person briefing: your read on the market, where you win, where you’re exposed, and what to do next.' },
-  { icon: 'bell', title: 'Change monitoring & alerts', desc: 'Continuous tracking with browser, webhook and Slack alerts the moment a competitor changes pricing.' },
+  { icon: 'bell', title: 'Change monitoring & alerts', desc: 'Continuous tracking with browser, webhook and Slack alerts the moment a competitor changes pricing, plans or positioning.' },
   { icon: 'share', title: 'Saved report history', desc: 'Save any analysis and reopen it anytime — full charts, pricing and reviews cached, so you never re-run or burn tokens.' },
 ];
 
 const STEPS = [
   { title: 'Add your product', desc: 'Enter your company name and (optionally) your product URL. The agent reads your site to understand your market.' },
   { title: 'Find & confirm competitors', desc: 'The agent searches the web for your closest competitors. Review the list and confirm who to track.' },
-  { title: 'Get your report', desc: 'One click produces pricing, feature matrix, value scores, review sentiment, and an analyst’s recommendation.' },
+  { title: 'Get your report', desc: 'One click produces market size and growth, a feature matrix, pricing and value scores, review sentiment, and an analyst’s recommendation.' },
 ];
 
 const OUTCOMES = [
-  'Price with confidence using value-based evidence, not guesswork',
-  'Spot underserved gaps and premium pockets in your market',
-  'Get alerted the instant a competitor changes pricing',
-  'Walk into deals with battlecards that handle every objection',
+  'Size your market and track its growth, funding and momentum',
+  'Spot underserved gaps and where you can win',
+  'Benchmark competitors on features, value, pricing and reviews',
+  'Get alerted the instant a competitor changes anything',
 ];
 
 const PERSONAS = [
