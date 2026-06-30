@@ -157,14 +157,9 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink-950 text-slate-200">
       {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-violet-500 text-white shadow-[0_4px_16px_-4px_rgba(99,102,241,0.7)]">
-              <Icon name="radar" className="h-4 w-4" />
-            </div>
-            <span className="text-[15px] font-semibold tracking-tight text-white">Mira AI</span>
-          </div>
+      <header className="sticky top-0 z-40 bg-ink-950/50 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+          <Link href="/" className="text-lg font-semibold tracking-tight text-white">Mira AI</Link>
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
             <a href="#how" className="transition hover:text-white">How it works</a>
@@ -492,12 +487,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-violet-500 text-white">
-              <Icon name="radar" className="h-3.5 w-3.5" />
-            </div>
-            <span className="font-medium text-slate-300">Mira AI</span>
-          </div>
+          <span className="text-base font-semibold tracking-tight text-slate-200">Mira AI</span>
           <div className="flex items-center gap-6">
             <a href="#features" className="transition hover:text-slate-300">Features</a>
             <a href="#how" className="transition hover:text-slate-300">How it works</a>
