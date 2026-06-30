@@ -1,9 +1,9 @@
 import LandingPage from '../components/LandingPage';
 
 export const metadata = {
-  title: 'Mira AI — Understand your market in minutes',
+  title: 'Mira AI · Know your market in minutes',
   description:
-    'Add your product and Mira AI maps your whole market — its size and growth, your closest competitors, how you compare on features, value, pricing and reviews, plus a clear analyst take on where the gaps are and how to win.',
+    'Add your product. Mira AI maps your market: size and growth, competitors, pricing, value and reviews, plus a clear take on how to win.',
 };
 
 export default function Home() {
