@@ -516,10 +516,7 @@ export default function LandingPage() {
             >
               <Icon name="x" className="h-4 w-4" />
             </button>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-violet-500 text-white shadow-[0_6px_18px_-4px_rgba(99,102,241,0.7)]">
-              <Icon name="sparkle" className="h-5 w-5" />
-            </div>
-            <h3 className="mt-5 text-xl font-semibold text-white">Join the waitlist</h3>
+            <h3 className="text-xl font-semibold text-white">Join the waitlist</h3>
             <p className="mt-2 text-sm text-slate-400">Enter your email and we'll send your early-access invite to Mira AI when it's ready.</p>
             <div className="mt-6">
               <WaitlistForm size="sm" source="header-modal" />
