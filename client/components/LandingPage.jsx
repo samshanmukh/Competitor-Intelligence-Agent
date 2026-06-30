@@ -157,7 +157,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink-950 text-slate-200">
       {/* Nav */}
-      <header className="sticky top-0 z-40 bg-ink-950/50 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Link href="/" className="text-lg font-semibold tracking-tight text-white">Mira AI</Link>
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
@@ -179,14 +179,6 @@ export default function LandingPage() {
       <section className="relative isolate overflow-hidden">
         {/* Background: animated aurora + spotlight + grid */}
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-          {/* Soft spotlight directly behind the headline */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(ellipse 50% 40% at 50% 12%, rgba(99,102,241,0.12), transparent 62%)',
-            }}
-          />
           {/* Drifting aurora blobs */}
           <motion.div
             className="absolute left-[18%] top-[-6%] h-[420px] w-[420px] rounded-full bg-accent/25 blur-[130px]"
