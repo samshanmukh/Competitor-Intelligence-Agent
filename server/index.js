@@ -12,6 +12,8 @@ import pushRouter from './routes/push.js';
 import intelligenceRouter from './routes/intelligence.js';
 import productsRouter from './routes/products.js';
 import reportsRouter from './routes/reports.js';
+import companyRouter from './routes/company.js';
+import waitlistRouter from './routes/waitlist.js';
 import { listCompetitors, getSetting } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
 import { loadKeysFromDB } from './services/keys.js';
@@ -35,6 +37,8 @@ app.use('/api/push', pushRouter);
 app.use('/api/intelligence', intelligenceRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/company', companyRouter);
+app.use('/api/waitlist', waitlistRouter);
 
 // Centralized error handler — turns thrown errors into JSON with sensible codes.
 app.use((err, req, res, _next) => {
@@ -62,7 +66,7 @@ loadKeysFromDB(getSetting).catch((err) => {
 reconcileStaleJobs().catch(() => {});
 
 app.listen(PORT, () => {
-  console.log(`\n  Competitor Intelligence Agent (Enterprise)`);
+  console.log(`\n  Mira AI (Enterprise)`);
   console.log(`  API listening on http://localhost:${PORT}`);
   console.log(`  Auth: Insforge | DB: PostgreSQL | AI: Grok-4\n`);
 });

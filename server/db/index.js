@@ -114,11 +114,11 @@ export async function getSnapshot(id) {
   return data;
 }
 
-export async function insertSnapshot(competitorId, content) {
+export async function insertSnapshot(competitorId, content, source = null) {
   const content_hash = hashContent(content);
   const { data } = await insforge.database
     .from('snapshots')
-    .insert({ competitor_id: competitorId, content, content_hash })
+    .insert({ competitor_id: competitorId, content, content_hash, source })
     .select()
     .maybeSingle();
   return data;
@@ -200,6 +200,39 @@ export async function markChangesSeen(workspaceId = null) {
   if (ids.length) {
     await insforge.database.from('changes').update({ seen: true }).in('id', ids);
   }
+}
+
+// ---------- Waitlist ----------
+export async function addToWaitlist(email, { source = null, referrer = null } = {}) {
+  const clean = String(email || '').trim().toLowerCase();
+  if (!clean) return { ok: false, error: 'Email is required' };
+
+  // Idempotent: if the email is already on the list, treat it as success.
+  const { data: existing } = await insforge.database
+    .from('waitlist')
+    .select('id')
+    .eq('email', clean)
+    .maybeSingle();
+  if (existing) return { ok: true, already: true };
+
+  const { data, error } = await insforge.database
+    .from('waitlist')
+    .insert({ email: clean, source, referrer })
+    .select()
+    .maybeSingle();
+  if (error) {
+    // Unique-violation race → still a success from the user's perspective.
+    if (/duplicate|unique/i.test(error.message || '')) return { ok: true, already: true };
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, already: false, entry: data };
+}
+
+export async function countWaitlist() {
+  const { count } = await insforge.database
+    .from('waitlist')
+    .select('id', { count: 'exact', head: true });
+  return count || 0;
 }
 
 export default insforge;

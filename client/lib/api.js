@@ -101,11 +101,19 @@ export const api = {
   marketStart: (effort) => request('/intelligence/market/start', { method: 'POST', body: { effort } }),
   marketStatus: (jobId) => request(`/intelligence/market/status/${jobId}`),
 
+  // Company deep dive — background job
+  deepDiveStart: (company, url) => request('/company/deep-dive/start', { method: 'POST', body: { company, url } }),
+  deepDiveStatus: (jobId) => request(`/company/deep-dive/status/${jobId}`),
+
   // Saved report history
   saveReport: (title, content) => request('/reports', { method: 'POST', body: { title, content } }),
   listReports: () => request('/reports'),
   getReport: (id) => request(`/reports/${id}`),
   deleteReport: (id) => request(`/reports/${id}`, { method: 'DELETE' }),
+
+  // Waitlist (public — no auth)
+  joinWaitlist: (email, source = 'landing') =>
+    request('/waitlist', { method: 'POST', body: { email, source }, headers: {} }),
 
   // Push
   vapidKey: () => request('/push/vapid-public-key'),

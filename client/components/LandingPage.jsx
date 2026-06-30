@@ -4,14 +4,75 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Icon } from './ui';
 
+// Inline email capture → POST /api/waitlist. `variant` tunes sizing for the
+// hero vs. the final CTA. On success it swaps to a confirmation message.
+function WaitlistForm({ variant = 'hero', source = 'landing' }) {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState('idle'); // idle | loading | done | error
+  const [message, setMessage] = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    if (state === 'loading') return;
+    setState('loading');
+    setMessage('');
+    try {
+      // Same-origin Next.js route handler → Insforge. Works in dev and on Vercel
+      // with no Express backend.
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), source }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Something went wrong. Please try again.');
+      setState('done');
+      setMessage(data?.already ? "You're already on the list — we'll be in touch." : "You're on the list! We'll email you when it's your turn.");
+    } catch (err) {
+      setState('error');
+      setMessage(err?.message || 'Something went wrong. Please try again.');
+    }
+  }
+
+  if (state === 'done') {
+    return (
+      <div className="mx-auto flex max-w-md items-center justify-center gap-2.5 rounded-xl border border-emerald-800/50 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">
+        <Icon name="check" className="h-4 w-4 shrink-0" />
+        <span>{message}</span>
+      </div>
+    );
+  }
+
+  const big = variant === 'hero';
+  return (
+    <form onSubmit={submit} className="mx-auto w-full max-w-md">
+      <div className="flex flex-col gap-2.5 sm:flex-row">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className={`flex-1 rounded-xl border border-ink-700 bg-ink-900 text-slate-200 placeholder-slate-600 outline-none transition focus:border-accent/60 focus:ring-2 focus:ring-accent/20 ${big ? 'px-4 py-3 text-base' : 'px-4 py-2.5 text-sm'}`}
+        />
+        <button
+          type="submit"
+          disabled={state === 'loading'}
+          className={`btn-primary justify-center whitespace-nowrap ${big ? 'px-5 py-3 text-base' : 'px-5 py-2.5 text-sm'} disabled:opacity-60`}
+        >
+          {state === 'loading' ? 'Joining…' : <><Icon name="sparkle" className="h-4 w-4" /> Join waitlist</>}
+        </button>
+      </div>
+      {state === 'error' && <p className="mt-2 text-xs text-rose-400">{message}</p>}
+    </form>
+  );
+}
+
 export default function LandingPage() {
   const [authed, setAuthed] = useState(false);
   useEffect(() => {
     setAuthed(Boolean(typeof window !== 'undefined' && localStorage.getItem('cia_token')));
   }, []);
-
-  const primaryHref = authed ? '/app' : '/signup';
-  const primaryLabel = authed ? 'Go to app' : 'Get started free';
 
   return (
     <div className="min-h-screen bg-ink-950 text-slate-200">
@@ -22,15 +83,18 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/15 text-accent-soft">
               <Icon name="radar" className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold text-white">Competitor Intelligence Agent</span>
+            <span className="text-sm font-semibold text-white">Mira AI</span>
           </div>
           <nav className="hidden items-center gap-6 text-sm text-slate-400 md:flex">
             <a href="#features" className="hover:text-white transition">Features</a>
             <a href="#how" className="hover:text-white transition">How it works</a>
           </nav>
           <div className="flex items-center gap-2">
-            {!authed && <Link href="/login" className="btn-ghost py-1.5 px-3 text-sm">Sign in</Link>}
-            <Link href={primaryHref} className="btn-primary py-1.5 px-3 text-sm">{primaryLabel}</Link>
+            {authed ? (
+              <Link href="/app" className="btn-primary py-1.5 px-3 text-sm">Go to app</Link>
+            ) : (
+              <a href="#waitlist" className="btn-primary py-1.5 px-3 text-sm">Join waitlist</a>
+            )}
           </div>
         </div>
       </header>
@@ -51,13 +115,19 @@ export default function LandingPage() {
             Add your product. The agent finds your closest competitors, compares pricing and value,
             reads real user reviews, and tells you exactly how to position and price.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href={primaryHref} className="btn-primary px-5 py-2.5 text-base">
-              <Icon name="sparkle" className="h-4 w-4" /> {primaryLabel}
-            </Link>
-            <a href="#how" className="btn-ghost px-5 py-2.5 text-base">See how it works</a>
+          <div className="mt-8" id="waitlist">
+            {authed ? (
+              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link href="/app" className="btn-primary px-5 py-2.5 text-base">
+                  <Icon name="sparkle" className="h-4 w-4" /> Go to app
+                </Link>
+                <a href="#how" className="btn-ghost px-5 py-2.5 text-base">See how it works</a>
+              </div>
+            ) : (
+              <WaitlistForm variant="hero" source="hero" />
+            )}
           </div>
-          <p className="mt-4 text-xs text-slate-600">Free while in early access · No credit card required</p>
+          <p className="mt-4 text-xs text-slate-600">Join the early-access waitlist · No credit card required</p>
         </div>
 
         {/* Product preview mock */}
@@ -181,15 +251,20 @@ export default function LandingPage() {
       {/* Final CTA */}
       <section className="border-y border-ink-800/60 bg-ink-900/30">
         <div className="mx-auto max-w-4xl px-5 py-24 text-center">
-          <span className="chip border-emerald-800/50 bg-emerald-950/30 text-emerald-300">Free while in early access</span>
-          <h2 className="mt-4 text-3xl font-bold text-white md:text-4xl">See where you really stand</h2>
+          <span className="chip border-emerald-800/50 bg-emerald-950/30 text-emerald-300">Early access — limited spots</span>
+          <h2 className="mt-4 text-3xl font-bold text-white md:text-4xl">Be first in line</h2>
           <p className="mx-auto mt-3 max-w-xl text-slate-400">
-            Add your product and get a full competitive report — pricing, value, reviews, and a clear next move — in minutes.
+            Join the waitlist and we'll email you the moment your early-access invite is ready — pricing, value, reviews,
+            and a clear next move, all in minutes.
           </p>
           <div className="mt-8">
-            <Link href={primaryHref} className="btn-primary px-6 py-3 text-base">
-              <Icon name="sparkle" className="h-4 w-4" /> {primaryLabel}
-            </Link>
+            {authed ? (
+              <Link href="/app" className="btn-primary px-6 py-3 text-base">
+                <Icon name="sparkle" className="h-4 w-4" /> Go to app
+              </Link>
+            ) : (
+              <WaitlistForm variant="cta" source="footer-cta" />
+            )}
           </div>
           <p className="mt-4 text-xs text-slate-600">No credit card required.</p>
         </div>
@@ -202,12 +277,11 @@ export default function LandingPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/15 text-accent-soft">
               <Icon name="radar" className="h-3.5 w-3.5" />
             </div>
-            <span className="text-slate-400">Competitor Intelligence Agent</span>
+            <span className="text-slate-400">Mira AI</span>
           </div>
           <div className="flex items-center gap-5">
             <a href="#features" className="hover:text-slate-300 transition">Features</a>
             <a href="#how" className="hover:text-slate-300 transition">How it works</a>
-            <Link href="/login" className="hover:text-slate-300 transition">Sign in</Link>
           </div>
           <span className="text-xs text-slate-600">© {new Date().getFullYear()} · Powered by You.com + Grok</span>
         </div>

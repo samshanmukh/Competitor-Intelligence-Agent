@@ -140,35 +140,45 @@ function htmlToText(html) {
  */
 export async function fetchContents(urls) {
   const list = Array.isArray(urls) ? urls : [urls];
-  const json = await request('/contents', { urls: list });
-
-  // New format: direct array [{url, html, title}]
-  // Legacy fallback: object with results/contents/data key
-  const results = Array.isArray(json)
-    ? json
-    : json.results || json.contents || json.data || [];
 
   const map = {};
   for (const url of list) map[url] = { markdown: null, error: 'No content returned' };
 
-  for (const item of results) {
-    const url = item.url || item.source || item.link;
-    if (!url) continue;
-
-    // New: html field; legacy: markdown/content/text/body
-    const raw = item.html || item.markdown || item.content || item.text || item.body
-      || (typeof item === 'string' ? item : null);
-
-    if (raw) {
-      // Convert HTML to clean text; if already plain text this is a no-op effectively
-      const text = item.html ? htmlToText(raw) : raw;
-      map[url] = text
-        ? { markdown: text, error: null }
-        : { markdown: null, error: 'Empty content after parsing' };
-    } else {
-      map[url] = { markdown: null, error: item.error || 'Empty content (site may block scrapers)' };
+  // 1) Try the You.com Contents API (don't let a failure block the Apify fallback).
+  try {
+    const json = await request('/contents', { urls: list });
+    const results = Array.isArray(json) ? json : json.results || json.contents || json.data || [];
+    for (const item of results) {
+      const url = item.url || item.source || item.link;
+      if (!url) continue;
+      const raw = item.html || item.markdown || item.content || item.text || item.body
+        || (typeof item === 'string' ? item : null);
+      if (raw) {
+        const text = item.html ? htmlToText(raw) : raw;
+        map[url] = text ? { markdown: text, error: null } : { markdown: null, error: 'Empty content after parsing' };
+      } else {
+        map[url] = { markdown: null, error: item.error || 'Empty content (site may block scrapers)' };
+      }
     }
+  } catch (err) {
+    for (const url of list) if (!map[url].markdown) map[url] = { markdown: null, error: `You.com: ${err.message}` };
   }
+
+  // 2) Fallback: for any URL still empty, use Apify's Website Content Crawler
+  //    (robust JS rendering + proxies), if configured.
+  try {
+    const { crawlContent, apifyConfigured } = await import('./apify.js');
+    if (apifyConfigured()) {
+      for (const url of list) {
+        if (map[url].markdown) continue;
+        try {
+          const md = await crawlContent(url);
+          if (md) map[url] = { markdown: md, error: null, source: 'apify' };
+        } catch { /* keep the You.com error */ }
+      }
+    }
+  } catch { /* apify service unavailable — keep You.com results */ }
+
   return map;
 }
 
