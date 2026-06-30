@@ -39,6 +39,8 @@ function WaitlistForm({ size = 'lg', source = 'landing' }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState('idle'); // idle | loading | done | error
   const [message, setMessage] = useState('');
+  const [comment, setComment] = useState('');
+  const [fbState, setFbState] = useState('idle'); // idle | loading | done
 
   async function submit(e) {
     e.preventDefault();
@@ -61,11 +63,50 @@ function WaitlistForm({ size = 'lg', source = 'landing' }) {
     }
   }
 
+  async function sendFeedback(e) {
+    e.preventDefault();
+    if (fbState === 'loading' || !comment.trim()) return;
+    setFbState('loading');
+    try {
+      await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), comment: comment.trim(), source }),
+      });
+    } catch {
+      /* best-effort; don't block the user on feedback */
+    }
+    setFbState('done');
+  }
+
   if (state === 'done') {
     return (
-      <div className="mx-auto flex max-w-md items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 text-sm text-emerald-300">
-        <Icon name="check" className="h-4 w-4 shrink-0" />
-        <span>{message}</span>
+      <div className="mx-auto w-full max-w-md space-y-3">
+        <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 text-sm text-emerald-300">
+          <Icon name="check" className="h-4 w-4 shrink-0" />
+          <span>{message}</span>
+        </div>
+        {fbState === 'done' ? (
+          <p className="text-center text-sm text-slate-400">Thanks for the note — it helps us build the right thing.</p>
+        ) : (
+          <form onSubmit={sendFeedback} className="space-y-2.5">
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              aria-label="Optional feedback or comment"
+              placeholder="Optional: what are you hoping Mira helps you with? Any comments?"
+              className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
+            />
+            <button
+              type="submit"
+              disabled={fbState === 'loading' || !comment.trim()}
+              className="w-full rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
+            >
+              {fbState === 'loading' ? 'Sending…' : 'Send feedback'}
+            </button>
+          </form>
+        )}
       </div>
     );
   }
@@ -93,6 +134,75 @@ function WaitlistForm({ size = 'lg', source = 'landing' }) {
       </div>
       {state === 'error' && <p className="mt-2 text-center text-xs text-rose-400">{message}</p>}
       {state !== 'error' && <p className="mt-3 text-center text-xs text-slate-500">Free in early access. No credit card required.</p>}
+    </form>
+  );
+}
+
+// Combined waitlist form for the header popup: email (required) + an optional
+// queries/comments box, submitted together.
+function ModalWaitlistForm({ source = 'header-modal' }) {
+  const [email, setEmail] = useState('');
+  const [comment, setComment] = useState('');
+  const [state, setState] = useState('idle'); // idle | loading | done | error
+  const [message, setMessage] = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    if (state === 'loading') return;
+    setState('loading');
+    setMessage('');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), comment: comment.trim() || undefined, source }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Something went wrong. Please try again.');
+      setState('done');
+      setMessage(data?.already ? "You're already on the list. Thanks for the note." : "You're on the list. We'll be in touch.");
+    } catch (err) {
+      setState('error');
+      setMessage(err?.message || 'Something went wrong. Please try again.');
+    }
+  }
+
+  if (state === 'done') {
+    return (
+      <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 text-sm text-emerald-300">
+        <Icon name="check" className="h-4 w-4 shrink-0" />
+        <span>{message}</span>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <input
+        type="email"
+        required
+        aria-label="Email address"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="you@company.com"
+        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
+      />
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={3}
+        aria-label="Questions or comments (optional)"
+        placeholder="Questions or comments? (optional)"
+        className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
+      />
+      <button
+        type="submit"
+        disabled={state === 'loading'}
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:opacity-60"
+      >
+        {state === 'loading' ? 'Joining…' : 'Join waitlist'}
+      </button>
+      {state === 'error' && <p className="text-center text-xs text-rose-400">{message}</p>}
     </form>
   );
 }
@@ -509,9 +619,9 @@ export default function LandingPage() {
               <Icon name="x" className="h-4 w-4" />
             </button>
             <h3 className="text-xl font-semibold text-white">Join the waitlist</h3>
-            <p className="mt-2 text-sm text-slate-400">Enter your email and we'll send your early-access invite to Mira AI when it's ready.</p>
+            <p className="mt-2 text-sm text-slate-400">Drop your email for an early-access invite. Add any questions or comments below — optional.</p>
             <div className="mt-6">
-              <WaitlistForm size="sm" source="header-modal" />
+              <ModalWaitlistForm source="header-modal" />
             </div>
           </motion.div>
         </div>

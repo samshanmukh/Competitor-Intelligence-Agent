@@ -26,26 +26,39 @@ export async function POST(request) {
     );
   }
 
+  const comment = body?.comment != null ? String(body.comment).trim().slice(0, 2000) : null;
   const insforge = createClient({ baseUrl: INSFORGE_URL, anonKey: INSFORGE_ANON });
 
   try {
-    // Idempotent: a repeat email is treated as success.
+    // If the email already exists, attach the comment (if any) and we're done.
     const { data: existing } = await insforge.database
       .from('waitlist')
       .select('id')
       .eq('email', email)
       .maybeSingle();
-    if (existing) return NextResponse.json({ ok: true, already: true });
+    if (existing) {
+      if (comment) {
+        const { error } = await insforge.database.from('waitlist').update({ comment }).eq('email', email);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, already: true, feedback: Boolean(comment) });
+    }
 
+    // New signup — insert email + optional comment together.
     const { error } = await insforge.database
       .from('waitlist')
       .insert({
         email,
+        comment: comment || null,
         source: body?.source || 'landing',
         referrer: request.headers.get('referer') || null,
       });
     if (error) {
-      if (/duplicate|unique/i.test(error.message || '')) return NextResponse.json({ ok: true, already: true });
+      // Lost a race (row created between select and insert): save the comment if provided.
+      if (/duplicate|unique/i.test(error.message || '')) {
+        if (comment) await insforge.database.from('waitlist').update({ comment }).eq('email', email);
+        return NextResponse.json({ ok: true, already: true });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true, already: false });
