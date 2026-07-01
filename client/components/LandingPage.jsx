@@ -269,7 +269,9 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-white">Mira AI</Link>
+          <Link href="/" style={{ fontFamily: 'var(--font-brand)' }} className="text-xl font-semibold tracking-tight text-white">
+            Mira <span className="text-accent-soft">AI</span>
+          </Link>
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
             <a href="#how" className="transition hover:text-white">How it works</a>
@@ -368,7 +370,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.12, ease: EASE }}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Mira learns your business, watches your market, and helps you prioritize your next big decision.
+            Mira learns your business, watches your market, and helps you prioritize your next move.
           </motion.p>
 
           <motion.div
@@ -589,7 +591,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
-          <span className="text-base font-semibold tracking-tight text-slate-200">Mira AI</span>
+          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-base font-semibold tracking-tight text-slate-200">Mira <span className="text-accent-soft">AI</span></span>
           <div className="flex items-center gap-6">
             <a href="#features" className="transition hover:text-slate-300">Features</a>
             <a href="#how" className="transition hover:text-slate-300">How it works</a>
