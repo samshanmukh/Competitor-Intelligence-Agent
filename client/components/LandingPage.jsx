@@ -87,7 +87,7 @@ function WaitlistForm({ size = 'lg', source = 'landing' }) {
           <span>{message}</span>
         </div>
         {fbState === 'done' ? (
-          <p className="text-center text-sm text-slate-400">Thanks for the note — it helps us build the right thing.</p>
+          <p className="text-center text-sm text-slate-400">Thanks for the note. It helps us build the right thing.</p>
         ) : (
           <form onSubmit={sendFeedback} className="space-y-2.5">
             <textarea
@@ -348,7 +348,7 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 backdrop-blur transition hover:border-white/20"
           >
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            AI market & competitive intelligence
+            Built around your business
             <Icon name="chevronRight" className="h-3 w-3 text-slate-500" />
           </motion.a>
 
@@ -358,9 +358,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.06, ease: EASE }}
             className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl"
           >
-            Know your{' '}
-            <span className="bg-gradient-to-r from-accent-soft via-indigo-300 to-violet-300 bg-clip-text text-transparent">market</span>
-            <br className="hidden sm:block" /> in minutes, not weeks
+            <span className="bg-gradient-to-r from-accent-soft via-indigo-300 to-violet-300 bg-clip-text text-transparent">Decision support</span>
+            <br className="hidden sm:block" /> for startup founders
           </motion.h1>
 
           <motion.p
@@ -369,7 +368,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.12, ease: EASE }}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Add your product. Mira AI maps your market, tracks competitors, and tells you exactly how to win.
+            Mira learns your business, watches your market, and helps you prioritize your next big decision.
           </motion.p>
 
           <motion.div
@@ -406,7 +405,7 @@ export default function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-                <span className="ml-3 text-xs text-slate-500">Mira AI · Competitive report · Acme Analytics</span>
+                <span className="ml-3 text-xs text-slate-500">Mira AI · Business report · Acme Analytics</span>
               </div>
               <div className="grid gap-4 p-5 md:grid-cols-3">
                 {/* Market growth tile */}
@@ -420,16 +419,16 @@ export default function LandingPage() {
                 </div>
                 {/* Positioning tile */}
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left">
-                  <p className="text-xs text-slate-500">Positioning map</p>
+                  <p className="text-xs text-slate-500">Where you stand</p>
                   <div className="mt-2 h-[88px]"><PositioningMock /></div>
-                  <p className="mt-1 text-xs text-accent-soft">You: best value quadrant</p>
+                  <p className="mt-1 text-xs text-accent-soft">You: best-value quadrant</p>
                 </div>
-                {/* KPI stack */}
+                {/* Business summary stack */}
                 <div className="flex flex-col gap-3">
                   {[
-                    { label: 'Competitors found', value: '8', icon: 'users' },
-                    { label: 'Avg. value score', value: '7.2/10', icon: 'trending' },
-                    { label: 'Review sentiment', value: 'Mixed', icon: 'activity' },
+                    { label: 'Ideal customer', value: 'Ops teams', icon: 'users' },
+                    { label: 'Business model', value: 'Subscription', icon: 'card' },
+                    { label: 'Stage', value: 'Early / seed', icon: 'activity' },
                   ].map((k) => (
                     <div key={k.label} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent-soft">
@@ -447,8 +446,8 @@ export default function LandingPage() {
                 <div className="rounded-xl border border-accent/20 bg-accent/5 p-4 text-left">
                   <p className="text-xs font-semibold uppercase tracking-wide text-accent-soft">Analyst take</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-slate-300">
-                    "Two rivals anchor the premium tier at $99/mo while the mid-market sits underserved.
-                    You can win on price-to-value. Test a $39 Pro plan and lead with integrations."
+                    "You're a mid-market analytics tool in a $4.2B market growing 18%. Your edge is time-to-value.
+                    Focus next on owning the ops-team customer and a self-serve $39 tier."
                   </p>
                 </div>
               </div>
@@ -473,8 +472,8 @@ export default function LandingPage() {
       <section id="features" className="mx-auto max-w-6xl px-5 py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-accent-soft">Capabilities</span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">Everything you need to out-position rivals</h2>
-          <p className="mt-4 text-slate-400">One agent replaces hours of research, spreadsheets and guesswork.</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">Everything you need to understand your business</h2>
+          <p className="mt-4 text-slate-400">Tailored to your business. It replaces weeks of research and guesswork.</p>
         </Reveal>
 
         {/* Spotlight differentiators */}
@@ -537,10 +536,11 @@ export default function LandingPage() {
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <Reveal>
             <span className="text-xs font-semibold uppercase tracking-widest text-accent-soft">Why Mira</span>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">Turn market noise into clear strategy</h2>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">Get clarity before you scale</h2>
             <p className="mt-4 text-slate-400">
-              Most teams rely on scattered research and spreadsheets that go stale fast. Mira AI sizes your market,
-              tracks competitors, and turns the signals into clear moves, so you act on evidence and never get blindsided.
+              Most founders are too deep in the build to see their own business clearly. Mira reads your site,
+              researches your market, and reflects the whole picture back, so you know what you're building and what to
+              focus on next.
             </p>
             <ul className="mt-7 space-y-3.5">
               {OUTCOMES.map((o) => (
@@ -619,7 +619,7 @@ export default function LandingPage() {
               <Icon name="x" className="h-4 w-4" />
             </button>
             <h3 className="text-xl font-semibold text-white">Join the waitlist</h3>
-            <p className="mt-2 text-sm text-slate-400">Drop your email for an early-access invite. Add any questions or comments below — optional.</p>
+            <p className="mt-2 text-sm text-slate-400">Drop your email for an early-access invite. Add any questions or comments below (optional).</p>
             <div className="mt-6">
               <ModalWaitlistForm source="header-modal" />
             </div>
@@ -631,62 +631,64 @@ export default function LandingPage() {
 }
 
 const STATS = [
-  { value: '~40s', label: 'To find your competitors' },
-  { value: '11+', label: 'Signals per report' },
-  { value: '5-yr', label: 'Market growth timeline' },
-  { value: '1 click', label: 'Full competitive report' },
+  { value: '~2 min', label: 'To a clear business snapshot' },
+  { value: 'TAM→SOM', label: 'Your market, sized' },
+  { value: '1', label: 'Sharp ideal-customer profile' },
+  { value: '3 moves', label: 'To focus on next' },
 ];
 
 const SPOTLIGHT = [
   {
+    icon: 'eye',
+    title: 'Your business, clearly',
+    desc: 'What you do, your category, value proposition, ideal customer and model, reflected back in plain terms.',
+    visual: (
+      <p className="text-xs italic leading-relaxed text-slate-400">"A mid-market analytics tool for ops teams, sold as a self-serve subscription."</p>
+    ),
+  },
+  {
     icon: 'activity',
-    title: 'Market intelligence',
-    desc: 'Real market value, growth, and competitor funding and revenue from live finance research.',
+    title: 'Market & timing',
+    desc: 'Your market sized (TAM, SAM, SOM), its growth, and why now, from live research.',
     visual: <GrowthMock />,
   },
   {
-    icon: 'bar',
-    title: 'Positioning map',
-    desc: 'See who is best-value, premium or overpriced on price-vs-value, with you plotted in.',
-    visual: <PositioningMock />,
-  },
-  {
     icon: 'sparkle',
-    title: 'AI analyst take',
-    desc: 'A candid read on where you win, where you are exposed, and what to do next.',
+    title: 'Your next moves',
+    desc: 'A candid read on your strengths, your gaps, and the top moves to focus on right now.',
     visual: (
-      <p className="text-xs italic leading-relaxed text-slate-400">"Win on price-to-value. Test a $39 Pro plan and lead with integrations."</p>
+      <p className="text-xs italic leading-relaxed text-slate-400">"Own the ops-team customer and launch a self-serve $39 tier."</p>
     ),
   },
 ];
 
 const FEATURES = [
-  { icon: 'search', title: 'Competitor discovery', desc: 'Paste a URL and Mira finds your closest competitors, or add your own.' },
-  { icon: 'eye', title: 'Company deep dive', desc: 'A full dossier: overview, financials, web traffic and reviews.' },
-  { icon: 'card', title: 'Pricing comparison', desc: 'Every competitor’s tiers and prices, side by side with charts.' },
-  { icon: 'grid', title: 'Feature matrix', desc: 'Which features each competitor offers across tiers, in one grid.' },
-  { icon: 'trending', title: 'Value scoring', desc: 'AI scores each competitor on value for money and explains why.' },
-  { icon: 'users', title: 'Voice of the customer', desc: 'Real reviews from G2, Capterra and Trustpilot: ratings and sentiment.' },
-  { icon: 'shield', title: 'SWOT & strategy', desc: 'Strengths, weaknesses, opportunities and threats, with moves to win.' },
-  { icon: 'bell', title: 'Change alerts', desc: 'Browser, webhook and Slack alerts when a competitor changes anything.' },
+  { icon: 'users', title: 'Ideal customer profile', desc: 'Who you serve, their pains, and where to reach them.' },
+  { icon: 'zap', title: 'Value proposition', desc: 'Your positioning and what makes you worth choosing, sharpened.' },
+  { icon: 'card', title: 'Business model', desc: 'How you make money, with pricing that fits your value.' },
+  { icon: 'bar', title: 'Market sizing', desc: 'TAM, SAM and SOM with the sources behind them.' },
+  { icon: 'map', title: 'Where you stand', desc: 'Your closest competitors as context, and where you fit.' },
+  { icon: 'shield', title: 'SWOT & risks', desc: 'Strengths, weaknesses, opportunities and threats.' },
+  { icon: 'trending', title: 'Pricing strategy', desc: 'Value-based pricing guidance for your stage.' },
+  { icon: 'share', title: 'Saved reports', desc: 'Save your business report and revisit it anytime.' },
 ];
 
 const STEPS = [
-  { title: 'Add your product', desc: 'Enter your name and URL. Mira reads your site to learn your market.' },
-  { title: 'Find competitors', desc: 'Mira finds your closest competitors. Confirm who to track.' },
-  { title: 'Get your report', desc: 'One click: market size, competitors, pricing, value and reviews.' },
+  { title: 'Paste your URL', desc: 'Mira reads your site to understand what you are building.' },
+  { title: 'Get your clarity report', desc: 'Your business, customer, market and where you stand.' },
+  { title: 'Know your next move', desc: 'Prioritized focus areas, positioning and pricing.' },
 ];
 
 const OUTCOMES = [
-  'Size your market and track its growth and momentum',
-  'Spot underserved gaps and where you can win',
-  'Benchmark competitors on features, value and pricing',
-  'Get alerted when a competitor changes anything',
+  'See your business the way an analyst would',
+  'Nail your ideal customer and positioning',
+  'Size your market and understand the timing',
+  'Know the top moves to focus on next',
 ];
 
 const PERSONAS = [
-  { icon: 'sparkle', title: 'Founders', desc: 'Know your market and price with confidence.' },
-  { icon: 'trending', title: 'Product & pricing', desc: 'Back decisions with live market data.' },
-  { icon: 'shield', title: 'Sales teams', desc: 'Win deals with current battlecards.' },
-  { icon: 'users', title: 'Strategy & research', desc: 'A live view of the whole market.' },
+  { icon: 'sparkle', title: 'Solo founders', desc: 'An analyst’s view without hiring one.' },
+  { icon: 'trending', title: 'Pre-seed & seed', desc: 'Sharpen your story before you raise.' },
+  { icon: 'zap', title: 'Indie hackers', desc: 'Validate and position what you built.' },
+  { icon: 'users', title: 'Accelerator teams', desc: 'Get clarity fast, in a weekend.' },
 ];
