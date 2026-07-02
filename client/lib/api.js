@@ -101,6 +101,15 @@ export const api = {
   marketStart: (effort) => request('/intelligence/market/start', { method: 'POST', body: { effort } }),
   marketStatus: (jobId) => request(`/intelligence/market/status/${jobId}`),
 
+  // TAM / SAM / SOM market model
+  marketModelStart: () => request('/intelligence/market-model/start', { method: 'POST' }),
+  marketModelStatus: (jobId) => request(`/intelligence/market-model/status/${jobId}`),
+  getMarketModel: () => request('/intelligence/market-model'),
+  saveMarketModel: (inputs) => request('/intelligence/market-model', { method: 'PUT', body: { inputs } }),
+  marketModelHistory: () => request('/intelligence/market-model/history'),
+  factCheckStart: () => request('/intelligence/market-model/fact-check/start', { method: 'POST' }),
+  factCheckStatus: (jobId) => request(`/intelligence/market-model/fact-check/status/${jobId}`),
+
   // Company deep dive — background job
   deepDiveStart: (company, url) => request('/company/deep-dive/start', { method: 'POST', body: { company, url } }),
   deepDiveStatus: (jobId) => request(`/company/deep-dive/status/${jobId}`),

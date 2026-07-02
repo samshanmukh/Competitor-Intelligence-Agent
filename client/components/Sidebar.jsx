@@ -93,6 +93,7 @@ export default function Sidebar() {
     <>
       <NavGroup label="Workspace" collapsed={collapsed}>
         <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={collapsed} />
+        <NavItem href="/market" icon="bar" label="Market model" collapsed={collapsed} />
         <NavItem href="/competitors" icon="users" label="Competitors" collapsed={collapsed} />
         <NavItem href="/company" icon="map" label="Deep Dive" collapsed={collapsed} />
         <NavItem href="/changes" icon="bell" label="Changes" badge={unseen} collapsed={collapsed} />

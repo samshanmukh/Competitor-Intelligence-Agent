@@ -2,8 +2,11 @@ import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors } from '../db/index.js';
 import { getProduct } from '../db/products.js';
+import { getMarketModel, saveMarketModel, insertModelHistory, getModelHistory } from '../db/marketModel.js';
 import { completeJSON, complete } from '../services/ai.js';
 import { research, financeResearch, fetchContents } from '../services/youcom.js';
+import { crunchbaseFunding } from '../services/apify.js';
+import { tavilySearch, tavilyConfigured } from '../services/tavily.js';
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
 import { sendPushToWorkspace } from '../services/push.js';
 
@@ -507,5 +510,370 @@ function flattenResearch(payload) {
   }
   return parts.join('\n');
 }
+
+// ---------------------------------------------------------------------------
+// TAM / SAM / SOM market model
+// ---------------------------------------------------------------------------
+
+function toNum(v, d = null) {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string') {
+    const n = Number(v.replace(/[^0-9.eE+-]/g, ''));
+    if (Number.isFinite(n)) return n;
+  }
+  return d;
+}
+const clamp01 = (v, d) => Math.min(1, Math.max(0, toNum(v, d)));
+
+// Normalize/guard the editable assumptions.
+function normalizeInputs(inp = {}) {
+  return {
+    geography: typeof inp.geography === 'string' && inp.geography.trim() ? inp.geography.trim() : 'Global',
+    serviceable_pct: clamp01(inp.serviceable_pct, 0.3),
+    acv_usd: Math.max(0, toNum(inp.acv_usd, 1200)),
+    target_share: clamp01(inp.target_share, 0.02),
+    timeframe_years: Math.min(7, Math.max(1, Math.round(toNum(inp.timeframe_years, 3)))),
+    annual_growth_pct: clamp01(inp.annual_growth_pct, 0.3),
+  };
+}
+
+// Deterministic SAM/SOM/timeline from TAM + editable inputs. This is the math
+// that recomputes instantly when a founder edits an assumption — no tokens.
+// SOM scales with your pricing relative to the baseline ACV, so raising ACV
+// (a real lever) increases obtainable revenue. SAM stays a pure market figure.
+function computeDerived(tamValue, inputs, baseAcv) {
+  const tam = Math.max(0, toNum(tamValue, 0));
+  const sam = Math.round(tam * inputs.serviceable_pct);
+  const acvFactor = baseAcv > 0 ? Math.max(0, inputs.acv_usd) / baseAcv : 1;
+  const som = Math.round(sam * inputs.target_share * acvFactor);
+  const T = inputs.timeframe_years;
+  const som_timeline = Array.from({ length: T }, (_, i) => ({
+    year: i + 1,
+    value_usd: Math.round(som * ((i + 1) / T)),
+  }));
+  return { sam, som, som_timeline };
+}
+
+// Assemble the full model object the UI renders (TAM from research, SAM/SOM derived).
+function buildModel(structured, sources) {
+  const inputs = normalizeInputs(structured.inputs);
+  const tamValue = toNum(structured?.tam?.value_usd, 0);
+  const { sam, som, som_timeline } = computeDerived(tamValue, inputs, inputs.acv_usd);
+  return {
+    tam: {
+      value_usd: tamValue,
+      low_usd: toNum(structured?.tam?.low_usd),
+      high_usd: toNum(structured?.tam?.high_usd),
+      confidence: structured?.tam?.confidence || 'low',
+      method: structured?.tam?.method || null,
+    },
+    sam: { value_usd: sam, method: 'TAM × serviceable %', confidence: structured?.tam?.confidence || 'low' },
+    som: { value_usd: som, method: 'SAM × target share' },
+    som_timeline,
+    bottom_up: structured?.bottom_up || null,
+    reconciliation: structured?.reconciliation || null,
+    inputs,
+    inputs_base: { ...inputs },
+    levers: Array.isArray(structured?.levers) ? structured.levers.slice(0, 6) : [],
+    summary: structured?.summary || null,
+    sources,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+// Research + structure a fresh TAM/SAM/SOM model for the workspace's product.
+async function runMarketModel(workspaceId) {
+  const product = await getProduct(workspaceId);
+  if (!product) {
+    const err = new Error('Add your product first, then build the market model.');
+    err.code = 'NO_PRODUCT';
+    throw err;
+  }
+  const name = product.name || 'this product';
+  const desc = (product.description || '').slice(0, 700);
+  const pricing = typeof product.pricing_data === 'string' ? product.pricing_data.slice(0, 800) : '';
+
+  const input = `Market-sizing research for a startup.
+Product: "${name}"
+What it does: ${desc}
+Pricing (if provided): ${pricing}
+
+Find, with concrete numbers and cited sources:
+1. The total addressable market (TAM) in USD for the category this product is in, plus its annual growth rate (CAGR).
+2. The number of potential customers (businesses or people) that match this product's ideal customer profile, in its primary geography.
+3. A typical annual contract value or yearly spend per customer for this kind of product.
+Cite sources for each figure.`;
+
+  const payload = await financeResearch(input, 'deep');
+  const text = flattenResearch(payload).slice(0, 12000);
+  if (!text) return null;
+  const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
+
+  const structured = await completeJSON({
+    system:
+      'You are a market-sizing analyst for startups. Use ONLY figures supported by the research text. When a needed number is absent, choose a reasonable default and treat it as an assumption — never invent precise unsupported figures. Prefer ranges. Return ONLY valid JSON.',
+    user: `From the research below, build a TAM/SAM/SOM model for "${name}".
+
+Return JSON exactly in this shape:
+{
+  "tam": {
+    "value_usd": 4200000000,
+    "low_usd": 3000000000, "high_usd": 6000000000,
+    "confidence": "low|medium|high",
+    "method": "one line: how derived + which source"
+  },
+  "bottom_up": {
+    "customers": 500000,
+    "acv_usd": 1200,
+    "value_usd": 600000000,
+    "note": "one line"
+  },
+  "reconciliation": "2-3 sentences comparing the top-down TAM with the bottom-up (customers x ACV). If they diverge a lot, say why.",
+  "inputs": {
+    "geography": "primary geography, e.g. United States or Global",
+    "serviceable_pct": 0.3,
+    "acv_usd": 1200,
+    "target_share": 0.02,
+    "timeframe_years": 3,
+    "annual_growth_pct": 0.3
+  },
+  "levers": [
+    { "lever": "action to take", "target_layer": "SAM|SOM|ACV", "effect": "what it moves", "requires": "what it takes",
+      "impact": { "input": "serviceable_pct|target_share|acv_usd", "to": 0.45 } }
+  ],
+  "summary": "2-3 sentence plain-English read of the opportunity"
+}
+Choose sensible defaults for the inputs based on the research and the product's early stage. Use USD numbers (not strings).
+
+RESEARCH:
+${text}`,
+    maxTokens: 2000,
+  });
+
+  if (!structured?.tam) return null;
+  return buildModel(structured, sources);
+}
+
+// --- Fact-check: independently re-research the model's claims and judge each ---
+function fmtUsdServer(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${Math.round(v)}`;
+}
+
+async function runFactCheck(workspaceId) {
+  const model = await getMarketModel(workspaceId);
+  if (!model) {
+    const err = new Error('Build a market model first, then fact-check it.');
+    err.code = 'NO_MODEL';
+    throw err;
+  }
+  const product = await getProduct(workspaceId);
+  const name = product?.name || 'this product';
+
+  const claims = [];
+  const tamStr = fmtUsdServer(model.tam?.value_usd);
+  if (tamStr) claims.push(`The total addressable market (TAM) is approximately ${tamStr}.`);
+  if (model.bottom_up?.customers) claims.push(`There are roughly ${Number(model.bottom_up.customers).toLocaleString()} potential customers matching the ideal customer profile.`);
+  const acvStr = fmtUsdServer(model.bottom_up?.acv_usd || model.inputs?.acv_usd);
+  if (acvStr) claims.push(`The typical annual value per customer (ACV) is around ${acvStr}.`);
+  if (model.summary) claims.push(`Market read: ${model.summary}`);
+  if (!claims.length) return null;
+
+  const geo = model.inputs?.geography ? ` in ${model.inputs.geography}` : '';
+
+  // Independent retrieval: Tavily (a different pipeline than You.com, which built
+  // the model) so this is a real cross-check. Falls back to You.com if no key/error.
+  // Tavily caps queries at ~400 chars, so use short focused queries (not the full claims).
+  let evidence = '';
+  let sources = [];
+  let engine = '';
+  if (tavilyConfigured()) {
+    try {
+      const queries = [`${name} market size TAM growth${geo}`];
+      if (model.bottom_up?.customers) queries.push(`${name} number of potential customers target market${geo}`);
+      if (acvStr) queries.push(`${name} typical annual price per customer pricing`);
+      const results = (await Promise.all(
+        queries.slice(0, 3).map((q) => tavilySearch(q.slice(0, 380), { maxResults: 5 }).catch(() => null))
+      )).filter(Boolean);
+      if (results.length) {
+        const parts = [];
+        const seen = new Set();
+        for (const r of results) {
+          if (r.answer) parts.push(r.answer);
+          for (const it of r.results) {
+            if (!it.url || seen.has(it.url)) continue;
+            seen.add(it.url);
+            parts.push(`${it.title} — ${it.url}\n${it.content}`);
+            if (sources.length < 10) sources.push({ title: it.title, url: it.url });
+          }
+        }
+        evidence = parts.join('\n\n').slice(0, 12000);
+        if (evidence) engine = 'tavily';
+      }
+    } catch (err) {
+      console.error('[fact-check] Tavily failed, falling back:', err.message);
+    }
+  }
+  if (!evidence) {
+    const payload = await financeResearch(`Independently verify these claims about "${name}"${geo}: ${claims.join(' ')}. Provide concrete numbers and cite sources.`, 'deep');
+    evidence = flattenResearch(payload).slice(0, 12000);
+    sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
+    engine = 'youcom-fallback';
+  }
+  if (!evidence) return null;
+
+  const structured = await completeJSON({
+    system: 'You are a skeptical, independent fact-checker. Judge each claim strictly against the research provided. Return ONLY valid JSON.',
+    user: `Claims to verify for "${name}":
+${claims.map((c, i) => `${i + 1}. ${c}`).join('\n')}
+
+Independent research:
+${evidence}
+
+Return JSON:
+{
+  "checks": [
+    { "claim": "restate the claim briefly", "verdict": "supported|mixed|unsupported", "finding": "what the research actually says, with a number if available", "confidence": "low|medium|high" }
+  ],
+  "overall": "one-line judgement of the model's overall reliability"
+}
+Rules: "supported" only if the research corroborates the figure or its order of magnitude; "mixed" if partial, dated, or uncertain; "unsupported" if the research conflicts or nothing relevant was found. One check per claim, in order.`,
+    maxTokens: 1600,
+  });
+
+  if (!structured?.checks) return null;
+  const checks = structured.checks.slice(0, 8);
+
+  // Structured spot-check: independent funding/valuation via Apify (best-effort).
+  try {
+    const funding = await crunchbaseFunding(name);
+    if (funding && (funding.funding || funding.valuation)) {
+      checks.push({
+        claim: `Market validation: ${name} funding/valuation`,
+        verdict: 'supported',
+        finding: `Crunchbase: ${[funding.funding && `raised ${funding.funding}`, funding.valuation && `valuation ${funding.valuation}`].filter(Boolean).join(', ')}.`,
+        confidence: 'high',
+        source: 'apify',
+      });
+      if (funding.url) sources.push({ title: 'Crunchbase (via Apify)', url: funding.url });
+    }
+  } catch { /* best-effort */ }
+
+  return {
+    checks,
+    overall: structured.overall || null,
+    sources,
+    engine,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+router.post('/market-model/fact-check/start', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const workspaceId = req.workspaceId;
+  const jobId = await createJob({ workspaceId, userId: req.user.id, type: 'fact-check' });
+
+  runFactCheck(workspaceId)
+    .then(async (factCheck) => {
+      if (factCheck) {
+        const model = await getMarketModel(workspaceId);
+        if (model) {
+          const product = await getProduct(workspaceId);
+          await saveMarketModel(workspaceId, product?.id, { ...model, fact_check: factCheck });
+        }
+      }
+      await completeJob(jobId, { factCheck });
+      sendPushToWorkspace(workspaceId, {
+        title: 'Fact-check ready',
+        body: 'Your market model has been independently verified — open it to review.',
+        url: '/market',
+        tag: `factcheck-${jobId}`,
+      }, 'any').catch(() => {});
+    })
+    .catch((err) => {
+      console.error(`[fact-check job ${jobId}] failed:`, err.message);
+      failJob(jobId, err.message);
+    });
+
+  res.json({ jobId });
+}));
+
+router.get('/market-model/fact-check/status/:jobId', requireAuth, wrap(async (req, res) => {
+  const job = await getJob(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  res.json({ status: job.status, result: job.result, error: job.error });
+}));
+
+// Start a background market-model job.
+router.post('/market-model/start', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const workspaceId = req.workspaceId;
+  const jobId = await createJob({ workspaceId, userId: req.user.id, type: 'market-model' });
+
+  runMarketModel(workspaceId)
+    .then(async (model) => {
+      if (model) {
+        const product = await getProduct(workspaceId);
+        await saveMarketModel(workspaceId, product?.id, model);
+        await insertModelHistory(workspaceId, product?.id, model).catch(() => {});
+      }
+      await completeJob(jobId, { model });
+      sendPushToWorkspace(workspaceId, {
+        title: 'Market model ready',
+        body: 'Your TAM / SAM / SOM model has finished — open it to explore.',
+        url: '/market',
+        tag: `market-model-${jobId}`,
+      }, 'any').catch(() => {});
+    })
+    .catch((err) => {
+      console.error(`[market-model job ${jobId}] failed:`, err.message);
+      failJob(jobId, err.message);
+    });
+
+  res.json({ jobId });
+}));
+
+router.get('/market-model/status/:jobId', requireAuth, wrap(async (req, res) => {
+  const job = await getJob(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  res.json({ status: job.status, result: job.result, error: job.error });
+}));
+
+// Load the saved model.
+router.get('/market-model', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const model = await getMarketModel(req.workspaceId);
+  res.json({ model: model || null });
+}));
+
+// Snapshot history for change tracking (latest first).
+router.get('/market-model/history', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const history = await getModelHistory(req.workspaceId, 6);
+  res.json({ history });
+}));
+
+// Recompute SAM/SOM from edited assumptions (fast, deterministic, no research)
+// and persist. Body: { inputs: {...} }.
+router.put('/market-model', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const saved = await getMarketModel(req.workspaceId);
+  if (!saved) return res.status(404).json({ error: 'No market model yet. Build one first.', code: 'NO_MODEL' });
+
+  const inputs = normalizeInputs({ ...saved.inputs, ...(req.body?.inputs || {}) });
+  const baseAcv = saved.inputs_base?.acv_usd || saved.inputs?.acv_usd || inputs.acv_usd;
+  const { sam, som, som_timeline } = computeDerived(saved.tam?.value_usd, inputs, baseAcv);
+  const model = {
+    ...saved,
+    inputs,
+    sam: { ...saved.sam, value_usd: sam },
+    som: { ...saved.som, value_usd: som },
+    som_timeline,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const product = await getProduct(req.workspaceId);
+  await saveMarketModel(req.workspaceId, product?.id, model);
+  res.json({ model });
+}));
 
 export default router;

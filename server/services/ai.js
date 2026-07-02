@@ -64,6 +64,7 @@ export async function completeJSON(opts) {
   return parseJSONLoose(raw);
 }
 
+
 export function parseJSONLoose(raw) {
   if (!raw) return null;
   const trimmed = raw.trim();

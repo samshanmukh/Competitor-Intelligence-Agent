@@ -63,6 +63,27 @@ export async function crawlContent(url, { maxPages = 1, timeoutMs = 150000 } = {
   return it?.markdown || it?.text || null;
 }
 
+// Structured funding spot-check via an Apify Crunchbase-type actor. This is the
+// "structured facts" leg of the fact-check pipeline. Gated behind an env-set
+// actor id so it only runs when a working actor is configured (degrades to null
+// otherwise). Returns { funding, valuation, url } or null.
+export async function crunchbaseFunding(company) {
+  const actor = process.env.APIFY_CRUNCHBASE_ACTOR;
+  if (!actor || !token() || !company) return null;
+  try {
+    const items = await runActorSync(actor, { query: company, search: company, maxItems: 1 }, { timeoutMs: 120000 });
+    const it = Array.isArray(items) ? items[0] : items;
+    if (!it || typeof it !== 'object') return null;
+    return {
+      funding: it.totalFunding || it.funding || it.total_funding_usd || null,
+      valuation: it.valuation || it.postMoneyValuation || null,
+      url: it.url || it.cbUrl || it.profileUrl || null,
+    };
+  } catch {
+    return null; // best-effort; never block the fact-check
+  }
+}
+
 function num(...vals) {
   for (const v of vals) {
     if (typeof v === 'number' && Number.isFinite(v)) return v;
