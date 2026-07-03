@@ -1,26 +1,48 @@
 import { ensureUserHasWorkspace, isWorkspaceMember } from '../db/workspace.js';
 
-export function requireAuth(req, res, next) {
+const INSFORGE_URL = (process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app').replace(/\/$/, '');
+
+// Validate a bearer token against Insforge, which verifies the signature AND
+// expiry — so forged/expired tokens are rejected (fixes the decode-only hole).
+// Results are cached briefly to avoid a round-trip on every request.
+const _tokenCache = new Map(); // token -> { user, exp }
+const CACHE_MS = 5 * 60 * 1000;
+
+async function verifyToken(token) {
+  const now = Date.now();
+  const hit = _tokenCache.get(token);
+  if (hit && hit.exp > now) return { ok: true, user: hit.user };
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`${INSFORGE_URL}/api/auth/sessions/current`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: ctrl.signal,
+    });
+    clearTimeout(to);
+    if (res.status === 401 || res.status === 403) { _tokenCache.delete(token); return { ok: false, status: 401 }; }
+    if (!res.ok) return { ok: false, status: 503 }; // transient — don't force logout
+    const body = await res.json().catch(() => null);
+    const user = body?.user;
+    if (!user?.id) return { ok: false, status: 401 };
+    const result = { id: user.id, email: user.email };
+    if (_tokenCache.size > 2000) _tokenCache.clear();
+    _tokenCache.set(token, { user: result, exp: now + CACHE_MS });
+    return { ok: true, user: result };
+  } catch {
+    return { ok: false, status: 503 }; // network/timeout — fail safe, not open
+  }
+}
+
+export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized', code: 'UNAUTHENTICATED' });
   }
-  const token = authHeader.slice(7);
-  try {
-    const payload = decodeJWT(token);
-    // Note: we decode (not cryptographically verify) the token to read the user
-    // id. We intentionally do NOT reject on `exp` — Insforge access tokens are
-    // short-lived and can't be silently refreshed in this cross-origin setup, so
-    // enforcing expiry only logs the user out on reload without adding real
-    // security (signatures aren't verified here anyway).
-    if (!payload.sub) {
-      return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
-    }
-    req.user = { id: payload.sub, email: payload.email };
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
-  }
+  const v = await verifyToken(authHeader.slice(7));
+  if (v.ok) { req.user = v.user; return next(); }
+  if (v.status === 401) return res.status(401).json({ error: 'Invalid or expired session', code: 'INVALID_TOKEN' });
+  return res.status(503).json({ error: 'Auth service unavailable, try again', code: 'AUTH_UNAVAILABLE' });
 }
 
 export async function resolveWorkspace(req, res, next) {
@@ -45,13 +67,4 @@ export async function resolveWorkspace(req, res, next) {
   } catch (err) {
     next(err);
   }
-}
-
-function decodeJWT(token) {
-  const parts = token.split('.');
-  if (parts.length < 2) throw new Error('Invalid JWT structure');
-  const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-  const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
-  const json = Buffer.from(padded, 'base64').toString('utf8');
-  return JSON.parse(json);
 }
