@@ -559,18 +559,35 @@ function buildModel(structured, sources) {
   const inputs = normalizeInputs(structured.inputs);
   const tamValue = toNum(structured?.tam?.value_usd, 0);
   const { sam, som, som_timeline } = computeDerived(tamValue, inputs, inputs.acv_usd);
+
+  // Keep the bottom-up cross-check consistent with the model's ACV lever, so
+  // editing ACV updates it and it can't contradict the funnel ($1K vs $1200).
+  let bottom_up = null;
+  if (structured?.bottom_up) {
+    const customers = toNum(structured.bottom_up.customers);
+    bottom_up = {
+      ...structured.bottom_up,
+      acv_usd: inputs.acv_usd,
+      value_usd: customers != null ? Math.round(customers * inputs.acv_usd) : toNum(structured.bottom_up.value_usd),
+    };
+  }
+
   return {
+    category: structured?.category || null,
+    icp: structured?.icp || null,
     tam: {
       value_usd: tamValue,
       low_usd: toNum(structured?.tam?.low_usd),
       high_usd: toNum(structured?.tam?.high_usd),
       confidence: structured?.tam?.confidence || 'low',
+      sourced: structured?.tam?.sourced === true,
+      source_quote: structured?.tam?.source_quote || null,
       method: structured?.tam?.method || null,
     },
     sam: { value_usd: sam, method: 'TAM × serviceable %', confidence: structured?.tam?.confidence || 'low' },
     som: { value_usd: som, method: 'SAM × target share' },
     som_timeline,
-    bottom_up: structured?.bottom_up || null,
+    bottom_up,
     reconciliation: structured?.reconciliation || null,
     inputs,
     inputs_base: { ...inputs },
@@ -579,6 +596,32 @@ function buildModel(structured, sources) {
     sources,
     generatedAt: new Date().toISOString(),
   };
+}
+
+// Build-time self-verify: independently cross-check the TAM (Tavily, a different
+// pipeline than the You.com build) and return a sourced figure to correct toward.
+async function verifyTam({ category, geography, tamValue }) {
+  let evidence = '';
+  let engine = '';
+  if (tavilyConfigured()) {
+    try {
+      const tv = await tavilySearch(`${category} market size TAM${geography ? ` ${geography}` : ''}`.slice(0, 380), { maxResults: 6 });
+      if (tv) { evidence = [tv.answer, ...tv.results.map((r) => `${r.title} — ${r.content}`)].join('\n').slice(0, 8000); engine = 'tavily'; }
+    } catch { /* fall through */ }
+  }
+  if (!evidence) return null;
+  const judged = await completeJSON({
+    system: 'You verify a market-size figure strictly against the research provided. Return ONLY valid JSON.',
+    user: `Claimed TAM for "${category}"${geography ? ` in ${geography}` : ''}: ${fmtUsdServer(tamValue) || tamValue}.
+
+Research:
+${evidence}
+
+Return JSON: { "supported": true|false, "suggested_tam_usd": <number or null>, "source_quote": "the figure/quote that supports it, or null" }
+"supported" = the research corroborates the order of magnitude. If a clearer, better-scoped TAM figure exists, put it in "suggested_tam_usd"; else null.`,
+    maxTokens: 400,
+  });
+  return judged ? { ...judged, engine } : null;
 }
 
 // Research + structure a fresh TAM/SAM/SOM model for the workspace's product.
@@ -593,15 +636,29 @@ async function runMarketModel(workspaceId) {
   const desc = (product.description || '').slice(0, 700);
   const pricing = typeof product.pricing_data === 'string' ? product.pricing_data.slice(0, 800) : '';
 
-  const input = `Market-sizing research for a startup.
-Product: "${name}"
+  // Step 0 — pin the market definition (cheap, no research) so the build and the
+  // fact-check search the SAME market. Category drift is the #1 cause of a model
+  // whose numbers can't be corroborated ("false unsupported").
+  const framing = await completeJSON({
+    system: "You define a startup's market precisely and concisely. Return ONLY valid JSON.",
+    user: `Product: "${name}"
 What it does: ${desc}
-Pricing (if provided): ${pricing}
+Pricing: ${pricing}
+Return JSON: { "category": "the specific market/category this competes in (e.g. 'running coaching apps')", "icp": "ideal customer in a few words", "geography": "primary geography, or Global" }`,
+    maxTokens: 250,
+  });
+  const category = (framing?.category || name).slice(0, 120);
+  const icp = (framing?.icp || 'target customers').slice(0, 120);
+  const geography = (framing?.geography || 'Global').slice(0, 60);
+
+  const input = `Market-sizing research for the "${category}" market in ${geography}.
+Ideal customer: ${icp}.
+Product context: "${name}" — ${desc}
 
 Find, with concrete numbers and cited sources:
-1. The total addressable market (TAM) in USD for the category this product is in, plus its annual growth rate (CAGR).
-2. The number of potential customers (businesses or people) that match this product's ideal customer profile, in its primary geography.
-3. A typical annual contract value or yearly spend per customer for this kind of product.
+1. The total addressable market (TAM) in USD for the "${category}" market, plus its annual growth rate (CAGR).
+2. The size of the potential customer pool — how many ${icp} exist in ${geography}.
+3. A typical annual spend per customer for "${category}".
 Cite sources for each figure.`;
 
   const payload = await financeResearch(input, 'deep');
@@ -611,39 +668,40 @@ Cite sources for each figure.`;
 
   const structured = await completeJSON({
     system:
-      'You are a market-sizing analyst for startups. Use ONLY figures supported by the research text. When a needed number is absent, choose a reasonable default and treat it as an assumption — never invent precise unsupported figures. Prefer ranges. Return ONLY valid JSON.',
-    user: `From the research below, build a TAM/SAM/SOM model for "${name}".
+      'You are a rigorous market-sizing analyst. CRITICAL RULE: set "sourced": true for a figure ONLY if that number actually appears in the research text; otherwise put your best estimate and set "sourced": false. Never label an estimate as sourced, never invent a precise figure and call it sourced, and never put unsourced specific numbers in the summary. Prefer null over guessing. Return ONLY valid JSON.',
+    user: `Build a TAM/SAM/SOM model for the "${category}" market (ideal customer: ${icp}, geography: ${geography}).
 
 Return JSON exactly in this shape:
 {
+  "category": "${category}",
+  "icp": "${icp}",
   "tam": {
     "value_usd": 4200000000,
     "low_usd": 3000000000, "high_usd": 6000000000,
     "confidence": "low|medium|high",
+    "sourced": true,
+    "source_quote": "the figure/quote from the research that supports this, or null if estimated",
     "method": "one line: how derived + which source"
   },
   "bottom_up": {
-    "customers": 500000,
-    "acv_usd": 1200,
+    "customers": 500000, "customers_sourced": true,
+    "acv_usd": 1200, "acv_sourced": false,
     "value_usd": 600000000,
     "note": "one line"
   },
   "reconciliation": "2-3 sentences comparing the top-down TAM with the bottom-up (customers x ACV). If they diverge a lot, say why.",
   "inputs": {
-    "geography": "primary geography, e.g. United States or Global",
-    "serviceable_pct": 0.3,
-    "acv_usd": 1200,
-    "target_share": 0.02,
-    "timeframe_years": 3,
-    "annual_growth_pct": 0.3
+    "geography": "${geography}",
+    "serviceable_pct": 0.3, "acv_usd": 1200, "target_share": 0.02,
+    "timeframe_years": 3, "annual_growth_pct": 0.3
   },
   "levers": [
     { "lever": "action to take", "target_layer": "SAM|SOM|ACV", "effect": "what it moves", "requires": "what it takes",
       "impact": { "input": "serviceable_pct|target_share|acv_usd", "to": 0.45 } }
   ],
-  "summary": "2-3 sentence plain-English read of the opportunity"
+  "summary": "2-3 sentence plain-English read. Only mention specific numbers that are sourced=true."
 }
-Choose sensible defaults for the inputs based on the research and the product's early stage. Use USD numbers (not strings).
+Use USD numbers (not strings). ACV is the founder's pricing lever, so acv_sourced is usually false — that's fine.
 
 RESEARCH:
 ${text}`,
@@ -651,7 +709,38 @@ ${text}`,
   });
 
   if (!structured?.tam) return null;
-  return buildModel(structured, sources);
+  const model = buildModel(structured, sources);
+  model.category = model.category || category;
+  model.icp = model.icp || icp;
+
+  // Build-time self-verify: cross-check TAM and auto-correct toward the sourced
+  // figure, so the first render is already grounded (no manual Apply needed).
+  try {
+    const v = await verifyTam({ category: model.category, geography, tamValue: model.tam.value_usd });
+    if (v) {
+      const suggested = toNum(v.suggested_tam_usd);
+      const current = model.tam.value_usd;
+      if (suggested && current && Math.abs(suggested - current) / current > 0.15) {
+        model.tam.value_usd = suggested;
+        model.tam.sourced = true;
+        model.tam.confidence = 'medium';
+        model.tam.source_quote = v.source_quote || model.tam.source_quote;
+        model.tam.method = 'Cross-checked and adjusted to a sourced figure at build time';
+        model.tam_autocorrected = true;
+        const d = computeDerived(suggested, model.inputs, model.inputs_base.acv_usd);
+        model.sam.value_usd = d.sam;
+        model.som.value_usd = d.som;
+        model.som_timeline = d.som_timeline;
+      } else if (v.supported) {
+        model.tam.sourced = true;
+        if (v.source_quote && !model.tam.source_quote) model.tam.source_quote = v.source_quote;
+      }
+    }
+  } catch (err) {
+    console.error('[market-model] TAM self-verify skipped:', err.message);
+  }
+
+  return model;
 }
 
 // --- Fact-check: independently re-research the model's claims and judge each ---
@@ -674,14 +763,17 @@ async function runFactCheck(workspaceId) {
   const product = await getProduct(workspaceId);
   const name = product?.name || 'this product';
 
-  const claims = [];
+  // Typed claims: only 'market' claims are verifiable in sources. 'assumption'
+  // (derived) and 'input' (your pricing lever) are not expected to appear online.
+  const claimDefs = [];
   const tamStr = fmtUsdServer(model.tam?.value_usd);
-  if (tamStr) claims.push(`The total addressable market (TAM) is approximately ${tamStr}.`);
-  if (model.bottom_up?.customers) claims.push(`There are roughly ${Number(model.bottom_up.customers).toLocaleString()} potential customers matching the ideal customer profile.`);
+  if (tamStr) claimDefs.push({ text: `The total addressable market (TAM) is approximately ${tamStr}.`, kind: 'market' });
+  if (model.bottom_up?.customers) claimDefs.push({ text: `There are roughly ${Number(model.bottom_up.customers).toLocaleString()} potential customers matching the ideal customer profile.`, kind: 'assumption' });
   const acvStr = fmtUsdServer(model.bottom_up?.acv_usd || model.inputs?.acv_usd);
-  if (acvStr) claims.push(`The typical annual value per customer (ACV) is around ${acvStr}.`);
-  if (model.summary) claims.push(`Market read: ${model.summary}`);
-  if (!claims.length) return null;
+  if (acvStr) claimDefs.push({ text: `The typical annual value per customer (ACV) is around ${acvStr}.`, kind: 'input' });
+  if (model.summary) claimDefs.push({ text: `Market read: ${model.summary}`, kind: 'market' });
+  if (!claimDefs.length) return null;
+  const claims = claimDefs.map((c) => c.text);
 
   const geo = model.inputs?.geography ? ` in ${model.inputs.geography}` : '';
 
@@ -693,9 +785,11 @@ async function runFactCheck(workspaceId) {
   let engine = '';
   if (tavilyConfigured()) {
     try {
-      const queries = [`${name} market size TAM growth${geo}`];
-      if (model.bottom_up?.customers) queries.push(`${name} number of potential customers target market${geo}`);
-      if (acvStr) queries.push(`${name} typical annual price per customer pricing`);
+      const cat = model.category || name;
+      const icp = model.icp || 'target customers';
+      const queries = [`${cat} market size TAM growth${geo}`];
+      if (model.bottom_up?.customers) queries.push(`number of ${icp}${geo}`);
+      if (acvStr) queries.push(`${cat} typical annual price per customer`);
       const results = (await Promise.all(
         queries.slice(0, 3).map((q) => tavilySearch(q.slice(0, 380), { maxResults: 5 }).catch(() => null))
       )).filter(Boolean);
@@ -739,14 +833,30 @@ Return JSON:
   "checks": [
     { "claim": "restate the claim briefly", "verdict": "supported|mixed|unsupported", "finding": "what the research actually says, with a number if available", "confidence": "low|medium|high" }
   ],
+  "suggested_tam_usd": <number or null>,
   "overall": "one-line judgement of the model's overall reliability"
 }
-Rules: "supported" only if the research corroborates the figure or its order of magnitude; "mixed" if partial, dated, or uncertain; "unsupported" if the research conflicts or nothing relevant was found. One check per claim, in order.`,
+Rules: "supported" only if the research corroborates the figure or its order of magnitude; "mixed" if partial, dated, or uncertain; "unsupported" if the research conflicts or nothing relevant was found. One check per claim, in order. For "suggested_tam_usd": if the sources point to a clearer TAM figure than the model's, give that number in USD; otherwise null.`,
     maxTokens: 1600,
   });
 
   if (!structured?.checks) return null;
-  const checks = structured.checks.slice(0, 8);
+  // Attach the claim type back to each verdict (judge returns them in order).
+  const checks = structured.checks.slice(0, 8).map((c, i) => ({ ...c, kind: claimDefs[i]?.kind || 'market' }));
+
+  // Bottom-up sanity: if the bottom-up estimate dwarfs the sourced TAM, the
+  // customer count / ACV assumptions are likely too optimistic — flag it.
+  const bu = toNum(model.bottom_up?.value_usd);
+  const tamVal = toNum(model.tam?.value_usd);
+  if (bu && tamVal && bu > tamVal * 3) {
+    checks.push({
+      claim: 'Bottom-up vs sourced TAM',
+      verdict: 'unsupported',
+      finding: `Your bottom-up (${fmtUsdServer(bu)}) is ${(bu / tamVal).toFixed(1)}× the sourced TAM (${fmtUsdServer(tamVal)}). Your customer count or ACV is likely too optimistic — lower one of them.`,
+      confidence: 'high',
+      kind: 'assumption',
+    });
+  }
 
   // Structured spot-check: independent funding/valuation via Apify (best-effort).
   try {
@@ -757,6 +867,7 @@ Rules: "supported" only if the research corroborates the figure or its order of 
         verdict: 'supported',
         finding: `Crunchbase: ${[funding.funding && `raised ${funding.funding}`, funding.valuation && `valuation ${funding.valuation}`].filter(Boolean).join(', ')}.`,
         confidence: 'high',
+        kind: 'market',
         source: 'apify',
       });
       if (funding.url) sources.push({ title: 'Crunchbase (via Apify)', url: funding.url });
@@ -766,6 +877,7 @@ Rules: "supported" only if the research corroborates the figure or its order of 
   return {
     checks,
     overall: structured.overall || null,
+    suggested_tam_usd: toNum(structured.suggested_tam_usd) || null,
     sources,
     engine,
     checkedAt: new Date().toISOString(),
@@ -861,10 +973,43 @@ router.put('/market-model', requireAuth, resolveWorkspace, wrap(async (req, res)
 
   const inputs = normalizeInputs({ ...saved.inputs, ...(req.body?.inputs || {}) });
   const baseAcv = saved.inputs_base?.acv_usd || saved.inputs?.acv_usd || inputs.acv_usd;
-  const { sam, som, som_timeline } = computeDerived(saved.tam?.value_usd, inputs, baseAcv);
+
+  // Optional: apply a fact-check-sourced TAM (from the verifier), then recompute.
+  const overrideTam = req.body?.tam_value_usd != null ? Math.max(0, toNum(req.body.tam_value_usd, saved.tam?.value_usd)) : null;
+  const tamValue = overrideTam ?? saved.tam?.value_usd;
+  const tam = overrideTam != null
+    ? { ...saved.tam, value_usd: tamValue, sourced: true, confidence: 'medium', method: 'Adjusted to fact-check sourced figure' }
+    : saved.tam;
+
+  const { sam, som, som_timeline } = computeDerived(tamValue, inputs, baseAcv);
+
+  // Keep the bottom-up in sync with the current ACV, and optionally reconcile the
+  // customer count so bottom-up ≈ sourced TAM (fixes an over-optimistic blowout).
+  let bottom_up = saved.bottom_up;
+  if (bottom_up) {
+    let customers = toNum(bottom_up.customers);
+    let note = bottom_up.note;
+    let customersSourced = bottom_up.customers_sourced;
+    if (req.body?.reconcile_bottom_up && tamValue > 0 && inputs.acv_usd > 0) {
+      customers = Math.round(tamValue / inputs.acv_usd);
+      customersSourced = false;
+      note = 'Reconciled: customer count set so the bottom-up matches the sourced TAM.';
+    }
+    bottom_up = {
+      ...bottom_up,
+      customers,
+      customers_sourced: customersSourced,
+      acv_usd: inputs.acv_usd,
+      value_usd: customers != null ? Math.round(customers * inputs.acv_usd) : toNum(bottom_up.value_usd),
+      note,
+    };
+  }
+
   const model = {
     ...saved,
+    tam,
     inputs,
+    bottom_up,
     sam: { ...saved.sam, value_usd: sam },
     som: { ...saved.som, value_usd: som },
     som_timeline,

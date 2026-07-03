@@ -12,6 +12,17 @@ const VERDICT = {
   mixed: { cls: 'border-amber-500/30 bg-amber-500/10 text-amber-300', icon: 'alert', label: 'Mixed' },
   unsupported: { cls: 'border-rose-500/30 bg-rose-500/10 text-rose-300', icon: 'x', label: 'Unsupported' },
 };
+const KIND_NOTE = {
+  input: 'You set this — it is not a market statistic, so it will not appear in sources.',
+  assumption: 'A derived estimate, not a published figure. Treat it as an assumption to defend.',
+};
+// Only 'market' claims are judged Supported/Unsupported. Inputs and derived
+// assumptions get honest, non-alarming labels instead.
+function badgeFor(c) {
+  if (c.kind === 'input') return { cls: 'border-sky-500/30 bg-sky-500/10 text-sky-300', icon: 'settings', label: 'Your input' };
+  if (c.kind === 'assumption' && c.verdict !== 'supported') return { cls: 'border-amber-500/30 bg-amber-500/10 text-amber-300', icon: 'alert', label: 'Assumption' };
+  return VERDICT[c.verdict] || VERDICT.mixed;
+}
 
 function fmtUSD(n) {
   const v = Number(n);
@@ -86,6 +97,20 @@ export default function MarketModelClient() {
         if (/not found|expired|JOB_NOT_FOUND/i.test(err?.message || '')) { localStorage.removeItem(FACT_KEY); setFactBusy(false); return; }
         factPollRef.current = setTimeout(() => factPoll(jobId), 6000);
       });
+  }
+
+  async function applySourcedTam(value) {
+    try {
+      const { model: updated } = await api.applyTam(value);
+      if (updated) setModel(updated);
+    } catch { /* ignore */ }
+  }
+
+  async function reconcileBottomUp() {
+    try {
+      const { model: updated } = await api.reconcileBottomUp();
+      if (updated) setModel(updated);
+    } catch { /* ignore */ }
   }
 
   async function runFactCheck() {
@@ -209,14 +234,16 @@ export default function MarketModelClient() {
         </div>
       )}
 
-      {model && <ModelView model={model} history={history} onInputs={applyInputs} />}
+      {model && <ModelView model={model} history={history} onInputs={applyInputs} onReconcile={reconcileBottomUp} />}
 
       {factOpen && (
         <FactDrawer
           factCheck={model?.fact_check}
+          currentTam={model?.tam?.value_usd}
           busy={factBusy}
           error={factErr}
           onRerun={runFactCheck}
+          onApplyTam={applySourcedTam}
           onClose={() => setFactOpen(false)}
         />
       )}
@@ -225,7 +252,9 @@ export default function MarketModelClient() {
 }
 
 // Right-side drawer: independent verification of the model's claims.
-function FactDrawer({ factCheck, busy, error, onRerun, onClose }) {
+function FactDrawer({ factCheck, currentTam, busy, error, onRerun, onApplyTam, onClose }) {
+  const suggestTam = factCheck?.suggested_tam_usd;
+  const showApply = suggestTam && currentTam && Math.abs(suggestTam - currentTam) / currentTam > 0.05;
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm" />
@@ -265,8 +294,14 @@ function FactDrawer({ factCheck, busy, error, onRerun, onClose }) {
               {factCheck.overall && (
                 <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-xs leading-relaxed text-slate-300">{factCheck.overall}</div>
               )}
+              {showApply && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3">
+                  <span className="text-xs text-slate-200">Sources point to TAM ≈ <b>{fmtUSD(suggestTam)}</b></span>
+                  <button onClick={() => onApplyTam(suggestTam)} className="btn-primary py-1 px-2.5 text-xs">Apply</button>
+                </div>
+              )}
               {(factCheck.checks || []).map((c, i) => {
-                const v = VERDICT[c.verdict] || VERDICT.mixed;
+                const v = badgeFor(c);
                 return (
                   <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5">
                     <div className="flex items-start justify-between gap-2">
@@ -274,7 +309,8 @@ function FactDrawer({ factCheck, busy, error, onRerun, onClose }) {
                       <span className={`chip shrink-0 ${v.cls}`}><Icon name={v.icon} className="h-3 w-3" /> {v.label}</span>
                     </div>
                     {c.finding && <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{c.finding}</p>}
-                    {c.confidence && <p className="mt-1 text-[11px] text-slate-600">Checker confidence: {c.confidence}</p>}
+                    {KIND_NOTE[c.kind] && <p className="mt-1 text-[11px] text-slate-600">{KIND_NOTE[c.kind]}</p>}
+                    {c.confidence && c.kind === 'market' && <p className="mt-1 text-[11px] text-slate-600">Checker confidence: {c.confidence}</p>}
                   </div>
                 );
               })}
@@ -341,7 +377,8 @@ function ChangeCard({ history }) {
   );
 }
 
-function ModelView({ model, history, onInputs }) {
+function ModelView({ model, history, onInputs, onReconcile }) {
+  const blowout = model.bottom_up?.value_usd && model.tam?.value_usd && model.bottom_up.value_usd > model.tam.value_usd * 3;
   const tam = model.tam || {};
   const inputs = model.inputs || {};
   const base = model.inputs_base || inputs;
@@ -482,12 +519,13 @@ function ModelView({ model, history, onInputs }) {
             </div>
           ))}
         </div>
-        {tam.confidence && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className={`chip ${CONF[tam.confidence] || CONF.low}`}>Confidence: {tam.confidence}</span>
-            <span className="text-[11px] text-slate-500">TAM is research-derived; SAM &amp; SOM recompute from your assumptions.</span>
-          </div>
-        )}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {tam.confidence && <span className={`chip ${CONF[tam.confidence] || CONF.low}`}>Confidence: {tam.confidence}</span>}
+          {tam.sourced === true && <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300"><Icon name="check" className="h-3 w-3" /> Sourced</span>}
+          {tam.sourced === false && <span className="chip border-amber-500/30 bg-amber-500/10 text-amber-300"><Icon name="alert" className="h-3 w-3" /> Assumption</span>}
+          <span className="text-[11px] text-slate-500">SAM &amp; SOM recompute from your assumptions.</span>
+        </div>
+        {tam.source_quote && <p className="mt-1.5 text-[11px] italic text-slate-500">“{tam.source_quote}”</p>}
       </div>
 
       {/* Scenarios */}
@@ -546,11 +584,22 @@ function ModelView({ model, history, onInputs }) {
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
           <h3 className="text-sm font-semibold text-white">Cross-check: bottom-up</h3>
           {model.bottom_up && (
-            <div className="mt-2 flex flex-wrap gap-4 text-sm">
-              <Stat label="ICP customers" value={model.bottom_up.customers ? Number(model.bottom_up.customers).toLocaleString() : '—'} />
-              <Stat label="× ACV" value={fmtUSD(model.bottom_up.acv_usd)} />
-              <Stat label="= Bottom-up TAM" value={fmtUSD(model.bottom_up.value_usd)} />
-            </div>
+            <>
+              <div className="mt-2 flex flex-wrap gap-5 text-sm">
+                <StatTag label="ICP customers" value={model.bottom_up.customers ? Number(model.bottom_up.customers).toLocaleString() : '—'} tag={model.bottom_up.customers_sourced ? 'Sourced' : 'Assumption'} tone={model.bottom_up.customers_sourced ? 'emerald' : 'amber'} />
+                <StatTag label="× ACV" value={fmtUSD(model.bottom_up.acv_usd)} tag="Your input" tone="slate" />
+                <StatTag label="= Bottom-up estimate" value={fmtUSD(model.bottom_up.value_usd)} tag="Your estimate" tone="slate" />
+              </div>
+              <p className="mt-2.5 text-[11px] text-slate-500">This multiplies your own assumptions, so it's a sanity-check of your logic — not an independent source.</p>
+              {blowout && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/25 bg-rose-950/25 p-3">
+                  <span className="text-xs text-rose-200">
+                    Bottom-up is {(model.bottom_up.value_usd / model.tam.value_usd).toFixed(1)}× the sourced TAM — your customer count looks too optimistic.
+                  </span>
+                  <button onClick={onReconcile} className="btn-ghost shrink-0 py-1 px-2.5 text-xs">Reconcile to TAM</button>
+                </div>
+              )}
+            </>
           )}
           {model.reconciliation && <p className="mt-3 rounded-lg border border-amber-500/20 bg-amber-950/20 p-3 text-xs leading-relaxed text-amber-200/90">{model.reconciliation}</p>}
         </div>
@@ -636,6 +685,18 @@ function Stat({ label, value }) {
     <div>
       <p className="text-base font-semibold text-white">{value}</p>
       <p className="text-[11px] text-slate-500">{label}</p>
+    </div>
+  );
+}
+function StatTag({ label, value, tag, tone }) {
+  const cls = tone === 'emerald' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    : tone === 'amber' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+    : 'border-ink-600 bg-ink-850 text-slate-400';
+  return (
+    <div>
+      <p className="text-base font-semibold text-white">{value}</p>
+      <p className="text-[11px] text-slate-500">{label}</p>
+      {tag && <span className={`chip mt-1 ${cls}`}>{tag}</span>}
     </div>
   );
 }
