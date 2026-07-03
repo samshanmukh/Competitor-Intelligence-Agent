@@ -1,4 +1,4 @@
-import { ensureUserHasWorkspace } from '../db/workspace.js';
+import { ensureUserHasWorkspace, isWorkspaceMember } from '../db/workspace.js';
 
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -25,11 +25,20 @@ export function requireAuth(req, res, next) {
 
 export async function resolveWorkspace(req, res, next) {
   const wsHeader = req.headers['x-workspace-id'];
-  if (wsHeader) {
-    req.workspaceId = Number(wsHeader);
-    return next();
-  }
   try {
+    if (wsHeader) {
+      const wsId = Number(wsHeader);
+      if (!Number.isFinite(wsId)) {
+        return res.status(400).json({ error: 'Invalid workspace id', code: 'BAD_WORKSPACE' });
+      }
+      // Never trust the caller's workspace header — verify membership first.
+      const member = await isWorkspaceMember(req.user.id, wsId);
+      if (!member) {
+        return res.status(403).json({ error: 'Not a member of this workspace', code: 'FORBIDDEN_WORKSPACE' });
+      }
+      req.workspaceId = wsId;
+      return next();
+    }
     const workspace = await ensureUserHasWorkspace(req.user.id, req.user.email);
     req.workspaceId = workspace.id;
     next();

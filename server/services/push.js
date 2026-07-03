@@ -1,16 +1,21 @@
 import webpush from 'web-push';
 import insforge from '../db/index.js';
 
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY ||
-  'BE1R-i9MOA_mFHyBIjmix-txNgBBoPt_4zBKutZjQiETyQG3oj3b0r3XtpDKR7cJUXish41q6Gkb7aa5MVsYW2I';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY ||
-  'G6Y2RUSvRB7u_CnJ0_K8LLFAMkzEJ-mSZkH0MfWIhmE';
+// VAPID keys must come from the environment — no committed fallback. Generate a
+// pair with `npx web-push generate-vapid-keys` and set VAPID_PUBLIC_KEY /
+// VAPID_PRIVATE_KEY. Push simply no-ops if they're absent.
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
 
-webpush.setVapidDetails(
-  'mailto:notifications@pricing-intel.app',
-  VAPID_PUBLIC,
-  VAPID_PRIVATE
-);
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:notifications@example.com',
+    VAPID_PUBLIC,
+    VAPID_PRIVATE
+  );
+} else {
+  console.warn('[push] VAPID keys not set — web push disabled.');
+}
 
 export { VAPID_PUBLIC };
 
@@ -40,6 +45,7 @@ export async function removeSubscription(userId, endpoint) {
 }
 
 export async function sendPushToWorkspace(workspaceId, payload, alertType = 'any') {
+  if (!VAPID_PRIVATE) return; // push disabled without VAPID keys
   const { data: subs } = await insforge.database
     .from('push_subscriptions')
     .select()

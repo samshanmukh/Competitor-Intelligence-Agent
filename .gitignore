@@ -16,3 +16,6 @@ client/.env*.local
 # Next.js build output (regenerated on every build — never commit)
 client/.next/
 .next/
+
+# MCP config contains secrets
+.mcp.json

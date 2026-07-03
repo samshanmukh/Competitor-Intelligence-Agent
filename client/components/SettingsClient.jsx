@@ -338,7 +338,8 @@ export default function SettingsClient() {
             </div>
             <p className="text-xs text-slate-500">Competitor discovery (Research) and pricing fetching (Contents).</p>
             <SecretInput label="YOUCOM_API_KEY" value={form.youcom_api_key} onChange={set('youcom_api_key')}
-              revealed={revealed.youcom_api_key} onToggle={() => toggleReveal('youcom_api_key')} placeholder="ydc-…" />
+              revealed={revealed.youcom_api_key} onToggle={() => toggleReveal('youcom_api_key')}
+              placeholder={settings?.youcom_key_set ? 'Configured — enter a new key to replace' : 'ydc-…'} />
           </section>
 
           <section className="card p-5 space-y-4">
@@ -348,7 +349,8 @@ export default function SettingsClient() {
             </div>
             <p className="text-xs text-slate-500">Extracts competitors and analyzes pricing diffs.</p>
             <SecretInput label="XAI_API_KEY" value={form.xai_api_key} onChange={set('xai_api_key')}
-              revealed={revealed.xai_api_key} onToggle={() => toggleReveal('xai_api_key')} placeholder="xai-…" />
+              revealed={revealed.xai_api_key} onToggle={() => toggleReveal('xai_api_key')}
+              placeholder={settings?.xai_key_set ? 'Configured — enter a new key to replace' : 'xai-…'} />
             <div>
               <label className="label">XAI_MODEL</label>
               <input className="input font-mono text-xs" value={form.xai_model} onChange={set('xai_model')} placeholder="grok-4" />

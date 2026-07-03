@@ -40,6 +40,17 @@ export async function ensureUserHasWorkspace(userId, email) {
   return ws;
 }
 
+export async function isWorkspaceMember(userId, workspaceId) {
+  if (!userId || !Number.isFinite(Number(workspaceId))) return false;
+  const { data } = await insforge.database
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export async function getWorkspace(id) {
   const { data } = await insforge.database
     .from('workspaces')

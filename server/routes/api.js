@@ -23,25 +23,6 @@ import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 
 const router = Router();
 
-// Optional auth — sets req.user and req.workspaceId if token provided, but doesn't fail without it.
-function optionalAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return next();
-  const token = authHeader.slice(7);
-  try {
-    const parts = token.split('.');
-    if (parts.length >= 2) {
-      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
-      const data = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
-      req.user = { id: data.sub, email: data.email };
-    }
-  } catch { /* ignore */ }
-  const wsHeader = req.headers['x-workspace-id'];
-  if (wsHeader) req.workspaceId = Number(wsHeader);
-  next();
-}
-
 // Small async wrapper so route handlers can throw.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -62,10 +43,7 @@ function normalizeUrl(u) {
   return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, '')}`;
 }
 
-// Apply optional auth to all routes
-router.use(optionalAuth);
-
-// ---------- Health / keys ----------
+// ---------- Health / keys (public) ----------
 router.get('/health', (req, res) => {
   res.json({
     ok: true,
@@ -74,6 +52,9 @@ router.get('/health', (req, res) => {
     model: getKey('XAI_MODEL') || 'grok-4',
   });
 });
+
+// Everything below requires a valid session and a workspace the user belongs to.
+router.use(requireAuth, resolveWorkspace);
 
 // ---------- Discovery ----------
 // Body: { mode, description, productUrl, competitorUrls: [] }
@@ -279,12 +260,10 @@ router.get(
       market: all.market || '',
       last_visit: all.last_visit || null,
       auto_refresh_enabled: (process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false',
-      // API keys — from in-memory cache (DB-saved or env-loaded)
-      youcom_api_key: getKey('YOUCOM_API_KEY') || '',
-      xai_api_key: getKey('XAI_API_KEY') || '',
+      // Never return the secrets themselves — only whether they're configured.
+      youcom_key_set: Boolean(getKey('YOUCOM_API_KEY')),
+      xai_key_set: Boolean(getKey('XAI_API_KEY')),
       xai_model: getKey('XAI_MODEL') || 'grok-4',
-      insforge_base_url: process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app',
-      insforge_anon_key: process.env.INSFORGE_ANON_KEY || 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
     });
   })
 );
@@ -295,11 +274,13 @@ router.put(
     const { webhook_url, market, youcom_api_key, xai_api_key, xai_model } = req.body || {};
     if (webhook_url !== undefined) await setSetting('webhook_url', normalizeUrl(webhook_url) || '');
     if (market !== undefined) await setSetting('market', market || '');
-    if (youcom_api_key !== undefined) {
+    // Only update keys when a non-empty value is provided, so leaving the field
+    // blank keeps the existing key (the client never receives it back).
+    if (youcom_api_key) {
       await setSetting('key:YOUCOM_API_KEY', youcom_api_key);
       setKey('YOUCOM_API_KEY', youcom_api_key);
     }
-    if (xai_api_key !== undefined) {
+    if (xai_api_key) {
       await setSetting('key:XAI_API_KEY', xai_api_key);
       setKey('XAI_API_KEY', xai_api_key);
     }
