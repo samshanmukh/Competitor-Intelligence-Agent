@@ -270,7 +270,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Link href="/" style={{ fontFamily: 'var(--font-brand)' }} className="text-xl font-semibold tracking-tight text-white">
-            Mira <span className="text-accent-soft">AI</span>
+            Mira <span className="text-accent-soft">Intelligence</span>
           </Link>
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
@@ -407,7 +407,7 @@ export default function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-                <span className="ml-3 text-xs text-slate-500">Mira AI · Business report · Acme Analytics</span>
+                <span className="ml-3 text-xs text-slate-500">Mira Intelligence · Business report · Acme Analytics</span>
               </div>
               <div className="grid gap-4 p-5 md:grid-cols-3">
                 {/* Market growth tile */}
@@ -591,13 +591,14 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
-          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-base font-semibold tracking-tight text-slate-200">Mira <span className="text-accent-soft">AI</span></span>
+          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-base font-semibold tracking-tight text-slate-200">Mira <span className="text-accent-soft">Intelligence</span></span>
           <div className="flex items-center gap-6">
             <a href="#features" className="transition hover:text-slate-300">Features</a>
             <a href="#how" className="transition hover:text-slate-300">How it works</a>
             <a href="#why" className="transition hover:text-slate-300">Why Mira</a>
+            <Link href="/requests" className="transition hover:text-slate-300">Feature requests</Link>
           </div>
-          <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira AI</span>
+          <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira Intelligence</span>
         </div>
       </footer>
 

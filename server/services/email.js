@@ -3,7 +3,7 @@
 import { Resend } from 'resend';
 
 const API_KEY = process.env.RESEND_API_KEY || '';
-const FROM = process.env.DIGEST_FROM_EMAIL || 'Mira AI <onboarding@resend.dev>';
+const FROM = process.env.DIGEST_FROM_EMAIL || 'Mira Intelligence <onboarding@resend.dev>';
 
 let client = null;
 function getClient() {

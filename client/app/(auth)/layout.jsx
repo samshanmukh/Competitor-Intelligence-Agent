@@ -8,7 +8,7 @@ export default function AuthLayout({ children }) {
               <circle cx="12" cy="12" r="9"/><path d="M12 12 7 7"/><path d="M12 3a9 9 0 0 1 9 9"/>
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-white">Mira AI</h1>
+          <h1 className="text-xl font-semibold text-white">Mira Intelligence</h1>
           <p className="mt-1 text-sm text-slate-500">Competitive intelligence, automated</p>
         </div>
         {children}

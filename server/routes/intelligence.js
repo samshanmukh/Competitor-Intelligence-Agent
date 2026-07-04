@@ -701,6 +701,7 @@ Return JSON exactly in this shape:
   ],
   "summary": "2-3 sentence plain-English read. Only mention specific numbers that are sourced=true."
 }
+Provide 3 to 5 DISTINCT levers: include at least one that grows SAM (raises serviceable_pct), one that grows SOM (raises target_share), and one that grows ACV (raises acv_usd). Each impact.to must be a realistic improvement that is clearly HIGHER than the corresponding value you set in "inputs" (never equal to it).
 Use USD numbers (not strings). ACV is the founder's pricing lever, so acv_sourced is usually false — that's fine.
 
 RESEARCH:

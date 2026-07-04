@@ -119,7 +119,7 @@ export default function Sidebar() {
           )}
           {!collapsed && (
             <div className="flex-1 leading-tight">
-              <div className="text-sm font-semibold leading-tight text-white">Mira AI</div>
+              <div className="text-sm font-semibold leading-tight text-white">Mira Intelligence</div>
             </div>
           )}
           <button
@@ -161,7 +161,7 @@ export default function Sidebar() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent-soft">
             <Icon name="radar" className="h-3.5 w-3.5" />
           </div>
-          <span className="text-sm font-semibold text-white">Mira AI</span>
+          <span className="text-sm font-semibold text-white">Mira Intelligence</span>
         </div>
         <NavItem href="/app" icon="sparkle" label="Analysis" exact />
         <NavItem href="/competitors" icon="users" label="Competitors" />

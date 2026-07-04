@@ -58,7 +58,7 @@ export async function sendWeeklyDigests() {
       const html = buildDigestHtml(ws, recent);
       const res = await sendEmail({
         to: ws.digest_email,
-        subject: `Mira AI — weekly competitor digest — ${recent.length} change${recent.length !== 1 ? 's' : ''}`,
+        subject: `Mira Intelligence — weekly competitor digest — ${recent.length} change${recent.length !== 1 ? 's' : ''}`,
         html,
       });
       if (res.sent) sent++;

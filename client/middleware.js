@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 // Public pages anyone can see without a session.
 const PUBLIC_EXACT = ['/'];                                  // landing page
-const PUBLIC_PREFIX = ['/login', '/signup', '/verify', '/auth'];
+const PUBLIC_PREFIX = ['/login', '/signup', '/verify', '/auth', '/requests'];
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
