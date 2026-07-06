@@ -65,7 +65,7 @@ router.post('/workspaces/:id/digest-test', requireAuth, wrap(async (req, res) =>
   if (!to) return res.status(400).json({ error: 'No digest email set' });
   const result = await sendEmail({
     to,
-    subject: 'Test — Mira Intelligence weekly digest',
+    subject: 'Test — Mira Vue weekly digest',
     html: `<div style="font-family:sans-serif;padding:24px;"><h2>It works ✅</h2><p>Weekly digests will arrive here every Sunday with the past week's competitor changes.</p></div>`,
   });
   res.json(result);

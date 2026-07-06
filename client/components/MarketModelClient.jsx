@@ -460,7 +460,7 @@ function ModelView({ model, history, onInputs, onReconcile }) {
   a { color:#4f46e5; text-decoration:none; }
   @media print { body { margin:0; } }
 </style></head><body>
-  <div class="brand">Mira <span>Intelligence</span></div>
+  <div class="brand">Mira <span>Vue</span></div>
   <h1>Market model</h1>
   <div class="muted">${esc(inputs.geography || 'Global')} · TAM confidence: ${esc(model.tam?.confidence || 'n/a')} · ${new Date().toLocaleDateString()}</div>
   ${model.summary ? `<p class="box" style="margin-top:14px">${esc(model.summary)}</p>` : ''}

@@ -66,7 +66,7 @@ loadKeysFromDB(getSetting).catch((err) => {
 reconcileStaleJobs().catch(() => {});
 
 app.listen(PORT, () => {
-  console.log(`\n  Mira Intelligence (Enterprise)`);
+  console.log(`\n  Mira Vue (Enterprise)`);
   console.log(`  API listening on http://localhost:${PORT}`);
   console.log(`  Auth: Insforge | DB: PostgreSQL | AI: Grok-4\n`);
 });
