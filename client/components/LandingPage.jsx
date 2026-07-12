@@ -56,7 +56,7 @@ function WaitlistForm({ size = 'lg', source = 'landing' }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Something went wrong. Please try again.');
       setState('done');
-      setMessage(data?.already ? "You're already on the list. We'll be in touch." : "You're on the list. We'll email you when it's your turn.");
+      setMessage(data?.already ? 'You already have early access reserved. We\'ll be in touch.' : 'You\'re in! We\'ll email when your early access invite is ready.');
     } catch (err) {
       setState('error');
       setMessage(err?.message || 'Something went wrong. Please try again.');
@@ -129,7 +129,7 @@ function WaitlistForm({ size = 'lg', source = 'landing' }) {
           disabled={state === 'loading'}
           className={`group inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-accent font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:opacity-60 ${big ? 'px-6 py-3 text-base' : 'px-5 py-2.5 text-sm'}`}
         >
-          {state === 'loading' ? 'Joining…' : <>Join waitlist <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" /></>}
+          {state === 'loading' ? 'Getting access…' : <>Get early access <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" /></>}
         </button>
       </div>
       {state === 'error' && <p className="mt-2 text-center text-xs text-rose-400">{message}</p>}
@@ -160,7 +160,7 @@ function ModalWaitlistForm({ source = 'header-modal' }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Something went wrong. Please try again.');
       setState('done');
-      setMessage(data?.already ? "You're already on the list. Thanks for the note." : "You're on the list. We'll be in touch.");
+      setMessage(data?.already ? 'You already have early access reserved. Thanks for the note.' : 'You\'re in! We\'ll be in touch.');
     } catch (err) {
       setState('error');
       setMessage(err?.message || 'Something went wrong. Please try again.');
@@ -200,7 +200,7 @@ function ModalWaitlistForm({ source = 'header-modal' }) {
         disabled={state === 'loading'}
         className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:opacity-60"
       >
-        {state === 'loading' ? 'Joining…' : 'Join waitlist'}
+        {state === 'loading' ? 'Getting access…' : 'Get early access'}
       </button>
       {state === 'error' && <p className="text-center text-xs text-rose-400">{message}</p>}
     </form>
@@ -281,7 +281,7 @@ export default function LandingPage() {
             {authed ? (
               <Link href="/app" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
             ) : (
-              <button type="button" onClick={() => setModalOpen(true)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Join waitlist</button>
+              <button type="button" onClick={() => setModalOpen(true)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Get early access</button>
             )}
           </div>
         </div>
@@ -378,7 +378,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
             className="mt-9"
-            id="waitlist"
+            id="early-access"
           >
             {authed ? (
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -575,7 +575,7 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute left-1/2 top-0 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-accent/25 blur-[120px]" />
           <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">Limited early-access spots</span>
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">Be first in line</h2>
-          <p className="mx-auto mt-4 max-w-md text-slate-400">Join the waitlist. We'll email your invite the moment it's ready.</p>
+          <p className="mx-auto mt-4 max-w-md text-slate-400">Get early access. We&apos;ll email your invite the moment it&apos;s ready.</p>
           <div className="mt-9">
             {authed ? (
               <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-7 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
@@ -602,7 +602,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Waitlist modal */}
+      {/* Early access modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModalOpen(false)}>
           <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" />
@@ -621,8 +621,8 @@ export default function LandingPage() {
             >
               <Icon name="x" className="h-4 w-4" />
             </button>
-            <h3 className="text-xl font-semibold text-white">Join the waitlist</h3>
-            <p className="mt-2 text-sm text-slate-400">Drop your email for an early-access invite. Add any questions or comments below (optional).</p>
+            <h3 className="text-xl font-semibold text-white">Get early access</h3>
+            <p className="mt-2 text-sm text-slate-400">Drop your email for an early access invite. Add any questions or comments below (optional).</p>
             <div className="mt-6">
               <ModalWaitlistForm source="header-modal" />
             </div>

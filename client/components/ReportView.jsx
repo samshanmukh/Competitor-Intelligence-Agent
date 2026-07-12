@@ -5,8 +5,14 @@ import {
   ScatterChart, Scatter, ZAxis, Cell, ReferenceLine, LabelList,
 } from 'recharts';
 import { Icon, ValueScore } from './ui';
-
-const CHART_COLORS = ['#818cf8', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f472b6', '#4ade80'];
+import Link from 'next/link';
+import {
+  CHART_COLORS,
+  DistributionMetaChips,
+  PresenceChart,
+  PulseBanner,
+  SyndicatedShareTable,
+} from './distribution/DistributionShared';
 const TIP_STYLE = { background: '#0e1014', border: '1px solid #181c24', borderRadius: 8, fontSize: 12 };
 const AXIS = { fill: '#64748b', fontSize: 11 };
 
@@ -19,6 +25,25 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
   const youName = (product?.name || matrix?.productName || '').toLowerCase();
   return (
     <div className="space-y-8">
+      {(product?.icp || product?.business_model || strategy?.icp || strategy?.business_model) && (
+        <ReportSection icon="users" title="Who you serve & how you make money">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(product?.icp || strategy?.icp) && (
+              <div className="rounded-lg border border-ink-700 bg-ink-850 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">ICP</p>
+                <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{product?.icp || strategy?.icp}</p>
+              </div>
+            )}
+            {(product?.business_model || strategy?.business_model) && (
+              <div className="rounded-lg border border-ink-700 bg-ink-850 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Business model</p>
+                <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{product?.business_model || strategy?.business_model}</p>
+              </div>
+            )}
+          </div>
+        </ReportSection>
+      )}
+
       <ChartsSection competitors={competitors} matrix={matrix} reviews={reviews} product={product} />
 
       {market && <MarketSection market={market} />}
@@ -149,6 +174,106 @@ function PricingCard({ name, tiers, you }) {
 
 const YOU_COLOR = '#f472b6';
 
+function truncateLabel(name, max = 16) {
+  const s = String(name || '').replace(/\s*\(you\)\s*$/i, '').trim();
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 1)}…`;
+}
+
+/** Zoom axes to the data cluster instead of 0–200 / full 0–10 empty space. */
+function mapDomains(points) {
+  const prices = points.map((d) => d.price).filter((p) => p > 0);
+  const values = points.map((d) => d.value).filter((v) => v != null);
+  if (!prices.length || !values.length) return { x: [0, 100], y: [0, 10] };
+
+  const pMin = Math.min(...prices);
+  const pMax = Math.max(...prices);
+  const vMin = Math.min(...values);
+  const vMax = Math.max(...values);
+  const pPad = Math.max(8, (pMax - pMin) * 0.12 || pMax * 0.08);
+  const vPad = Math.max(0.4, (vMax - vMin) * 0.12 || 0.5);
+
+  return {
+    x: [Math.max(0, Math.floor(pMin - pPad)), Math.ceil(pMax + pPad)],
+    y: [Math.max(0, vMin - vPad), Math.min(10, vMax + vPad)],
+  };
+}
+
+/** Nudge points that share the same coordinates so dots and labels don't stack. */
+function spreadMapPoints(points) {
+  const buckets = new Map();
+  for (const p of points) {
+    const key = `${p.price?.toFixed(1)}|${p.value?.toFixed(2)}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(p);
+  }
+  const out = [];
+  for (const group of buckets.values()) {
+    group.forEach((p, i) => {
+      if (group.length === 1) {
+        out.push({ ...p, labelIndex: out.length });
+        return;
+      }
+      const angle = (2 * Math.PI * i) / group.length;
+      const priceSpread = Math.max(p.price * 0.04, 4);
+      out.push({
+        ...p,
+        price: p.price + Math.cos(angle) * priceSpread,
+        value: Math.min(10, Math.max(0, p.value + Math.sin(angle) * 0.35)),
+        labelIndex: out.length,
+      });
+    });
+  }
+  return out;
+}
+
+const LABEL_OFFSETS = [
+  { dx: 0, dy: -14, anchor: 'middle' },
+  { dx: 0, dy: 20, anchor: 'middle' },
+  { dx: 12, dy: 4, anchor: 'start' },
+  { dx: -12, dy: 4, anchor: 'end' },
+  { dx: 16, dy: -10, anchor: 'start' },
+  { dx: -16, dy: -10, anchor: 'end' },
+  { dx: 16, dy: 14, anchor: 'start' },
+  { dx: -16, dy: 14, anchor: 'end' },
+];
+
+function MapPointLabel({ x, y, payload }) {
+  if (x == null || y == null || !payload) return null;
+  const idx = payload.labelIndex ?? 0;
+  const off = LABEL_OFFSETS[idx % LABEL_OFFSETS.length];
+  const isYou = payload.isYou;
+  const label = truncateLabel(payload.name, isYou ? 14 : 16);
+  return (
+    <text
+      x={x + off.dx}
+      y={y + off.dy}
+      fill={isYou ? YOU_COLOR : '#cbd5e1'}
+      fontSize={isYou ? 11 : 10}
+      fontWeight={isYou ? 700 : 400}
+      textAnchor={off.anchor}
+    >
+      {label}{isYou ? ' ★' : ''}
+    </text>
+  );
+}
+
+function MapTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div style={TIP_STYLE} className="px-3 py-2 text-xs text-slate-200">
+      <p className="font-semibold text-white">{d.name}</p>
+      <p className="mt-1 text-slate-400">Value: {d.value ?? '—'}/10</p>
+      <p className="text-slate-400">
+        Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '—'}
+        {d.priceEstimated ? ' (estimated)' : ''}
+      </p>
+    </div>
+  );
+}
+
 function ChartsSection({ competitors, matrix, reviews, product }) {
   const comp = competitors.map((c, i) => {
     const m = findByName(matrix?.competitors, c.name);
@@ -172,15 +297,27 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
       price: entryPrice(product),
       color: YOU_COLOR,
       isYou: true,
+      priceEstimated: false,
     };
   }
   const data = you ? [you, ...comp] : comp;
 
   const valueData = data.filter((d) => d.value != null);
   const priceData = data.filter((d) => d.price != null);
-  const mapData = data.filter((d) => d.value != null && d.price != null);
-  const youOnMap = mapData.filter((d) => d.isYou);
-  const compOnMap = mapData.filter((d) => !d.isYou);
+  let mapData = data.filter((d) => d.value != null && d.price != null);
+
+  // If we have a value score but no extracted price, place "you" near the value
+  // cluster using the cheapest competitor entry as a proxy (tooltip marks it estimated).
+  if (you?.value != null && you.price == null && priceData.length) {
+    const proxy = Math.min(...priceData.filter((d) => !d.isYou).map((d) => d.price));
+    mapData = [
+      ...mapData,
+      { ...you, price: proxy, priceEstimated: true },
+    ];
+  }
+
+  mapData = spreadMapPoints(mapData.map((d, i) => ({ ...d, labelIndex: i })));
+  const domains = mapDomains(mapData);
   const avgPrice = priceData.length ? priceData.reduce((s, d) => s + d.price, 0) / priceData.length : null;
 
   if (!valueData.length && !priceData.length) return null;
@@ -189,30 +326,71 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
     <ReportSection icon="bar" title="Visual analysis">
       {mapData.length >= 2 && (
         <div className="mb-4">
-          <ChartCard title="Positioning map" hint="Entry price vs. value score — top-left is best value, bottom-right is overpriced. Your product is the pink star.">
-            <ResponsiveContainer width="100%" height={280}>
-              <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+          <ChartCard title="Positioning map" hint="Entry price vs. value score — top-left is best value, bottom-right is overpriced. Your product is the pink star (★).">
+            <ResponsiveContainer width="100%" height={320}>
+              <ScatterChart margin={{ top: 28, right: 24, bottom: 28, left: 8 }}>
                 <CartesianGrid stroke="#181c24" />
-                <XAxis type="number" dataKey="price" name="Entry price" unit="$" tick={AXIS}
-                  label={{ value: 'Entry price ($/mo)', position: 'insideBottom', offset: -8, fill: '#64748b', fontSize: 11 }} />
-                <YAxis type="number" dataKey="value" name="Value" domain={[0, 10]} tick={AXIS}
-                  label={{ value: 'Value score', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }} />
-                <ZAxis range={[120, 120]} />
-                {avgPrice != null && <ReferenceLine x={avgPrice} stroke="#2c3340" strokeDasharray="4 4" />}
-                <ReferenceLine y={5} stroke="#2c3340" strokeDasharray="4 4" />
-                <Tooltip contentStyle={TIP_STYLE} cursor={{ strokeDasharray: '3 3' }}
-                  formatter={(v, n) => n === 'Entry price' ? [`$${v}/mo`, n] : [v, n]} />
-                <Scatter data={compOnMap}>
-                  {compOnMap.map((d, i) => <Cell key={i} fill={d.color} />)}
-                  <LabelList dataKey="name" position="top" style={{ fill: '#cbd5e1', fontSize: 10 }} />
-                </Scatter>
-                {youOnMap.length > 0 && (
-                  <Scatter data={youOnMap} fill={YOU_COLOR} shape="star">
-                    <LabelList dataKey="name" position="top" style={{ fill: YOU_COLOR, fontSize: 11, fontWeight: 700 }} />
-                  </Scatter>
+                <XAxis
+                  type="number"
+                  dataKey="price"
+                  name="Entry price"
+                  domain={domains.x}
+                  tick={AXIS}
+                  tickFormatter={(v) => `$${Math.round(v)}`}
+                  label={{ value: 'Entry price ($/mo)', position: 'insideBottom', offset: -8, fill: '#64748b', fontSize: 11 }}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="value"
+                  name="Value"
+                  domain={domains.y}
+                  tick={AXIS}
+                  label={{ value: 'Value score', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }}
+                />
+                <ZAxis range={[90, 90]} />
+                {avgPrice != null && domains.x[0] <= avgPrice && avgPrice <= domains.x[1] && (
+                  <ReferenceLine x={avgPrice} stroke="#2c3340" strokeDasharray="4 4" />
                 )}
+                {domains.y[0] <= 5 && domains.y[1] >= 5 && (
+                  <ReferenceLine y={5} stroke="#2c3340" strokeDasharray="4 4" />
+                )}
+                <Tooltip content={<MapTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                <Scatter
+                  data={mapData}
+                  shape={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (payload?.isYou) {
+                      return (
+                        <polygon
+                          points={`${cx},${cy - 9} ${cx + 2.5},${cy - 3} ${cx + 8},${cy - 3} ${cx + 3.5},${cy + 1} ${cx + 5.5},${cy + 7} ${cx},${cy + 4} ${cx - 5.5},${cy + 7} ${cx - 3.5},${cy + 1} ${cx - 8},${cy - 3} ${cx - 2.5},${cy - 3}`}
+                          fill={YOU_COLOR}
+                          stroke="#fff"
+                          strokeWidth={1}
+                        />
+                      );
+                    }
+                    return <circle cx={cx} cy={cy} r={6} fill={payload?.color || '#818cf8'} stroke="#0e1014" strokeWidth={1.5} />;
+                  }}
+                >
+                  {mapData.map((d, i) => (
+                    <Cell key={i} fill={d.isYou ? YOU_COLOR : d.color} />
+                  ))}
+                  <LabelList dataKey="name" content={<MapPointLabel />} />
+                </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-ink-800 pt-3">
+              {mapData.map((d) => (
+                <span key={d.name} className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
+                  <span
+                    className="inline-block h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: d.isYou ? YOU_COLOR : d.color }}
+                  />
+                  {truncateLabel(d.name, 22)}
+                  {d.priceEstimated && <span className="text-slate-600">(est. price)</span>}
+                </span>
+              ))}
+            </div>
           </ChartCard>
         </div>
       )}
@@ -436,9 +614,26 @@ function StrategySection({ strategy, productName }) {
 function MarketSection({ market }) {
   const history = (market.history || []).filter((h) => h.year && typeof h.size_usd_millions === 'number');
   const companies = (market.companies || []).filter((c) => c.name);
+  const distribution = market.distribution;
+  const pulse = market.pulse;
+  const syndicated = market.syndicated;
+  const shareItems = (distribution?.items || []).slice(0, 10);
+  const isTriangulated = distribution?.method === 'triangulated';
+
+  const hintForMethod = {
+    triangulated: 'Blends estimated revenue, web traffic, and review activity — directional, not syndicated market share.',
+    revenue_implied: 'Estimated revenue as a share of category TAM — directional, not syndicated market share.',
+    relative_revenue: 'Relative revenue scale among tracked competitors (build a market model for TAM-based shares).',
+  };
 
   return (
     <ReportSection icon="trending" title="Market intelligence">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <DistributionMetaChips distribution={distribution} trafficMeta={market.signals?.traffic_meta} compact />
+        <Link href="/distribution" className="text-xs text-accent-soft hover:underline">Open distribution →</Link>
+      </div>
+
+      <PulseBanner pulse={pulse} limit={4} compact />
       {/* Market size + CAGR */}
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         {market.size_current && (
@@ -475,6 +670,44 @@ function MarketSection({ market }) {
 
       {market.summary && <p className="mb-4 text-sm text-slate-400 leading-relaxed">{market.summary}</p>}
 
+      {(syndicated?.table?.rows?.length || syndicated?.vendors?.length) > 0 && (
+        <div className="mb-4 rounded-xl border border-ink-700 bg-ink-850 p-4">
+          <h3 className="text-sm font-semibold text-white">Published market share</h3>
+          <p className="mt-0.5 text-[11px] text-slate-500">From public analyst sources — not blended into estimates</p>
+          <div className="mt-3">
+            <SyndicatedShareTable syndicated={syndicated} compact />
+          </div>
+        </div>
+      )}
+
+      {shareItems.length > 0 && (
+        <div className="mb-4">
+          <ChartCard
+            title={isTriangulated ? 'Triangulated market presence' : 'Estimated market presence'}
+            hint={hintForMethod[distribution.method] || hintForMethod.relative_revenue}
+          >
+            <PresenceChart distribution={distribution} limit={10} barHeight="h-2.5" nameWidth="w-28" />
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
+              {isTriangulated && (
+                <span className="chip border-indigo-500/30 bg-indigo-500/10 text-indigo-300">Triangulated</span>
+              )}
+              {distribution.cr4_pct != null && (
+                <span className="chip border-ink-700 bg-ink-850">Top 4 ≈ {distribution.cr4_pct}% presence</span>
+              )}
+              {distribution.remainder_pct != null && distribution.remainder_pct > 0 && distribution.method === 'revenue_implied' && (
+                <span className="chip border-ink-700 bg-ink-850">Untracked / remainder ≈ {distribution.remainder_pct}%</span>
+              )}
+              {distribution.tam_source === 'market_model' && (
+                <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">TAM from market model</span>
+              )}
+              {market.signals?.traffic_meta?.apify_fetched > 0 && (
+                <span className="chip border-ink-700 bg-ink-850">SimilarWeb: {market.signals.traffic_meta.apify_fetched}</span>
+              )}
+            </div>
+          </ChartCard>
+        </div>
+      )}
+
       {/* Company financials */}
       {companies.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -485,6 +718,12 @@ function MarketSection({ market }) {
                 {c.funding && c.funding !== 'null' && <Row label="Funding" value={c.funding} />}
                 {c.revenue && c.revenue !== 'null' && <Row label="Revenue" value={c.revenue} />}
                 {c.valuation && c.valuation !== 'null' && <Row label="Valuation" value={c.valuation} />}
+                {c.share_pct != null && (
+                  <Row
+                    label="Est. presence"
+                    value={`${c.presence_pct ?? c.share_pct}%${c.share_method === 'relative_revenue' ? ' (relative)' : ''}`}
+                  />
+                )}
               </div>
               {c.note && <p className="mt-2 text-xs text-slate-500">{c.note}</p>}
             </div>

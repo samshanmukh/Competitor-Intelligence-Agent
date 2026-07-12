@@ -9,20 +9,43 @@ export default function CompetitorsClient() {
   const [competitors, setCompetitors] = useState(null);
   const [view, setView] = useState('grid');
   const [filter, setFilter] = useState('approved');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [tagsById, setTagsById] = useState({});
+  const [alertPrefs, setAlertPrefs] = useState({ thresholdPct: 10, enabled: true });
   const [refreshingId, setRefreshingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const toast = useToast();
 
+  const TAG_OPTIONS = ['direct', 'adjacent', 'aspirational'];
+
   const load = async () => {
     try {
-      const { competitors } = await api.listCompetitors(filter || undefined);
+      const [{ competitors }, meta] = await Promise.all([
+        api.listCompetitors(filter || undefined),
+        api.getCompetitorMeta().catch(() => ({ tags: {}, alerts: null })),
+      ]);
       setCompetitors(competitors || []);
+      setTagsById(meta.tags || {});
+      if (meta.alerts) setAlertPrefs(meta.alerts);
     } catch (err) {
       toast({ type: 'error', title: 'Failed to load', message: err.message });
     }
   };
 
   useEffect(() => { setCompetitors(null); load(); }, [filter]);
+
+  const cycleTag = async (competitorId) => {
+    const current = tagsById[competitorId]?.[0] || null;
+    const idx = TAG_OPTIONS.indexOf(current);
+    const next = TAG_OPTIONS[(idx + 1) % TAG_OPTIONS.length];
+    const tags = [next];
+    setTagsById((t) => ({ ...t, [competitorId]: tags }));
+    try {
+      await api.saveCompetitorTags(competitorId, tags);
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not save tag', message: err.message });
+    }
+  };
 
   const refresh = async (id) => {
     setRefreshingId(id);
@@ -53,7 +76,10 @@ export default function CompetitorsClient() {
   };
 
   const loading = competitors === null;
-  const list = competitors || [];
+  const list = (competitors || []).filter((c) => {
+    if (tagFilter === 'all') return true;
+    return (tagsById[c.id] || []).includes(tagFilter);
+  });
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -62,7 +88,7 @@ export default function CompetitorsClient() {
           <h1 className="text-2xl font-semibold text-white">Competitors</h1>
           <p className="mt-1 text-sm text-slate-500">{loading ? '…' : `${list.length} ${filter || 'total'}`}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-lg border border-ink-700 bg-ink-900 p-0.5">
             {['approved', 'pending', ''].map((f, i) => (
               <button
@@ -76,6 +102,19 @@ export default function CompetitorsClient() {
               </button>
             ))}
           </div>
+          <div className="flex rounded-lg border border-ink-700 bg-ink-900 p-0.5">
+            {['all', ...TAG_OPTIONS].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTagFilter(t)}
+                className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize transition ${
+                  tagFilter === t ? 'bg-ink-700 text-white' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
           <button onClick={() => setView(view === 'grid' ? 'list' : 'grid')} className="btn-ghost p-2">
             <Icon name={view === 'grid' ? 'list' : 'grid'} className="h-4 w-4" />
           </button>
@@ -84,6 +123,33 @@ export default function CompetitorsClient() {
             Add
           </Link>
         </div>
+      </div>
+
+      <div className="card p-4 flex flex-wrap items-center gap-3 text-sm">
+        <span className="text-slate-400">Watchlist alerts</span>
+        <label className="flex items-center gap-2 text-xs text-slate-400">
+          <input
+            type="checkbox"
+            checked={alertPrefs.enabled !== false}
+            onChange={async (e) => {
+              const next = { ...alertPrefs, enabled: e.target.checked };
+              setAlertPrefs(next);
+              await api.saveCompetitorAlerts(next).catch(() => {});
+            }}
+          />
+          Notify on drops ≥
+        </label>
+        <input
+          type="number"
+          className="input w-20 py-1 text-xs"
+          value={alertPrefs.thresholdPct ?? 10}
+          onChange={async (e) => {
+            const next = { ...alertPrefs, thresholdPct: Number(e.target.value) || 10 };
+            setAlertPrefs(next);
+            await api.saveCompetitorAlerts(next).catch(() => {});
+          }}
+        />
+        <span className="text-xs text-slate-500">%</span>
       </div>
 
       {loading ? (
@@ -119,6 +185,15 @@ export default function CompetitorsClient() {
               </div>
 
               {c.description && <p className="text-xs text-slate-500 line-clamp-2">{c.description}</p>}
+
+              <button
+                type="button"
+                onClick={() => cycleTag(c.id)}
+                className="chip self-start text-[10px] capitalize border-ink-600 text-slate-400 hover:text-white"
+                title="Cycle tag: direct / adjacent / aspirational"
+              >
+                {(tagsById[c.id]?.[0]) || 'tag'}
+              </button>
 
               <div className="flex items-center justify-between mt-auto pt-2 border-t border-ink-800">
                 <span className="text-xs text-slate-600">{c.changeCount || 0} changes</span>

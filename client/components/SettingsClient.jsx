@@ -24,6 +24,7 @@ export default function SettingsClient() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [digest, setDigest] = useState({ enabled: false, email: '' });
+  const [digestPrefs, setDigestPrefs] = useState({ onlySignificant: true, topActions: 3, includeDistribution: true });
   const [savingDigest, setSavingDigest] = useState(false);
   const toast = useToast();
 
@@ -32,6 +33,7 @@ export default function SettingsClient() {
     setSavingDigest(true);
     try {
       await api.updateWorkspace(workspace.id, { digest_enabled: digest.enabled, digest_email: digest.email });
+      await api.saveDigestPrefs(digestPrefs).catch(() => {});
       toast({ type: 'success', title: 'Digest settings saved' });
     } catch (err) {
       toast({ type: 'error', title: 'Could not save', message: err.message });
@@ -77,6 +79,8 @@ export default function SettingsClient() {
               email: wsFull.digest_email || (await getCurrentUser().then((u) => u?.email).catch(() => '')) || '',
             });
           }
+          const prefsRes = await api.getDigestPrefs().catch(() => null);
+          if (prefsRes?.prefs) setDigestPrefs(prefsRes.prefs);
         }
       } catch (err) {
         toast({ type: 'error', title: 'Failed to load settings', message: err.message });
@@ -109,13 +113,32 @@ export default function SettingsClient() {
   const invite = async () => {
     if (!inviteEmail.trim() || !workspace?.id) return;
     try {
-      const { member } = await api.inviteMember(workspace.id, inviteEmail.trim(), inviteRole);
-      setMembers((m) => [...m, member]);
+      const { member, emailed, inviteUrl, already } = await api.inviteMember(workspace.id, inviteEmail.trim(), inviteRole);
+      if (!already) setMembers((m) => [...m, member]);
       const sentTo = inviteEmail;
       setInviteEmail('');
-      toast({ type: 'success', title: 'Invitation sent', message: sentTo });
+      if (emailed) {
+        toast({ type: 'success', title: 'Invitation emailed', message: sentTo });
+      } else {
+        toast({
+          type: 'success',
+          title: already ? 'Already invited' : 'Invite created',
+          message: inviteUrl ? `Share link: ${inviteUrl}` : sentTo,
+        });
+      }
     } catch (err) {
       toast({ type: 'error', title: 'Invite failed', message: err.message });
+    }
+  };
+
+  const removeMember = async (userId) => {
+    if (!workspace?.id || !userId) return;
+    try {
+      await api.removeMember(workspace.id, userId);
+      setMembers((m) => m.filter((x) => x.user_id !== userId));
+      toast({ type: 'success', title: 'Member removed' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not remove', message: err.message });
     }
   };
 
@@ -430,6 +453,37 @@ export default function SettingsClient() {
                 onChange={(e) => setDigest((d) => ({ ...d, email: e.target.value }))}
               />
             </div>
+            <div className="space-y-2 rounded-lg border border-ink-700 bg-ink-850 p-3 text-xs text-slate-400">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={digestPrefs.onlySignificant !== false}
+                  onChange={(e) => setDigestPrefs((p) => ({ ...p, onlySignificant: e.target.checked }))}
+                  className="accent-indigo-500"
+                />
+                Only significant (medium/high) pricing changes when available
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={digestPrefs.includeDistribution !== false}
+                  onChange={(e) => setDigestPrefs((p) => ({ ...p, includeDistribution: e.target.checked }))}
+                  className="accent-indigo-500"
+                />
+                Include market distribution pulse
+              </label>
+              <label className="flex items-center gap-2">
+                Top actions to include
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  className="input w-16 py-1"
+                  value={digestPrefs.topActions ?? 3}
+                  onChange={(e) => setDigestPrefs((p) => ({ ...p, topActions: Number(e.target.value) || 3 }))}
+                />
+              </label>
+            </div>
             <div className="flex items-center justify-between">
               <button onClick={sendTestDigest} disabled={!digest.email} className="btn-ghost py-1.5 px-3 text-xs">
                 Send test
@@ -493,6 +547,13 @@ export default function SettingsClient() {
                     {m.invited_email && (
                       <span className="chip border-amber-800/40 bg-amber-950/30 text-amber-400 text-[10px]">pending</span>
                     )}
+                    <button
+                      onClick={() => removeMember(m.user_id)}
+                      className="text-slate-600 hover:text-rose-400 transition p-1.5"
+                      title="Remove member"
+                    >
+                      <Icon name="trash" className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>

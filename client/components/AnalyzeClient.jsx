@@ -440,6 +440,7 @@ function ReportStage({ competitors, onScored }) {
   const [progress, setProgress] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const toast = useToast();
 
   const pollRef = useRef(null);
@@ -576,6 +577,23 @@ function ReportStage({ competitors, onScored }) {
     }
   };
 
+  const exportMarkdown = async () => {
+    setExporting(true);
+    try {
+      const snapshot = {
+        competitors, matrix, positioning, reviews, take, market, product, strategy,
+        generatedAt: new Date().toISOString(),
+      };
+      const { markdown } = await api.exportFeatureReport(snapshot, 'markdown');
+      await navigator.clipboard?.writeText(markdown || '');
+      toast({ type: 'success', title: 'Markdown copied', message: 'Paste into Notion, Docs, or a README.' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Export failed', message: err.message });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <StageCard step={3} title="Competitive report">
       {!hasReport && !running && (
@@ -630,8 +648,13 @@ function ReportStage({ competitors, onScored }) {
           )}
 
           <div className="flex items-center justify-end gap-2 border-t border-ink-800 pt-4">
-            <button onClick={runAll} disabled={running || saving} className="btn-ghost text-sm">
+            <button onClick={runAll} disabled={running || saving || exporting} className="btn-ghost text-sm">
               <Icon name="refresh" className="h-3.5 w-3.5" /> Regenerate
+            </button>
+            <button onClick={exportMarkdown} disabled={exporting || running} className="btn-ghost text-sm">
+              {exporting
+                ? <><Icon name="refresh" className="h-3.5 w-3.5 animate-spin" /> Exporting…</>
+                : <><Icon name="download" className="h-3.5 w-3.5" /> Export markdown</>}
             </button>
             <button onClick={saveToHistory} disabled={saving || saved} className="btn-primary">
               {saved

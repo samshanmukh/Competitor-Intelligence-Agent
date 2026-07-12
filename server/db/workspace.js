@@ -93,6 +93,40 @@ export async function listDigestWorkspaces() {
   return (data || []).filter((w) => w.digest_email);
 }
 
+export async function claimPendingInvites(userId, email) {
+  if (!userId || !email) return [];
+  const pendingId = `invited:${email.toLowerCase()}`;
+  const { data: pending } = await insforge.database
+    .from('workspace_members')
+    .select()
+    .eq('user_id', pendingId);
+  const claimed = [];
+  for (const row of pending || []) {
+    // Skip if already a real member of this workspace.
+    const already = await isWorkspaceMember(userId, row.workspace_id);
+    if (already) {
+      await removeWorkspaceMember(row.workspace_id, pendingId);
+      continue;
+    }
+    await removeWorkspaceMember(row.workspace_id, pendingId);
+    const member = await addWorkspaceMember(row.workspace_id, userId, row.role || 'analyst', null);
+    if (member) claimed.push(member);
+  }
+  return claimed;
+}
+
+export async function findPendingInvite(workspaceId, email) {
+  if (!workspaceId || !email) return null;
+  const pendingId = `invited:${email.toLowerCase()}`;
+  const { data } = await insforge.database
+    .from('workspace_members')
+    .select()
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', pendingId)
+    .maybeSingle();
+  return data;
+}
+
 export async function updateWorkspace(id, updates) {
   const { data } = await insforge.database
     .from('workspaces')

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   listCompetitors,
   getCompetitor,
+  getCompetitorByPricingUrl,
   upsertCompetitor,
   updateCompetitorStatus,
   deleteCompetitor,
@@ -19,7 +20,9 @@ import {
 import { discoverCompetitors } from '../agents/discoveryAgent.js';
 import { refreshCompetitor, refreshAll } from '../agents/monitor.js';
 import { getKey, setKey } from '../services/keys.js';
+import { sendPushToWorkspace } from '../services/push.js';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
+import { METHODOLOGY } from '../services/marketInsights.js';
 
 const router = Router();
 
@@ -51,6 +54,10 @@ router.get('/health', (req, res) => {
     xai_key: Boolean(getKey('XAI_API_KEY')),
     model: getKey('XAI_MODEL') || 'grok-4',
   });
+});
+
+router.get('/methodology', (_req, res) => {
+  res.json({ methodology: METHODOLOGY });
 });
 
 // Everything below requires a valid session and a workspace the user belongs to.
@@ -132,17 +139,30 @@ router.post(
     for (const c of incoming) {
       const pricing_url = normalizeUrl(c.pricing_url || c.url);
       if (!pricing_url) continue;
-      added.push(
-        await upsertCompetitor({
-          name: (c.name || hostname(pricing_url)).trim(),
-          website: normalizeUrl(c.website) || originOf(pricing_url),
-          pricing_url,
-          notes: c.notes || null,
-          source: c.source || 'discovered',
-          status,
-          workspace_id: req.workspaceId || null,
-        })
-      );
+      const before = await getCompetitorByPricingUrl(pricing_url).catch(() => null);
+      const row = await upsertCompetitor({
+        name: (c.name || hostname(pricing_url)).trim(),
+        website: normalizeUrl(c.website) || originOf(pricing_url),
+        pricing_url,
+        notes: c.notes || null,
+        source: c.source || 'discovered',
+        status,
+        workspace_id: req.workspaceId || null,
+      });
+      added.push(row);
+      // Fire new-competitor push only for genuinely new approved rows.
+      if (!before && row && status === 'approved' && req.workspaceId) {
+        sendPushToWorkspace(
+          req.workspaceId,
+          {
+            title: `New competitor: ${row.name}`,
+            body: 'Added to your watchlist.',
+            url: `/competitors/${row.id}`,
+            tag: `competitor-${row.id}`,
+          },
+          'new-competitor'
+        ).catch(() => {});
+      }
     }
     res.json({ added });
   })
@@ -176,7 +196,20 @@ router.patch(
     if (status && !['pending', 'approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
+    const wasPending = competitor.status === 'pending';
     const updated = status ? await updateCompetitorStatus(competitor.id, status) : competitor;
+    if (wasPending && status === 'approved' && (competitor.workspace_id || req.workspaceId)) {
+      sendPushToWorkspace(
+        competitor.workspace_id || req.workspaceId,
+        {
+          title: `New competitor: ${updated.name}`,
+          body: 'Approved and added to your watchlist.',
+          url: `/competitors/${updated.id}`,
+          tag: `competitor-${updated.id}`,
+        },
+        'new-competitor'
+      ).catch(() => {});
+    }
     res.json({ competitor: updated });
   })
 );

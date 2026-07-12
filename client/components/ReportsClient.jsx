@@ -8,9 +8,27 @@ import ReportView from './ReportView';
 export default function ReportsClient() {
   const [reports, setReports] = useState(null);
   const [active, setActive] = useState(null);   // { ...report, content }
+  const [distributionDiff, setDistributionDiff] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   const toast = useToast();
+
+  const copyShareLink = async (report) => {
+    if (!report?.token) {
+      toast({ type: 'error', title: 'No share link', message: 'This report has no share token.' });
+      return;
+    }
+    const url = `${window.location.origin}/reports/shared/${report.token}`;
+    try {
+      await navigator.clipboard?.writeText(url);
+      setCopiedId(report.id);
+      setTimeout(() => setCopiedId(null), 2000);
+      toast({ type: 'success', title: 'Link copied', message: 'Anyone with the link can view this report.' });
+    } catch {
+      toast({ type: 'error', title: 'Could not copy', message: url });
+    }
+  };
 
   const load = async () => {
     try {
@@ -26,9 +44,14 @@ export default function ReportsClient() {
 
   const open = async (id) => {
     setLoadingId(id);
+    setDistributionDiff(null);
     try {
-      const { report } = await api.getReport(id);
+      const [{ report }, diffRes] = await Promise.all([
+        api.getReport(id),
+        api.reportDistributionDiff(id).catch(() => ({ diff: null })),
+      ]);
       setActive(report);
+      if (diffRes?.diff?.available && diffRes.diff.shifts?.length) setDistributionDiff(diffRes.diff);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       toast({ type: 'error', title: 'Could not open report', message: err.message });
@@ -63,10 +86,23 @@ export default function ReportsClient() {
               Saved {timeAgo(active.created_at)} · {c.competitors?.length || 0} competitors · cached (no re-run)
             </p>
           </div>
-          <button onClick={() => setConfirmDelete(active.id)} className="btn-danger px-2.5">
-            <Icon name="trash" className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => copyShareLink(active)} className="btn-ghost px-2.5" title="Copy share link">
+              <Icon name="share" className="h-4 w-4" />
+              <span className="ml-1.5 text-xs">{copiedId === active.id ? 'Copied' : 'Share'}</span>
+            </button>
+            <button onClick={() => setConfirmDelete(active.id)} className="btn-danger px-2.5">
+              <Icon name="trash" className="h-4 w-4" />
+            </button>
+          </div>
         </div>
+
+        {distributionDiff?.shifts?.length > 0 && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">Since this report</p>
+            <p className="mt-1 text-sm text-slate-300">{distributionDiff.summary}</p>
+          </div>
+        )}
 
         {c.competitors ? (
           <div className="card p-5">
@@ -76,6 +112,9 @@ export default function ReportsClient() {
               positioning={c.positioning}
               reviews={c.reviews}
               take={c.take}
+              market={c.market}
+              product={c.product}
+              strategy={c.strategy}
             />
           </div>
         ) : (
@@ -127,6 +166,9 @@ export default function ReportsClient() {
                 <p className="text-xs text-slate-500">Saved {timeAgo(r.created_at)}</p>
               </button>
               {loadingId === r.id && <Icon name="refresh" className="h-4 w-4 animate-spin text-slate-500" />}
+              <button onClick={() => copyShareLink(r)} className="btn-ghost py-1.5 px-2 text-xs" title="Copy share link">
+                {copiedId === r.id ? 'Copied' : 'Share'}
+              </button>
               <button onClick={() => open(r.id)} className="btn-ghost py-1.5 px-3 text-xs">Open</button>
               <button onClick={() => setConfirmDelete(r.id)} className="text-slate-600 hover:text-rose-400 transition p-1.5">
                 <Icon name="trash" className="h-3.5 w-3.5" />

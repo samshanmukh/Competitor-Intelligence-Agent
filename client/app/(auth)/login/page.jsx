@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, verifyEmailCode, resendCode } from '../../../lib/auth';
+import OAuthButtons from '../../../components/OAuthButtons';
 
 function LoginForm() {
   const router = useRouter();
@@ -123,6 +124,7 @@ function LoginForm() {
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
+        <OAuthButtons mode="signin" />
       </form>
 
       <p className="text-center text-sm text-slate-500">

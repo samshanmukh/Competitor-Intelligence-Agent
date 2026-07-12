@@ -63,6 +63,6 @@ export async function POST(request) {
     }
     return NextResponse.json({ ok: true, already: false });
   } catch (err) {
-    return NextResponse.json({ error: err.message || 'Could not join the waitlist.' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Could not request early access.' }, { status: 500 });
   }
 }

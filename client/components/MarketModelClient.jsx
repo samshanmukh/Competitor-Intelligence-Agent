@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { Icon, Spinner } from './ui';
+import { Icon, Spinner, useToast } from './ui';
+import { DistributionPanel } from './distribution/DistributionShared';
+import { useMarketResearch } from '../hooks/useMarketResearch';
 
 const JOB_KEY = 'cia_marketmodel_job';
 const FACT_KEY = 'cia_factcheck_job';
@@ -73,10 +75,15 @@ export default function MarketModelClient() {
   const [factOpen, setFactOpen] = useState(false);
   const [factBusy, setFactBusy] = useState(false);
   const [factErr, setFactErr] = useState('');
+  const [pulseData, setPulseData] = useState(null);
   const pollRef = useRef(null);
   const saveRef = useRef(null);
   const factPollRef = useRef(null);
   const loadHistory = () => api.marketModelHistory().then((r) => setHistory(r.history || [])).catch(() => {});
+  const loadPulse = () => api.marketPulse().then(setPulseData).catch(() => setPulseData(null));
+  const { researching: distResearching, runResearch: runDistributionResearch } = useMarketResearch({
+    onComplete: loadPulse,
+  });
 
   function factPoll(jobId) {
     api.factCheckStatus(jobId)
@@ -134,6 +141,7 @@ export default function MarketModelClient() {
         if (saved) setModel(saved);
       } catch { /* ignore */ }
       loadHistory();
+      loadPulse();
       const jobId = typeof window !== 'undefined' ? localStorage.getItem(JOB_KEY) : null;
       if (jobId) { setBuilding(true); poll(jobId); }
       const factJob = typeof window !== 'undefined' ? localStorage.getItem(FACT_KEY) : null;
@@ -234,7 +242,17 @@ export default function MarketModelClient() {
         </div>
       )}
 
-      {model && <ModelView model={model} history={history} onInputs={applyInputs} onReconcile={reconcileBottomUp} />}
+      {model && (
+        <ModelView
+          model={model}
+          history={history}
+          pulseData={pulseData}
+          onInputs={applyInputs}
+          onReconcile={reconcileBottomUp}
+          onRefreshDistribution={runDistributionResearch}
+          distResearching={distResearching}
+        />
+      )}
 
       {factOpen && (
         <FactDrawer
@@ -377,7 +395,7 @@ function ChangeCard({ history }) {
   );
 }
 
-function ModelView({ model, history, onInputs, onReconcile }) {
+function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefreshDistribution, distResearching }) {
   const blowout = model.bottom_up?.value_usd && model.tam?.value_usd && model.bottom_up.value_usd > model.tam.value_usd * 3;
   const tam = model.tam || {};
   const inputs = model.inputs || {};
@@ -385,6 +403,9 @@ function ModelView({ model, history, onInputs, onReconcile }) {
   const tamValue = tam.value_usd;
   const currentSom = model.som?.value_usd || 0;
   const [copied, setCopied] = useState(false);
+  const [aiScenarios, setAiScenarios] = useState(null);
+  const [scenarioBusy, setScenarioBusy] = useState(false);
+  const toast = useToast();
 
   const edited = useMemo(() => (
     ['serviceable_pct', 'target_share', 'acv_usd', 'timeframe_years', 'annual_growth_pct', 'geography']
@@ -404,6 +425,23 @@ function ModelView({ model, history, onInputs, onReconcile }) {
     { key: 'Base', patch: { serviceable_pct: base.serviceable_pct, target_share: base.target_share } },
     { key: 'Aggressive', patch: { serviceable_pct: clamp(base.serviceable_pct * 1.3, 0, 1), target_share: clamp(base.target_share * 2, 0, 0.5) } },
   ].map((s) => ({ ...s, som: derive(tamValue, normalizeClient({ ...base, ...s.patch }), base.acv_usd).som }));
+
+  const runAiScenarios = async () => {
+    setScenarioBusy(true);
+    try {
+      const { result } = await api.generateMarketScenarios({
+        tam: tamValue,
+        sam: model.sam?.value_usd,
+        som: currentSom,
+        inputs,
+      });
+      setAiScenarios(result);
+    } catch (err) {
+      toast({ type: 'error', title: 'Scenarios failed', message: err.message });
+    } finally {
+      setScenarioBusy(false);
+    }
+  };
 
   function leverPatch(l) {
     const imp = l.impact;
@@ -426,6 +464,65 @@ function ModelView({ model, history, onInputs, onReconcile }) {
       (model.sources || []).length ? `\nSources:\n${model.sources.map((s) => `- ${s.title || s.url}: ${s.url}`).join('\n')}` : '',
     ].filter(Boolean);
     navigator.clipboard?.writeText(lines.join('\n')).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }).catch(() => {});
+  }
+
+  function exportInvestorPDF() {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const dist = pulseData?.distribution;
+    const insights = pulseData?.insights || [];
+    const items = (dist?.items || []).slice(0, 8);
+    const maxP = Math.max(1, ...items.map((i) => i.presence_pct ?? i.share_pct ?? 0));
+    const presenceRows = items.map((item, i) => {
+      const pct = item.presence_pct ?? item.share_pct ?? 0;
+      return `<tr><td>${esc(item.name)}</td><td style="text-align:right;font-weight:700">${pct}%</td><td><div style="background:#e2e8f0;border-radius:4px;height:8px;"><div style="width:${Math.max(6, (pct / maxP) * 100)}%;height:8px;border-radius:4px;background:${['#6366f1','#818cf8','#a5b4fc','#c7d2fe'][i % 4]}"></div></div></td></tr>`;
+    }).join('');
+    const insightList = insights.filter((x) => x.type !== 'missing').map((ins) => `<li><b>${esc(ins.title)}</b> — ${esc(ins.body)}</li>`).join('');
+    const moves = (model.levers || []).slice(0, 3).map((l) => `<li><b>${esc(l.lever)}</b>${l.effect ? ` — ${esc(l.effect)}` : ''}</li>`).join('');
+    const sources = (model.sources || []).map((s) => `<li><a href="${esc(s.url)}">${esc(s.title || s.url)}</a></li>`).join('');
+    const funnel = [
+      ['TAM', fmtUSD(tamValue), tam.method],
+      ['SAM', fmtUSD(model.sam?.value_usd), model.sam?.method],
+      ['SOM', fmtUSD(currentSom), model.som?.method],
+    ].map(([k, v, sub]) => `<tr><td class="k">${k}</td><td class="v">${v}</td><td class="s">${esc(sub || '')}</td></tr>`).join('');
+
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Investor brief — Market model</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Inter, sans-serif; color:#0f172a; max-width:720px; margin:40px auto; padding:0 28px; line-height:1.5; }
+  .brand { font-weight:800; letter-spacing:-.02em; font-size:20px; }
+  .brand span { color:#6366f1; }
+  h1 { font-size:26px; margin:18px 0 2px; }
+  .muted { color:#64748b; font-size:13px; }
+  table { width:100%; border-collapse:collapse; margin:14px 0; }
+  td { padding:8px; border-bottom:1px solid #e2e8f0; font-size:13px; vertical-align:middle; }
+  td.k { font-weight:700; width:52px; }
+  td.v { text-align:right; font-weight:800; white-space:nowrap; }
+  td.s { color:#64748b; font-size:12px; }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:#475569; margin:26px 0 6px; }
+  ul { margin:6px 0; padding-left:18px; font-size:13px; }
+  .disclaimer { font-size:11px; color:#64748b; margin-top:24px; padding-top:12px; border-top:1px solid #e2e8f0; }
+  a { color:#4f46e5; text-decoration:none; }
+  @media print { body { margin:0; } }
+</style></head><body>
+  <div class="brand">Mira <span>Vue</span></div>
+  <h1>Investor market brief</h1>
+  <div class="muted">${esc(inputs.geography || 'Global')} · ${new Date().toLocaleDateString()} · Directional estimates</div>
+  ${model.summary ? `<p style="margin-top:14px;font-size:14px">${esc(model.summary)}</p>` : ''}
+  <h2>Market funnel</h2>
+  <table>${funnel}</table>
+  ${dist ? `<h2>Estimated competitor presence${dist.cr4_pct != null ? ` · CR4 ≈ ${dist.cr4_pct}%` : ''}</h2>
+  <table>${presenceRows}</table>
+  <p class="muted">${esc(dist.disclaimer || 'Directional estimates — not syndicated market share.')}</p>` : '<p class="muted">Run market intelligence to populate competitor presence.</p>'}
+  ${insightList ? `<h2>Market insights</h2><ul>${insightList}</ul>` : ''}
+  ${moves ? `<h2>Recommended levers</h2><ul>${moves}</ul>` : ''}
+  ${sources ? `<h2>Sources</h2><ul>${sources}</ul>` : ''}
+  <p class="disclaimer">This brief combines your workspace market model with estimated competitor presence from live research. Figures are hypotheses to defend — not audited market share. See methodology in Mira Vue.</p>
+</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
   }
 
   function exportPDF() {
@@ -498,7 +595,10 @@ function ModelView({ model, history, onInputs, onReconcile }) {
               <Icon name={copied ? 'check' : 'copy'} className="h-3.5 w-3.5" /> {copied ? 'Copied' : 'Copy summary'}
             </button>
             <button onClick={exportPDF} className="btn-ghost py-1 px-2.5 text-xs">
-              <Icon name="download" className="h-3.5 w-3.5" /> Download PDF
+              <Icon name="download" className="h-3.5 w-3.5" /> Model PDF
+            </button>
+            <button onClick={exportInvestorPDF} className="btn-ghost py-1 px-2.5 text-xs">
+              <Icon name="share" className="h-3.5 w-3.5" /> Investor brief
             </button>
           </div>
         </div>
@@ -528,10 +628,45 @@ function ModelView({ model, history, onInputs, onReconcile }) {
         {tam.source_quote && <p className="mt-1.5 text-[11px] italic text-slate-500">“{tam.source_quote}”</p>}
       </div>
 
+      <DistributionPanel
+        pulseData={pulseData}
+        tamContext={{
+          tamValue,
+          somValue: currentSom,
+          targetSharePct: `${Math.round((inputs.target_share || 0) * 100)}%`,
+        }}
+        compact
+        showRefresh
+        onRefresh={onRefreshDistribution}
+        researching={distResearching}
+        showSyndicated
+        showFullLink
+        showPricingChanges={false}
+      />
+
+      {!pulseData?.distribution?.items?.length && (
+        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5 text-sm text-slate-400">
+          No distribution yet.{' '}
+          <button type="button" onClick={onRefreshDistribution} disabled={distResearching} className="text-accent-soft underline">
+            Run market research
+          </button>{' '}
+          or open the{' '}
+          <a href="/distribution" className="text-accent-soft underline">Distribution</a> page.
+        </div>
+      )}
+
       {/* Scenarios */}
       <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-        <h3 className="text-sm font-semibold text-white">Scenarios</h3>
-        <p className="mt-0.5 text-xs text-slate-500">Compare obtainable market under different assumptions. Click to apply.</p>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Scenarios</h3>
+            <p className="mt-0.5 text-xs text-slate-500">Compare obtainable market under different assumptions. Click to apply.</p>
+          </div>
+          <button onClick={runAiScenarios} disabled={scenarioBusy} className="btn-ghost py-1 px-2.5 text-xs shrink-0">
+            {scenarioBusy ? <Spinner /> : <Icon name="sparkle" className="h-3.5 w-3.5" />}
+            {scenarioBusy ? 'Building…' : 'AI bull/base/bear'}
+          </button>
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {scenarios.map((s) => {
             const active = Math.round(s.som) === Math.round(currentSom);
@@ -544,6 +679,20 @@ function ModelView({ model, history, onInputs, onReconcile }) {
             );
           })}
         </div>
+        {aiScenarios?.scenarios?.length > 0 && (
+          <div className="mt-4 space-y-2 border-t border-ink-800 pt-4">
+            <p className="text-xs text-slate-400">{aiScenarios.narrative}</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {aiScenarios.scenarios.map((s) => (
+                <div key={s.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">{s.name} · {Math.round((s.probability || 0) * 100)}%</p>
+                  <p className="mt-1 text-sm font-semibold text-white">SOM {fmtUSD(s.somUsd)}</p>
+                  <p className="text-[11px] text-slate-500">TAM {fmtUSD(s.tamUsd)} · SAM {fmtUSD(s.samUsd)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Editable assumptions */}

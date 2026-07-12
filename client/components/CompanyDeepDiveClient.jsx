@@ -25,6 +25,12 @@ export default function CompanyDeepDiveClient() {
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [dossier, setDossier] = useState(null);
+  const [implications, setImplications] = useState(null);
+  const [implLoading, setImplLoading] = useState(false);
+  const [compareInput, setCompareInput] = useState('');
+  const [compareResult, setCompareResult] = useState(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [savingDossier, setSavingDossier] = useState(false);
   const toast = useToast();
 
   const pollRef = useRef(null);
@@ -138,6 +144,77 @@ export default function CompanyDeepDiveClient() {
       {/* Result */}
       {dossier && (
         <div className="space-y-5">
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button
+              className="btn-ghost text-sm"
+              disabled={implLoading}
+              onClick={async () => {
+                setImplLoading(true);
+                try {
+                  const { result } = await api.getImplications(dossier);
+                  setImplications(result);
+                } catch (err) {
+                  toast({ type: 'error', title: 'Implications failed', message: err.message });
+                } finally {
+                  setImplLoading(false);
+                }
+              }}
+            >
+              {implLoading ? 'Thinking…' : 'What this means for us'}
+            </button>
+            <button
+              className="btn-ghost text-sm"
+              disabled={savingDossier}
+              onClick={async () => {
+                setSavingDossier(true);
+                try {
+                  await api.saveReport(
+                    `Deep dive · ${form.company || dossier?.overview?.name || 'Company'} · ${new Date().toLocaleDateString()}`,
+                    { type: 'deep-dive', dossier, implications, generatedAt: new Date().toISOString() }
+                  );
+                  toast({ type: 'success', title: 'Saved to history' });
+                } catch (err) {
+                  toast({ type: 'error', title: 'Could not save', message: err.message });
+                } finally {
+                  setSavingDossier(false);
+                }
+              }}
+            >
+              {savingDossier ? 'Saving…' : 'Save dossier'}
+            </button>
+          </div>
+
+          {implications && (
+            <section className="card p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-white">Implications for us</h2>
+              <p className="text-sm text-slate-300">{implications.summary}</p>
+              {implications.threats?.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-rose-300">Threats</p>
+                  <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
+                    {implications.threats.map((t, i) => <li key={i}>{t}</li>)}
+                  </ul>
+                </div>
+              )}
+              {implications.opportunities?.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-emerald-300">Opportunities</p>
+                  <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
+                    {implications.opportunities.map((t, i) => <li key={i}>{t}</li>)}
+                  </ul>
+                </div>
+              )}
+              {implications.actions?.length > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-accent-soft">Actions</p>
+                  <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
+                    {implications.actions.map((t, i) => <li key={i}>{t}</li>)}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
           <OverviewSection state={{ loading: false, data: dossier.overview }} />
           <FinancialsSection state={{ loading: false, data: dossier.financials }} />
           <MarketSection market={dossier.market} loading={false} />
@@ -145,6 +222,52 @@ export default function CompanyDeepDiveClient() {
           <ReviewsSection state={{ loading: false, data: dossier.reviews }} />
         </div>
       )}
+
+      <section className="card p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-white">Compare companies</h2>
+        <p className="text-xs text-slate-500">Enter 2–4 names separated by commas.</p>
+        <div className="flex gap-2">
+          <input
+            className="input flex-1"
+            placeholder="Notion, Coda, Airtable"
+            value={compareInput}
+            onChange={(e) => setCompareInput(e.target.value)}
+          />
+          <button
+            className="btn-primary shrink-0"
+            disabled={compareLoading}
+            onClick={async () => {
+              const companies = compareInput.split(',').map((s) => s.trim()).filter(Boolean);
+              if (companies.length < 2) {
+                toast({ type: 'error', title: 'Need at least 2 companies' });
+                return;
+              }
+              setCompareLoading(true);
+              try {
+                const { result } = await api.compareCompanies(companies);
+                setCompareResult(result);
+              } catch (err) {
+                toast({ type: 'error', title: 'Compare failed', message: err.message });
+              } finally {
+                setCompareLoading(false);
+              }
+            }}
+          >
+            {compareLoading ? 'Comparing…' : 'Compare'}
+          </button>
+        </div>
+        {compareResult && (
+          <div className="space-y-2 pt-2">
+            <p className="text-sm text-slate-300">{compareResult.summary}</p>
+            <p className="text-sm text-accent-soft">{compareResult.recommendation}</p>
+            {compareResult.implicationsForUs?.length > 0 && (
+              <ul className="list-disc pl-4 text-sm text-slate-400 space-y-1">
+                {compareResult.implicationsForUs.map((x, i) => <li key={i}>{x}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

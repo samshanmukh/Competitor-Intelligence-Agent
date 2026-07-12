@@ -94,13 +94,32 @@ export default function Sidebar() {
       <NavGroup label="Workspace" collapsed={collapsed}>
         <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={collapsed} />
         <NavItem href="/market" icon="bar" label="Market model" collapsed={collapsed} />
+        <NavItem href="/distribution" icon="trending" label="Distribution" collapsed={collapsed} />
         <NavItem href="/competitors" icon="users" label="Competitors" collapsed={collapsed} />
+        <NavItem href="/compare" icon="grid" label="Compare" collapsed={collapsed} />
         <NavItem href="/company" icon="map" label="Deep Dive" collapsed={collapsed} />
+        <NavItem href="/moves" icon="zap" label="Next moves" collapsed={collapsed} />
         <NavItem href="/changes" icon="bell" label="Changes" badge={unseen} collapsed={collapsed} />
+        <NavItem href="/notifications" icon="bell" label="Alerts" collapsed={collapsed} />
         <NavItem href="/reports" icon="share" label="History" collapsed={collapsed} />
       </NavGroup>
 
+      <NavGroup label="Labs" collapsed={collapsed}>
+        <NavItem href="/positioning" icon="sparkle" label="Positioning lab" collapsed={collapsed} />
+        <NavItem href="/pricing-lab" icon="card" label="Pricing simulator" collapsed={collapsed} />
+        <NavItem href="/gaps" icon="radar" label="Feature gaps" collapsed={collapsed} />
+        <NavItem href="/evidence" icon="check" label="Evidence" collapsed={collapsed} />
+        <NavItem href="/war-room" icon="shield" label="War room" collapsed={collapsed} />
+        <NavItem href="/win-loss" icon="trending" label="Win / loss" collapsed={collapsed} />
+        <NavItem href="/market-entry" icon="map" label="Market entry" collapsed={collapsed} />
+        <NavItem href="/investor" icon="bar" label="Investor one-pager" collapsed={collapsed} />
+      </NavGroup>
+
       <NavGroup label="Account" collapsed={collapsed}>
+        <NavItem href="/my-product" icon="settings" label="My product" collapsed={collapsed} />
+        <NavItem href="/discover" icon="plus" label="Discover" collapsed={collapsed} />
+        <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={collapsed} />
+        <NavItem href="/usage" icon="bar" label="Usage" collapsed={collapsed} />
         <NavItem href="/settings" icon="settings" label="Settings" collapsed={collapsed} />
       </NavGroup>
     </>
@@ -164,6 +183,8 @@ export default function Sidebar() {
           <span className="text-sm font-semibold text-white">Mira Vue</span>
         </div>
         <NavItem href="/app" icon="sparkle" label="Analysis" exact />
+        <NavItem href="/market" icon="bar" label="Market" />
+        <NavItem href="/moves" icon="zap" label="Moves" />
         <NavItem href="/competitors" icon="users" label="Competitors" />
         <NavItem href="/changes" icon="bell" label="Changes" badge={unseen} />
         <NavItem href="/reports" icon="share" label="History" />

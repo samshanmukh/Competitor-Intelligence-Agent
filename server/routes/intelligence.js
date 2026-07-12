@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
-import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors } from '../db/index.js';
+import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors, getSetting, setSetting, listRecentChanges } from '../db/index.js';
 import { getProduct } from '../db/products.js';
 import { getMarketModel, saveMarketModel, insertModelHistory, getModelHistory } from '../db/marketModel.js';
 import { completeJSON, complete } from '../services/ai.js';
@@ -9,6 +9,23 @@ import { crunchbaseFunding } from '../services/apify.js';
 import { tavilySearch, tavilyConfigured } from '../services/tavily.js';
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
 import { sendPushToWorkspace } from '../services/push.js';
+import {
+  computeMarketDistribution,
+  enrichCompaniesWithDistribution,
+  parseMoneyToUsd,
+  resolveTamUsd,
+  diffDistribution,
+  distributionSnapshotKey,
+  getSignificantShifts,
+} from '../services/marketDistribution.js';
+import { resolveTrafficForCompetitors } from '../services/trafficSignals.js';
+import { generateMarketInsights } from '../services/marketInsights.js';
+import {
+  fetchAndExtractSyndicatedShare,
+  buildSyndicatedTable,
+  syndicatedSnapshotKey,
+} from '../services/syndicatedShare.js';
+import { sendMarketShiftWebhook } from '../services/alerts.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -405,15 +422,16 @@ Produce strategic analysis as JSON:
 // timeline, and competitor funding/revenue. Slow (1–3 min), so it runs as a
 // background job (see /market/start + /market/status below).
 async function runMarketIntel(workspaceId, effort = 'deep') {
-  const [product, competitors] = await Promise.all([
+  const [product, competitors, marketModel] = await Promise.all([
     getProduct(workspaceId),
     listCompetitors('approved', workspaceId),
+    getMarketModel(workspaceId),
   ]);
 
   const marketName = product?.description?.slice(0, 200) || product?.name || 'this market';
   const names = competitors.map((c) => c.name).slice(0, 8);
 
-  const input = `For the market "${marketName}": estimate the total market size for the last 5 years (give a number per year if possible) and the annual growth rate (CAGR). Then for each of these companies estimate funding raised, annual revenue, and valuation where known: ${names.join(', ')}. Provide concrete numbers and cite sources.`;
+  const input = `For the market "${marketName}": estimate the total market size for the last 5 years (give a number per year if possible) and the annual growth rate (CAGR). Then for each of these companies estimate funding raised, annual revenue, valuation, and monthly website visits/traffic where known: ${names.join(', ')}. Provide concrete numbers and cite sources.`;
 
   const payload = await financeResearch(input, effort === 'exhaustive' ? 'exhaustive' : 'deep');
   const researchText = flattenResearch(payload).slice(0, 12000);
@@ -430,7 +448,7 @@ async function runMarketIntel(workspaceId, effort = 'deep') {
     "summary": "2-3 sentence market overview"
   },
   "companies": [
-    { "name": "", "funding": "e.g. $40M or null", "revenue": "e.g. $20M est or null", "valuation": "or null", "note": "one line" }
+    { "name": "", "funding": "e.g. $40M or null", "revenue": "e.g. $20M est or null", "revenue_usd": 20000000, "monthly_visits": 1500000, "valuation": "or null", "review_count": 1200, "g2_rating": 4.5, "note": "one line" }
   ],
   "narrative": "a short paragraph on market dynamics and what it means for pricing/positioning"
 }
@@ -447,14 +465,98 @@ ${researchText}`,
   // Grok returns { market: {size_current,cagr,history,summary}, companies, narrative }.
   // Flatten to the shape the UI expects (tolerating either nesting).
   const m = structured.market && typeof structured.market === 'object' ? structured.market : structured;
-  return {
+  const marketIntel = {
     size_current: m.size_current ?? null,
     cagr: m.cagr ?? null,
     history: Array.isArray(m.history) ? m.history : [],
     summary: m.summary ?? null,
-    companies: Array.isArray(structured.companies) ? structured.companies : [],
     narrative: structured.narrative ?? null,
     sources,
+  };
+
+  let companies = (Array.isArray(structured.companies) ? structured.companies : []).map((c) => ({
+    ...c,
+    revenue_usd: toNum(c.revenue_usd) || parseMoneyToUsd(c.revenue) || null,
+    review_count: toNum(c.review_count) || null,
+    g2_rating: toNum(c.g2_rating) || null,
+    monthly_visits: toNum(c.monthly_visits) || null,
+  }));
+
+  const [trafficResult, syndicatedResult] = await Promise.all([
+    resolveTrafficForCompetitors(competitors, { companies, researchText }),
+    fetchAndExtractSyndicatedShare(marketName, names, flattenResearch),
+  ]);
+
+  const { tamUsd, tamSource } = resolveTamUsd({ marketModel, marketIntel });
+  const distribution = computeMarketDistribution(companies, tamUsd, tamSource, {
+    trafficByName: trafficResult.byName,
+    trafficKinds: trafficResult.kinds,
+    trafficMeta: trafficResult.meta,
+  });
+  companies = enrichCompaniesWithDistribution(companies, distribution);
+
+  const syndicated = syndicatedResult.syndicated;
+  const syndicatedTable = syndicated
+    ? buildSyndicatedTable(syndicated, distribution, names)
+    : null;
+  const syndicatedPayload = syndicated
+    ? { ...syndicated, table: syndicatedTable }
+    : null;
+
+  // Pulse vs previous snapshot.
+  let pulse = { shifts: [], summary: 'First market distribution snapshot.' };
+  try {
+    const prevRaw = await getSetting(distributionSnapshotKey(workspaceId));
+    const prev = prevRaw ? JSON.parse(prevRaw) : null;
+    if (prev?.items?.length) pulse = diffDistribution(prev, distribution);
+    if (prevRaw) {
+      await setSetting(`${distributionSnapshotKey(workspaceId)}:prev`, prevRaw).catch(() => {});
+    }
+  } catch { /* ignore corrupt snapshot */ }
+
+  await setSetting(
+    distributionSnapshotKey(workspaceId),
+    JSON.stringify({
+      ...distribution,
+      syndicated: syndicatedPayload,
+      captured_at: new Date().toISOString(),
+    })
+  ).catch(() => {});
+
+  if (syndicatedPayload) {
+    await setSetting(syndicatedSnapshotKey(workspaceId), JSON.stringify(syndicatedPayload)).catch(() => {});
+  }
+
+  const significantShifts = getSignificantShifts(pulse);
+  if (significantShifts.length) {
+    const line = significantShifts
+      .slice(0, 3)
+      .map((s) => `${s.name} ${s.delta_pct > 0 ? '+' : ''}${s.delta_pct}pp`)
+      .join(' · ');
+    sendPushToWorkspace(
+      workspaceId,
+      {
+        title: 'Significant market shift',
+        body: line.slice(0, 180),
+        url: '/distribution',
+        tag: `market-shift-${workspaceId}`,
+      },
+      'market'
+    ).catch(() => {});
+    sendMarketShiftWebhook(workspaceId, significantShifts, distribution.method).catch(() => {});
+  }
+
+  return {
+    ...marketIntel,
+    companies,
+    distribution,
+    syndicated: syndicatedPayload,
+    pulse,
+    signals: {
+      traffic_configured: trafficResult.meta?.configured,
+      traffic_fetched: trafficResult.meta?.apify_fetched,
+      traffic_meta: trafficResult.meta,
+    },
   };
 }
 
@@ -468,10 +570,13 @@ router.post('/market/start', requireAuth, resolveWorkspace, wrap(async (req, res
   runMarketIntel(workspaceId, effort)
     .then(async (market) => {
       await completeJob(jobId, { market });
+      const pulseLine = market?.pulse?.shifts?.length
+        ? ` ${market.pulse.summary}`
+        : '';
       sendPushToWorkspace(workspaceId, {
         title: 'Market intelligence ready',
-        body: 'Your deep market research has finished — open the report to view it.',
-        url: '/app',
+        body: `Your market research is ready.${pulseLine}`.slice(0, 180),
+        url: '/distribution',
         tag: `market-${jobId}`,
       }, 'any').catch(() => {});
     })
@@ -488,6 +593,81 @@ router.get('/market/status/:jobId', requireAuth, wrap(async (req, res) => {
   const job = await getJob(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
   res.json({ status: job.status, result: job.result, error: job.error });
+}));
+
+// Latest market pulse for the workspace (distribution snapshot + recent pricing changes).
+router.get('/market-pulse', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const workspaceId = req.workspaceId;
+  let distribution = null;
+  try {
+    const raw = await getSetting(distributionSnapshotKey(workspaceId));
+    distribution = raw ? JSON.parse(raw) : null;
+  } catch { /* ignore */ }
+
+  const marketModel = await getMarketModel(workspaceId);
+  let syndicated = distribution?.syndicated ?? null;
+  if (!syndicated) {
+    try {
+      const raw = await getSetting(syndicatedSnapshotKey(workspaceId));
+      syndicated = raw ? JSON.parse(raw) : null;
+    } catch { /* ignore */ }
+  }
+  const insights = generateMarketInsights(marketModel, distribution, syndicated);
+
+  const weekAgo = Date.now() - 7 * 86400 * 1000;
+  const changes = (await listRecentChanges(30, workspaceId)).filter(
+    (c) => new Date(c.detected_at).getTime() >= weekAgo
+  );
+
+  let pulse = null;
+  if (distribution?.items?.length) {
+    try {
+      const prevRaw = await getSetting(`${distributionSnapshotKey(workspaceId)}:prev`);
+      const prev = prevRaw ? JSON.parse(prevRaw) : null;
+      if (prev?.items?.length) pulse = diffDistribution(prev, distribution);
+    } catch { /* ignore */ }
+  }
+
+  res.json({
+    distribution: distribution
+      ? {
+          method: distribution.method,
+          items: distribution.items,
+          cr4_pct: distribution.cr4_pct,
+          remainder_pct: distribution.remainder_pct,
+          tam_source: distribution.tam_source,
+          signal_counts: distribution.signal_counts,
+          traffic_meta: distribution.traffic_meta,
+          captured_at: distribution.captured_at,
+          disclaimer: distribution.disclaimer,
+        }
+      : null,
+    syndicated: syndicated
+      ? {
+          market_definition: syndicated.market_definition,
+          year: syndicated.year,
+          vendors: syndicated.vendors,
+          table: syndicated.table,
+          notes: syndicated.notes,
+          disclaimer: syndicated.disclaimer,
+          captured_at: syndicated.captured_at,
+        }
+      : null,
+    insights,
+    pulse: pulse
+      ? {
+          shifts: pulse.shifts,
+          significant: getSignificantShifts(pulse),
+          summary: pulse.summary,
+        }
+      : null,
+    pricing_changes_7d: changes.length,
+    recent_changes: changes.slice(0, 5).map((c) => ({
+      competitor_name: c.competitor_name,
+      summary: c.summary,
+      detected_at: c.detected_at,
+    })),
+  });
 }));
 
 // Helper: flatten You.com research payload to text (mirrors discoveryAgent).
@@ -773,6 +953,27 @@ async function runFactCheck(workspaceId) {
   const acvStr = fmtUsdServer(model.bottom_up?.acv_usd || model.inputs?.acv_usd);
   if (acvStr) claimDefs.push({ text: `The typical annual value per customer (ACV) is around ${acvStr}.`, kind: 'input' });
   if (model.summary) claimDefs.push({ text: `Market read: ${model.summary}`, kind: 'market' });
+
+  // Distribution presence claims (Phase 3 fact-check extension).
+  try {
+    const distRaw = await getSetting(distributionSnapshotKey(workspaceId));
+    const dist = distRaw ? JSON.parse(distRaw) : null;
+    const top = dist?.items?.[0];
+    if (top && (top.presence_pct ?? top.share_pct)) {
+      const pct = top.presence_pct ?? top.share_pct;
+      claimDefs.push({
+        text: `${top.name} has approximately ${pct}% estimated market presence among tracked competitors in this category.`,
+        kind: 'market',
+      });
+    }
+    if (dist?.cr4_pct != null) {
+      claimDefs.push({
+        text: `The top four competitors combined hold roughly ${dist.cr4_pct}% of estimated market presence (CR4).`,
+        kind: 'market',
+      });
+    }
+  } catch { /* ignore */ }
+
   if (!claimDefs.length) return null;
   const claims = claimDefs.map((c) => c.text);
 

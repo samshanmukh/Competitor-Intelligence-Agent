@@ -100,6 +100,8 @@ export const api = {
   strategy: () => request('/intelligence/strategy', { method: 'POST' }),
   marketStart: (effort) => request('/intelligence/market/start', { method: 'POST', body: { effort } }),
   marketStatus: (jobId) => request(`/intelligence/market/status/${jobId}`),
+  marketPulse: () => request('/intelligence/market-pulse'),
+  methodology: () => request('/methodology'),
 
   // TAM / SAM / SOM market model
   marketModelStart: () => request('/intelligence/market-model/start', { method: 'POST' }),
@@ -120,11 +122,60 @@ export const api = {
   saveReport: (title, content) => request('/reports', { method: 'POST', body: { title, content } }),
   listReports: () => request('/reports'),
   getReport: (id) => request(`/reports/${id}`),
+  getSharedReport: (token) => request(`/reports/shared/${token}`, { headers: {} }),
+  reportDistributionDiff: (id) => request(`/reports/${id}/distribution-diff`),
   deleteReport: (id) => request(`/reports/${id}`, { method: 'DELETE' }),
+  removeMember: (workspaceId, userId) =>
+    request(`/auth/workspaces/${workspaceId}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
+  acceptInvite: (workspaceId) =>
+    request('/auth/accept-invite', { method: 'POST', body: { workspaceId } }),
+  getInviteInfo: (workspaceId) =>
+    request(`/auth/invite-info/${workspaceId}`, { headers: {} }),
 
-  // Waitlist (public — no auth)
+  // Early access signup (public — no auth)
   joinWaitlist: (email, source = 'landing') =>
     request('/waitlist', { method: 'POST', body: { email, source }, headers: {} }),
+
+  // Feature labs
+  getNextMoves: () => request('/features/next-moves'),
+  generateNextMoves: () => request('/features/next-moves', { method: 'POST' }),
+  listWinLoss: () => request('/features/win-loss'),
+  createWinLoss: (payload) => request('/features/win-loss', { method: 'POST', body: payload }),
+  getPositioningLab: () => request('/features/positioning-lab'),
+  generatePositioningLab: (payload = {}) => request('/features/positioning-lab', { method: 'POST', body: payload }),
+  simulatePricing: (payload) => request('/features/pricing-simulator', { method: 'POST', body: payload }),
+  getFeatureGaps: () => request('/features/feature-gaps'),
+  generateFeatureGaps: () => request('/features/feature-gaps', { method: 'POST' }),
+  listEvidence: () => request('/features/evidence'),
+  createEvidence: (payload) => request('/features/evidence', { method: 'POST', body: payload }),
+  clearEvidence: () => request('/features/evidence', { method: 'DELETE' }),
+  deleteEvidence: (id) => request(`/features/evidence/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  listWarRoom: () => request('/features/war-room'),
+  createWarRoomDeal: (payload) => request('/features/war-room', { method: 'POST', body: payload }),
+  updateWarRoomDeal: (id, payload) => request(`/features/war-room/${encodeURIComponent(id)}`, { method: 'PATCH', body: payload }),
+  clearWarRoom: () => request('/features/war-room', { method: 'DELETE' }),
+  deleteWarRoomDeal: (id) => request(`/features/war-room/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  getMarketEntry: () => request('/features/market-entry'),
+  generateMarketEntry: (payload) => request('/features/market-entry', { method: 'POST', body: payload }),
+  getInvestorOnepager: () => request('/features/investor-onepager'),
+  generateInvestorOnepager: () => request('/features/investor-onepager', { method: 'POST' }),
+  listFeatureNotifications: () => request('/features/notifications'),
+  markFeatureNotificationsRead: () => request('/features/notifications/mark-read', { method: 'POST' }),
+  getFeatureUsage: () => request('/features/usage'),
+  exportWorkspace: () => request('/features/export-workspace'),
+  clearRetention: () => request('/features/retention', { method: 'DELETE' }),
+  getDigestPrefs: () => request('/features/digest-prefs'),
+  saveDigestPrefs: (payload) => request('/features/digest-prefs', { method: 'PUT', body: payload }),
+  getCompetitorMeta: () => request('/features/competitor-meta'),
+  saveCompetitorTags: (competitorId, tags) =>
+    request('/features/competitor-meta/tags', { method: 'PUT', body: { competitorId, tags } }),
+  saveCompetitorAlerts: (payload) => request('/features/competitor-meta/alerts', { method: 'PUT', body: payload }),
+  compareCompanies: (companies) => request('/features/compare-companies', { method: 'POST', body: { companies } }),
+  getImplications: (dossier) => request('/features/implications', { method: 'POST', body: { dossier } }),
+  generateMarketScenarios: (base) => request('/features/market-scenarios', { method: 'POST', body: { base } }),
+  getMarketScenarios: () => request('/features/market-scenarios'),
+  exportFeatureReport: (snapshot, format = 'markdown') =>
+    request('/features/export-report', { method: 'POST', body: { snapshot, format } }),
 
   // Push
   vapidKey: () => request('/push/vapid-public-key'),

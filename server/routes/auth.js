@@ -9,13 +9,23 @@ import {
   removeWorkspaceMember,
   updateWorkspace,
   ensureUserHasWorkspace,
+  claimPendingInvites,
+  findPendingInvite,
+  isWorkspaceMember,
 } from '../db/workspace.js';
+import { sendEmail, emailConfigured } from '../services/email.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+const APP_URL = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
 // Current user + workspaces
 router.get('/me', requireAuth, wrap(async (req, res) => {
+  // Claim any pending email invites when the user hits /me.
+  if (req.user?.email) {
+    await claimPendingInvites(req.user.id, req.user.email).catch(() => {});
+  }
   const workspaces = await getUserWorkspaces(req.user.id);
   res.json({ user: req.user, workspaces });
 }));
@@ -77,14 +87,68 @@ router.get('/workspaces/:id/members', requireAuth, wrap(async (req, res) => {
   res.json({ members });
 }));
 
-// Add member (invite)
+// Add member (invite) — stores pending row and emails a join link when Resend is configured.
 router.post('/workspaces/:id/members', requireAuth, wrap(async (req, res) => {
   const { email, role = 'analyst' } = req.body || {};
   if (!email) return res.status(400).json({ error: 'email required' });
-  // In a full impl, this would send an invite email.
-  // For now, add by email as an "invited" member.
-  const member = await addWorkspaceMember(req.params.id, `invited:${email}`, role, email);
-  res.json({ member });
+  const normalized = email.trim().toLowerCase();
+  const ws = await getWorkspace(req.params.id);
+  if (!ws) return res.status(404).json({ error: 'Workspace not found' });
+
+  // Already a real member?
+  const members = await getWorkspaceMembers(req.params.id);
+  const existingPending = members.find((m) => m.user_id === `invited:${normalized}` || m.invited_email?.toLowerCase() === normalized);
+  if (existingPending) return res.json({ member: existingPending, already: true });
+
+  const member = await addWorkspaceMember(req.params.id, `invited:${normalized}`, role, normalized);
+
+  const inviteUrl = `${APP_URL}/invite/${req.params.id}?email=${encodeURIComponent(normalized)}`;
+  let emailed = false;
+  if (emailConfigured()) {
+    const result = await sendEmail({
+      to: normalized,
+      subject: `You're invited to ${ws.name} on Mira Vue`,
+      html: `<div style="font-family:sans-serif;padding:24px;max-width:480px;">
+        <h2 style="margin:0 0 12px;">Join ${ws.name}</h2>
+        <p style="color:#475569;line-height:1.5;">${req.user?.email || 'A teammate'} invited you to collaborate on Mira Vue as <strong>${role}</strong>.</p>
+        <p style="margin:24px 0;"><a href="${inviteUrl}" style="background:#3b82f6;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;">Accept invite</a></p>
+        <p style="color:#94a3b8;font-size:12px;">Or sign up / sign in with <strong>${normalized}</strong> and open this link.</p>
+      </div>`,
+    });
+    emailed = Boolean(result?.sent);
+  }
+
+  res.json({ member, emailed, inviteUrl });
+}));
+
+// Public-ish invite metadata (auth optional — used on invite landing page).
+router.get('/invite-info/:workspaceId', wrap(async (req, res) => {
+  const ws = await getWorkspace(req.params.workspaceId);
+  if (!ws) return res.status(404).json({ error: 'Invite not found' });
+  res.json({ workspace: { id: ws.id, name: ws.name } });
+}));
+
+// Accept invite for the logged-in user (must match invited email).
+router.post('/accept-invite', requireAuth, wrap(async (req, res) => {
+  const workspaceId = req.body?.workspaceId;
+  if (!workspaceId) return res.status(400).json({ error: 'workspaceId required' });
+  const email = (req.user?.email || '').toLowerCase();
+  if (!email) return res.status(400).json({ error: 'Your account has no email' });
+
+  if (await isWorkspaceMember(req.user.id, workspaceId)) {
+    const ws = await getWorkspace(workspaceId);
+    return res.json({ workspace: ws, already: true });
+  }
+
+  const pending = await findPendingInvite(workspaceId, email);
+  if (!pending) {
+    return res.status(404).json({ error: 'No pending invite for this email on that workspace' });
+  }
+
+  await removeWorkspaceMember(workspaceId, pending.user_id);
+  await addWorkspaceMember(workspaceId, req.user.id, pending.role || 'analyst', null);
+  const ws = await getWorkspace(workspaceId);
+  res.json({ workspace: ws });
 }));
 
 // Remove member
@@ -95,6 +159,9 @@ router.delete('/workspaces/:id/members/:userId', requireAuth, wrap(async (req, r
 
 // Ensure workspace exists (called on first login)
 router.post('/ensure-workspace', requireAuth, wrap(async (req, res) => {
+  if (req.user?.email) {
+    await claimPendingInvites(req.user.id, req.user.email).catch(() => {});
+  }
   const ws = await ensureUserHasWorkspace(req.user.id, req.user.email);
   res.json({ workspace: ws });
 }));

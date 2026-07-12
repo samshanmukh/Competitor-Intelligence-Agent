@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signUp, signIn } from '../../../lib/auth';
+import OAuthButtons from '../../../components/OAuthButtons';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -84,6 +85,7 @@ export default function SignupPage() {
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Creating account…' : 'Create account'}
         </button>
+        <OAuthButtons mode="signup" />
       </form>
 
       <p className="text-center text-sm text-slate-500">

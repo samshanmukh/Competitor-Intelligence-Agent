@@ -5,6 +5,8 @@ import { buildDiff, analyzeDiff } from './analysisAgent.js';
 import { insertChange, setCompetitorChecked, getCompetitor } from '../db/index.js';
 import { sendWebhook } from '../services/alerts.js';
 import { sendPushToWorkspace } from '../services/push.js';
+import { pushNotification } from '../services/workspaceStore.js';
+import { getWorkspaceJson } from '../services/workspaceStore.js';
 
 /**
  * Refresh a single competitor. Returns a result describing what happened.
@@ -66,6 +68,29 @@ export async function refreshCompetitor(competitor) {
         },
         analysis.impact === 'high' ? 'high-impact' : 'any'
       );
+      await pushNotification(competitor.workspace_id, {
+        type: 'pricing-change',
+        title: `${competitor.name} changed pricing`,
+        body: analysis.summary || 'A pricing change was detected.',
+        url: `/competitors/${competitor.id}`,
+        impact: analysis.impact,
+      });
+
+      // Watchlist threshold: notify if AI flagged a price drop above threshold.
+      const alerts = await getWorkspaceJson(competitor.workspace_id, 'watchlist-alerts', { enabled: true, thresholdPct: 10 });
+      const drop = Number(analysis.price_drop_pct || analysis.max_price_drop_pct || 0);
+      if (alerts?.enabled && drop >= (alerts.thresholdPct || 10)) {
+        await sendPushToWorkspace(
+          competitor.workspace_id,
+          {
+            title: `${competitor.name} price drop ≥${alerts.thresholdPct}%`,
+            body: analysis.summary || `Detected ~${drop}% drop.`,
+            url: `/competitors/${competitor.id}`,
+            tag: `drop-${change.id}`,
+          },
+          'high-impact'
+        );
+      }
     } catch (err) {
       console.warn('[push] notification failed:', err.message);
     }

@@ -17,7 +17,7 @@ router.post('/', async (req, res) => {
       source: req.body?.source || 'landing',
       referrer: req.get('referer') || null,
     });
-    if (!result.ok) return res.status(500).json({ error: result.error || 'Could not join the waitlist.' });
+    if (!result.ok) return res.status(500).json({ error: result.error || 'Could not request early access.' });
     return res.json({ ok: true, already: Boolean(result.already) });
   } catch (err) {
     return res.status(500).json({ error: err.message, code: 'WAITLIST_ERROR' });
