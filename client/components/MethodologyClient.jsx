@@ -26,7 +26,7 @@ export default function MethodologyClient() {
         <div className="flex items-center gap-2 text-sm text-slate-400"><Spinner /> Loading…</div>
       ) : (
         <>
-          <h1 className="text-2xl font-bold text-white">{doc?.title || 'Methodology'}</h1>
+          <h1 className="text-2xl font-semibold text-white">{doc?.title || 'Methodology'}</h1>
           <p className="mt-2 text-sm text-slate-400">
             How Mira Vue estimates competitor market presence — and what it is not.
           </p>

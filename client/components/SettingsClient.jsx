@@ -1,9 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { api } from '../lib/api';
 import { getWorkspace, getCurrentUser, verifyEmailCode, resendCode } from '../lib/auth';
 import { Icon, Skeleton, TabBar, useToast } from './ui';
+import { PageHeader, PageShell } from './PageShell';
+
+const providerHealth = (settings, health = {}) => ({
+  ...health,
+  youcom_key: Boolean(settings?.youcom_key_set),
+  xai_key: Boolean(settings?.xai_key_set),
+  model: settings?.xai_model || 'grok-4',
+});
 
 export default function SettingsClient() {
   const [settings, setSettings] = useState(null);
@@ -33,7 +41,7 @@ export default function SettingsClient() {
     setSavingDigest(true);
     try {
       await api.updateWorkspace(workspace.id, { digest_enabled: digest.enabled, digest_email: digest.email });
-      await api.saveDigestPrefs(digestPrefs).catch(() => {});
+      await api.saveDigestPrefs(digestPrefs);
       toast({ type: 'success', title: 'Digest settings saved' });
     } catch (err) {
       toast({ type: 'error', title: 'Could not save', message: err.message });
@@ -61,7 +69,7 @@ export default function SettingsClient() {
       try {
         const [s, h] = await Promise.all([api.getSettings(), api.health()]);
         setSettings(s);
-        setHealth(h);
+        setHealth(providerHealth(s, h));
         setForm({
           youcom_api_key: s.youcom_api_key || '',
           xai_api_key: s.xai_api_key || '',
@@ -100,8 +108,11 @@ export default function SettingsClient() {
         xai_model: form.xai_model,
         webhook_url: form.webhook_url,
       });
-      const h = await api.health();
-      setHealth(h);
+      const [s, h] = await Promise.all([api.getSettings(), api.health()]);
+      setSettings(s);
+      setHealth(providerHealth(s, h));
+      setForm((current) => ({ ...current, youcom_api_key: '', xai_api_key: '' }));
+      setRevealed({});
       toast({ type: 'success', title: 'Settings saved' });
     } catch (err) {
       toast({ type: 'error', title: 'Could not save', message: err.message });
@@ -219,7 +230,7 @@ export default function SettingsClient() {
 
   if (!settings || !health) {
     return (
-      <div className="max-w-2xl space-y-4">
+      <div className="mx-auto w-full max-w-2xl space-y-4">
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-10 w-72" />
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
@@ -229,17 +240,14 @@ export default function SettingsClient() {
 
   const tabs = [
     { id: 'general', label: 'General', icon: 'settings' },
-    { id: 'keys', label: 'API Keys', icon: 'shield' },
     { id: 'notifications', label: 'Notifications', icon: 'bell' },
     { id: 'team', label: 'Team', icon: 'users' },
+    { id: 'advanced', label: 'Advanced', icon: 'shield' },
   ];
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Manage your workspace, API keys, alerts, and team.</p>
-      </header>
+    <PageShell width="max-w-2xl">
+      <PageHeader title="Settings" description="Manage your workspace, notifications, and team." />
 
       <TabBar tabs={tabs} active={tab} onChange={setTab} />
 
@@ -261,7 +269,7 @@ export default function SettingsClient() {
 
           <section className="card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Email Verification</h2>
+              <h2 className="text-sm font-semibold text-white">Email verification</h2>
               {user?.emailVerified ? (
                 <span className="chip border-emerald-800/60 bg-emerald-950/40 text-emerald-300">
                   <Icon name="check" className="h-3 w-3" /> verified
@@ -284,6 +292,7 @@ export default function SettingsClient() {
                 <div className="flex gap-2">
                   <input
                     className="input text-center font-mono tracking-[0.3em] flex-1"
+                    aria-label="Verification code"
                     value={verifyOtp}
                     onChange={(e) => setVerifyOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="000000"
@@ -302,40 +311,6 @@ export default function SettingsClient() {
             )}
           </section>
 
-          <section className="card p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Insforge Database</h2>
-              <span className="chip border-emerald-800/60 bg-emerald-950/40 text-emerald-300">
-                <Icon name="check" className="h-3 w-3" /> connected
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">
-              PostgreSQL backend via Insforge SDK.{' '}
-              <span className="font-mono text-slate-400">{form.insforge_base_url}</span>
-            </p>
-          </section>
-
-          <section className="card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-white">Change Alerts (Webhook)</h2>
-            <p className="text-sm text-slate-400">
-              POST a summary to a webhook when a change is detected. Works with Slack and Discord.
-            </p>
-            <div>
-              <label className="label">Webhook URL</label>
-              <input
-                className="input font-mono text-xs"
-                placeholder="https://hooks.slack.com/services/…"
-                value={form.webhook_url}
-                onChange={set('webhook_url')}
-              />
-            </div>
-            <div className="flex justify-end">
-              <button onClick={save} disabled={saving} className="btn-primary">
-                {saving ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="check" />} Save
-              </button>
-            </div>
-          </section>
-
           {settings.auto_refresh_enabled !== undefined && (
             <section className="card p-5">
               <div className="flex items-center justify-between text-sm">
@@ -351,15 +326,50 @@ export default function SettingsClient() {
         </div>
       )}
 
-      {/* API KEYS */}
-      {tab === 'keys' && (
+      {/* ADVANCED */}
+      {tab === 'advanced' && (
         <div className="space-y-5">
+          <div>
+            <h2 className="text-base font-semibold text-white">Advanced configuration</h2>
+            <p className="mt-1 text-sm text-slate-500">Provider credentials, data connection details, and webhook delivery.</p>
+          </div>
+
+          <section className="card p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white">Data connection</h2>
+              <span className="chip border-emerald-800/60 bg-emerald-950/40 text-emerald-300">
+                <Icon name="check" className="h-3 w-3" /> connected
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              InsForge PostgreSQL connection:{' '}
+              <span className="font-mono text-slate-400">{form.insforge_base_url}</span>
+            </p>
+          </section>
+
+          <section className="card p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-white">Change alert webhook</h2>
+            <p className="text-sm text-slate-400">
+              Send detected change summaries to a Slack or Discord webhook.
+            </p>
+            <div>
+              <label htmlFor="settings-webhook-url" className="label">Webhook URL</label>
+              <input
+                id="settings-webhook-url"
+                className="input font-mono text-xs"
+                placeholder="https://hooks.slack.com/services/…"
+                value={form.webhook_url}
+                onChange={set('webhook_url')}
+              />
+            </div>
+          </section>
+
           <section className="card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">You.com API</h2>
+              <h2 className="text-sm font-semibold text-white">Research provider</h2>
               <StatusBadge ok={health.youcom_key} />
             </div>
-            <p className="text-xs text-slate-500">Competitor discovery (Research) and pricing fetching (Contents).</p>
+            <p className="text-xs text-slate-500">You.com powers competitor discovery and source retrieval.</p>
             <SecretInput label="YOUCOM_API_KEY" value={form.youcom_api_key} onChange={set('youcom_api_key')}
               revealed={revealed.youcom_api_key} onToggle={() => toggleReveal('youcom_api_key')}
               placeholder={settings?.youcom_key_set ? 'Configured — enter a new key to replace' : 'ydc-…'} />
@@ -367,23 +377,23 @@ export default function SettingsClient() {
 
           <section className="card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">xAI (Grok) API</h2>
+              <h2 className="text-sm font-semibold text-white">Analysis provider</h2>
               <StatusBadge ok={health.xai_key} />
             </div>
-            <p className="text-xs text-slate-500">Extracts competitors and analyzes pricing diffs.</p>
+            <p className="text-xs text-slate-500">xAI extracts competitor details and analyzes pricing changes.</p>
             <SecretInput label="XAI_API_KEY" value={form.xai_api_key} onChange={set('xai_api_key')}
               revealed={revealed.xai_api_key} onToggle={() => toggleReveal('xai_api_key')}
               placeholder={settings?.xai_key_set ? 'Configured — enter a new key to replace' : 'xai-…'} />
             <div>
-              <label className="label">XAI_MODEL</label>
-              <input className="input font-mono text-xs" value={form.xai_model} onChange={set('xai_model')} placeholder="grok-4" />
+              <label htmlFor="settings-xai-model" className="label">XAI model</label>
+              <input id="settings-xai-model" className="input font-mono text-xs" value={form.xai_model} onChange={set('xai_model')} placeholder="grok-4" />
               <p className="mt-1 text-xs text-slate-500">Active: <span className="text-slate-300 font-mono">{health.model}</span></p>
             </div>
           </section>
 
           <div className="flex justify-end">
             <button onClick={save} disabled={saving} className="btn-primary">
-              {saving ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="check" />} Save keys
+              {saving ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="check" />} Save advanced settings
             </button>
           </div>
         </div>
@@ -393,7 +403,7 @@ export default function SettingsClient() {
       {tab === 'notifications' && (
         <div className="space-y-5">
           <section className="card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-white">Browser Push Notifications</h2>
+            <h2 className="text-sm font-semibold text-white">Browser notifications</h2>
             <p className="text-sm text-slate-400">Get notified instantly in your browser when changes are detected.</p>
 
             <div className="space-y-2">
@@ -429,7 +439,7 @@ export default function SettingsClient() {
           {/* Weekly email digest */}
           <section className="card p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Weekly Email Digest</h2>
+              <h2 className="text-sm font-semibold text-white">Weekly email digest</h2>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -444,8 +454,9 @@ export default function SettingsClient() {
               A summary of the past week's competitor changes, emailed every Sunday.
             </p>
             <div>
-              <label className="label">Send to</label>
+              <label htmlFor="digest-email" className="label">Send to</label>
               <input
+                id="digest-email"
                 type="email"
                 className="input"
                 placeholder="you@company.com"
@@ -500,23 +511,26 @@ export default function SettingsClient() {
       {tab === 'team' && (
         <div className="space-y-5">
           <section className="card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-white">Invite Team Member</h2>
+            <h2 className="text-sm font-semibold text-white">Invite team member</h2>
             <div className="flex gap-2">
+              <label htmlFor="invite-email" className="sr-only">Email address</label>
               <input
+                id="invite-email"
                 className="input flex-1"
                 type="email"
                 placeholder="colleague@company.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
               />
+              <label htmlFor="invite-role" className="sr-only">Workspace role</label>
               <select
+                id="invite-role"
                 className="input w-32"
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value)}
               >
                 <option value="admin">Admin</option>
                 <option value="analyst">Analyst</option>
-                <option value="viewer">Viewer</option>
               </select>
               <button onClick={invite} className="btn-primary shrink-0">
                 <Icon name="plus" className="h-4 w-4" /> Invite
@@ -525,7 +539,6 @@ export default function SettingsClient() {
             <div className="text-xs text-slate-500 space-y-1">
               <p><strong className="text-slate-400">Admin</strong> — full access including billing & team</p>
               <p><strong className="text-slate-400">Analyst</strong> — manage competitors & run analysis</p>
-              <p><strong className="text-slate-400">Viewer</strong> — read-only access to reports</p>
             </div>
           </section>
 
@@ -548,7 +561,9 @@ export default function SettingsClient() {
                       <span className="chip border-amber-800/40 bg-amber-950/30 text-amber-400 text-[10px]">pending</span>
                     )}
                     <button
+                      type="button"
                       onClick={() => removeMember(m.user_id)}
+                      aria-label={`Remove ${m.invited_email || m.user_id}`}
                       className="text-slate-600 hover:text-rose-400 transition p-1.5"
                       title="Remove member"
                     >
@@ -561,7 +576,7 @@ export default function SettingsClient() {
           </section>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -585,11 +600,13 @@ function StatusBadge({ ok }) {
 }
 
 function SecretInput({ label, value, onChange, revealed, onToggle, placeholder }) {
+  const inputId = useId();
   return (
     <div>
-      <label className="label">{label}</label>
+      <label htmlFor={inputId} className="label">{label}</label>
       <div className="relative">
         <input
+          id={inputId}
           className="input font-mono text-xs pr-10"
           type={revealed ? 'text' : 'password'}
           value={value}
@@ -600,6 +617,7 @@ function SecretInput({ label, value, onChange, revealed, onToggle, placeholder }
         <button
           type="button"
           onClick={onToggle}
+          aria-label={`${revealed ? 'Hide' : 'Show'} ${label}`}
           className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
         >
           <Icon name={revealed ? 'eye-off' : 'eye'} className="h-4 w-4" />

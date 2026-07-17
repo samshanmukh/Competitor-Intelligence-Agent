@@ -70,7 +70,7 @@ export default function WarRoomClient() {
   };
 
   return (
-    <LabShell title="War Room" subtitle="Track competitive deals and keep the stage, talk track, and risk visible.">
+    <LabShell title="War room" subtitle="Track competitive deals and keep the stage, talk track, and risk visible.">
       <section className="card p-5 space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Deal name"><input className="input" value={form.title} onChange={set('title')} placeholder="Acme renewal, Series B evaluation..." /></Field>
@@ -125,5 +125,5 @@ export default function WarRoomClient() {
 }
 
 function Field({ label, children }) {
-  return <div><label className="label">{label}</label>{children}</div>;
+  return <label className="block"><span className="label">{label}</span>{children}</label>;
 }

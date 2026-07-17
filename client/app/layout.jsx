@@ -9,7 +9,7 @@ const brand = Unbounded({ subsets: ['latin'], weight: ['500', '600', '700'], var
 
 export const metadata = {
   title: { default: 'Mira Vue', template: '%s · Mira Vue' },
-  description: 'Automatically discover, monitor, and analyze competitor pricing.',
+  description: 'Competitive and market intelligence for founders, with decision support for what to do next.',
 };
 
 export default function RootLayout({ children }) {

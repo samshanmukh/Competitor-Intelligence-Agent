@@ -31,20 +31,20 @@ export default function PricingLabClient() {
   };
 
   return (
-    <LabShell title="Pricing Lab" subtitle="Model a plan change against your current competitive posture.">
+    <LabShell title="Pricing simulator" subtitle="Model a plan change against your current competitive posture.">
       <section className="card p-5 space-y-4">
         <div>
-          <label className="label">Plan name</label>
-          <input className="input" value={form.planName} onChange={set('planName')} placeholder="Pro, Growth, Business..." />
+          <label htmlFor="pricing-plan-name" className="label">Plan name</label>
+          <input id="pricing-plan-name" className="input" value={form.planName} onChange={set('planName')} placeholder="Pro, Growth, Business..." />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">Delta %</label>
-            <input type="number" className="input" value={form.deltaPct} onChange={set('deltaPct')} />
+            <label htmlFor="pricing-delta" className="label">Delta %</label>
+            <input id="pricing-delta" type="number" className="input" value={form.deltaPct} onChange={set('deltaPct')} />
           </div>
           <div>
-            <label className="label">Absolute price (optional)</label>
-            <input type="number" className="input" value={form.absolutePrice} onChange={set('absolutePrice')} placeholder="99" />
+            <label htmlFor="pricing-absolute" className="label">Absolute price (optional)</label>
+            <input id="pricing-absolute" type="number" className="input" value={form.absolutePrice} onChange={set('absolutePrice')} placeholder="99" />
           </div>
         </div>
         <button onClick={simulate} disabled={running} className="btn-primary">

@@ -1,16 +1,21 @@
 import { createClient } from '@insforge/sdk';
 
-const INSFORGE_URL = 'https://tpq6mvqe.us-east.insforge.app';
-const INSFORGE_ANON = 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f';
-
 let _client = null;
 function getClient() {
-  if (!_client) _client = createClient({ baseUrl: INSFORGE_URL, anonKey: INSFORGE_ANON });
+  if (!_client) {
+    const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
+    if (!baseUrl || !anonKey) {
+      throw new Error('Authentication is not configured. Contact the workspace administrator.');
+    }
+    _client = createClient({ baseUrl, anonKey });
+  }
   return _client;
 }
 
 const TOKEN_KEY = 'cia_token';
 const WORKSPACE_KEY = 'cia_workspace';
+const RETURN_TO_KEY = 'cia_return_to';
 
 // Match api.js: hit the backend directly in dev to bypass the Next proxy timeout.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
@@ -79,8 +84,33 @@ export async function signIn({ email, password }) {
   return { user: data.user, token: data.accessToken, workspace: ws };
 }
 
-export async function signInWithOAuth(provider) {
-  const redirectTo = `${window.location.origin}/auth/callback`;
+export function safeReturnPath(value, fallback = '/app') {
+  if (!value || typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) {
+    return fallback;
+  }
+  return value;
+}
+
+export function rememberReturnPath(value) {
+  if (typeof window === 'undefined') return;
+  const path = safeReturnPath(value);
+  if (path === '/app') sessionStorage.removeItem(RETURN_TO_KEY);
+  else sessionStorage.setItem(RETURN_TO_KEY, path);
+}
+
+export function consumeReturnPath() {
+  if (typeof window === 'undefined') return '/app';
+  const path = safeReturnPath(sessionStorage.getItem(RETURN_TO_KEY));
+  sessionStorage.removeItem(RETURN_TO_KEY);
+  return path;
+}
+
+export async function signInWithOAuth(provider, { from } = {}) {
+  const callbackUrl = new URL('/auth/callback', window.location.origin);
+  const returnPath = safeReturnPath(from);
+  rememberReturnPath(returnPath);
+  if (returnPath !== '/app') callbackUrl.searchParams.set('from', returnPath);
+  const redirectTo = callbackUrl.toString();
   const { error } = await getClient().auth.signInWithOAuth(provider, { redirectTo });
   if (error) throw new Error(error.message || 'OAuth sign in failed');
 }

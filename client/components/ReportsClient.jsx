@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Icon, Skeleton, EmptyState, timeAgo, useToast, ConfirmDialog } from './ui';
 import ReportView from './ReportView';
+import { PageHeader, PageShell } from './PageShell';
 
 export default function ReportsClient() {
   const [reports, setReports] = useState(null);
@@ -24,7 +25,12 @@ export default function ReportsClient() {
       await navigator.clipboard?.writeText(url);
       setCopiedId(report.id);
       setTimeout(() => setCopiedId(null), 2000);
-      toast({ type: 'success', title: 'Link copied', message: 'Anyone with the link can view this report.' });
+      const expiry = report.expires_at ? new Date(report.expires_at).toLocaleDateString() : null;
+      toast({
+        type: 'success',
+        title: 'Link copied',
+        message: expiry ? `Anyone with the link can view it until ${expiry}.` : 'Anyone with the link can view this report.',
+      });
     } catch {
       toast({ type: 'error', title: 'Could not copy', message: url });
     }
@@ -75,7 +81,7 @@ export default function ReportsClient() {
   if (active) {
     const c = active.content || {};
     return (
-      <div className="max-w-3xl space-y-6 pb-20">
+      <div className="mx-auto w-full max-w-3xl space-y-6 pb-20">
         <button onClick={() => setActive(null)} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white transition">
           <Icon name="chevronLeft" className="h-4 w-4" /> Back to history
         </button>
@@ -85,6 +91,11 @@ export default function ReportsClient() {
             <p className="mt-1 text-sm text-slate-500">
               Saved {timeAgo(active.created_at)} · {c.competitors?.length || 0} competitors · cached (no re-run)
             </p>
+            {active.expires_at && (
+              <p className="mt-1 text-xs text-slate-600">
+                Share link expires {new Date(active.expires_at).toLocaleDateString()}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => copyShareLink(active)} className="btn-ghost px-2.5" title="Copy share link">
@@ -138,13 +149,11 @@ export default function ReportsClient() {
   const loading = reports === null;
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Report History</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Saved analyses you can reopen anytime — no re-running, no extra tokens spent.
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="History"
+        description="Saved analyses you can reopen anytime — no re-running, no extra tokens spent."
+      />
 
       {loading ? (
         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
@@ -163,7 +172,10 @@ export default function ReportsClient() {
               </div>
               <button onClick={() => open(r.id)} className="flex-1 min-w-0 text-left">
                 <p className="truncate text-sm font-medium text-white">{r.title}</p>
-                <p className="text-xs text-slate-500">Saved {timeAgo(r.created_at)}</p>
+                <p className="text-xs text-slate-500">
+                  Saved {timeAgo(r.created_at)}
+                  {r.expires_at ? ` · share expires ${new Date(r.expires_at).toLocaleDateString()}` : ''}
+                </p>
               </button>
               {loadingId === r.id && <Icon name="refresh" className="h-4 w-4 animate-spin text-slate-500" />}
               <button onClick={() => copyShareLink(r)} className="btn-ghost py-1.5 px-2 text-xs" title="Copy share link">
@@ -186,6 +198,6 @@ export default function ReportsClient() {
         message="Permanently delete this saved report?"
         danger
       />
-    </div>
+    </PageShell>
   );
 }

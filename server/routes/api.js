@@ -46,14 +46,22 @@ function normalizeUrl(u) {
   return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, '')}`;
 }
 
+function normalizeWebhookUrl(value) {
+  const normalized = normalizeUrl(value);
+  if (!normalized) return '';
+  try {
+    const url = new URL(normalized);
+    const slack = url.hostname === 'hooks.slack.com' && url.pathname.startsWith('/services/');
+    const discord = ['discord.com', 'discordapp.com'].includes(url.hostname) && url.pathname.startsWith('/api/webhooks/');
+    return url.protocol === 'https:' && (slack || discord) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------- Health / keys (public) ----------
 router.get('/health', (req, res) => {
-  res.json({
-    ok: true,
-    youcom_key: Boolean(getKey('YOUCOM_API_KEY')),
-    xai_key: Boolean(getKey('XAI_API_KEY')),
-    model: getKey('XAI_MODEL') || 'grok-4',
-  });
+  res.json({ ok: true });
 });
 
 router.get('/methodology', (_req, res) => {
@@ -139,7 +147,7 @@ router.post(
     for (const c of incoming) {
       const pricing_url = normalizeUrl(c.pricing_url || c.url);
       if (!pricing_url) continue;
-      const before = await getCompetitorByPricingUrl(pricing_url).catch(() => null);
+      const before = await getCompetitorByPricingUrl(pricing_url, req.workspaceId).catch(() => null);
       const row = await upsertCompetitor({
         name: (c.name || hostname(pricing_url)).trim(),
         website: normalizeUrl(c.website) || originOf(pricing_url),
@@ -171,7 +179,7 @@ router.post(
 router.get(
   '/competitors/:id',
   wrap(async (req, res) => {
-    const competitor = await getCompetitor(req.params.id);
+    const competitor = await getCompetitor(req.params.id, req.workspaceId);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
     const [latest, snapshots, changes] = await Promise.all([
       getLatestSnapshot(competitor.id),
@@ -190,14 +198,14 @@ router.get(
 router.patch(
   '/competitors/:id',
   wrap(async (req, res) => {
-    const competitor = await getCompetitor(req.params.id);
+    const competitor = await getCompetitor(req.params.id, req.workspaceId);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
     const { status } = req.body || {};
     if (status && !['pending', 'approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
     const wasPending = competitor.status === 'pending';
-    const updated = status ? await updateCompetitorStatus(competitor.id, status) : competitor;
+    const updated = status ? await updateCompetitorStatus(competitor.id, status, req.workspaceId) : competitor;
     if (wasPending && status === 'approved' && (competitor.workspace_id || req.workspaceId)) {
       sendPushToWorkspace(
         competitor.workspace_id || req.workspaceId,
@@ -217,9 +225,9 @@ router.patch(
 router.delete(
   '/competitors/:id',
   wrap(async (req, res) => {
-    const competitor = await getCompetitor(req.params.id);
+    const competitor = await getCompetitor(req.params.id, req.workspaceId);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
-    await deleteCompetitor(competitor.id);
+    await deleteCompetitor(competitor.id, req.workspaceId);
     res.json({ ok: true });
   })
 );
@@ -227,6 +235,8 @@ router.delete(
 router.get(
   '/competitors/:id/snapshots/:snapshotId',
   wrap(async (req, res) => {
+    const competitor = await getCompetitor(req.params.id, req.workspaceId);
+    if (!competitor) return res.status(404).json({ error: 'Not found' });
     const snap = await getSnapshot(req.params.snapshotId);
     if (!snap || String(snap.competitor_id) !== String(req.params.id)) {
       return res.status(404).json({ error: 'Not found' });
@@ -239,19 +249,19 @@ router.get(
 router.post(
   '/competitors/:id/refresh',
   wrap(async (req, res) => {
-    const competitor = await getCompetitor(req.params.id);
+    const competitor = await getCompetitor(req.params.id, req.workspaceId);
     if (!competitor) return res.status(404).json({ error: 'Not found' });
     const result = await refreshCompetitor(competitor);
-    res.json({ result, competitor: await getCompetitor(competitor.id) });
+    res.json({ result, competitor: await getCompetitor(competitor.id, req.workspaceId) });
   })
 );
 
 router.post(
   '/refresh',
   wrap(async (req, res) => {
-    const competitors = await listCompetitors('approved');
+    const competitors = await listCompetitors('approved', req.workspaceId);
     if (!competitors.length) return res.json({ results: [] });
-    const results = await refreshAll(competitors);
+    const results = await refreshAll(competitors, null, req.workspaceId);
     res.json({ results });
   })
 );
@@ -287,16 +297,20 @@ router.post(
 router.get(
   '/settings',
   wrap(async (req, res) => {
-    const all = await getAllSettings();
+    const all = await getAllSettings(req.workspaceId);
+    for (const name of ['YOUCOM_API_KEY', 'XAI_API_KEY', 'XAI_MODEL']) {
+      if (all[`key:${name}`]) setKey(name, all[`key:${name}`], req.workspaceId);
+    }
     res.json({
       webhook_url: all.webhook_url || '',
       market: all.market || '',
       last_visit: all.last_visit || null,
       auto_refresh_enabled: (process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false',
+      insforge_base_url: process.env.INSFORGE_BASE_URL || '',
       // Never return the secrets themselves — only whether they're configured.
-      youcom_key_set: Boolean(getKey('YOUCOM_API_KEY')),
-      xai_key_set: Boolean(getKey('XAI_API_KEY')),
-      xai_model: getKey('XAI_MODEL') || 'grok-4',
+      youcom_key_set: Boolean(getKey('YOUCOM_API_KEY', req.workspaceId)),
+      xai_key_set: Boolean(getKey('XAI_API_KEY', req.workspaceId)),
+      xai_model: getKey('XAI_MODEL', req.workspaceId) || 'grok-4',
     });
   })
 );
@@ -305,21 +319,27 @@ router.put(
   '/settings',
   wrap(async (req, res) => {
     const { webhook_url, market, youcom_api_key, xai_api_key, xai_model } = req.body || {};
-    if (webhook_url !== undefined) await setSetting('webhook_url', normalizeUrl(webhook_url) || '');
-    if (market !== undefined) await setSetting('market', market || '');
+    if (webhook_url !== undefined) {
+      const normalizedWebhook = normalizeWebhookUrl(webhook_url);
+      if (normalizedWebhook === null) {
+        return res.status(400).json({ error: 'Use a valid Slack or Discord HTTPS webhook URL.' });
+      }
+      await setSetting('webhook_url', normalizedWebhook, req.workspaceId);
+    }
+    if (market !== undefined) await setSetting('market', market || '', req.workspaceId);
     // Only update keys when a non-empty value is provided, so leaving the field
     // blank keeps the existing key (the client never receives it back).
     if (youcom_api_key) {
-      await setSetting('key:YOUCOM_API_KEY', youcom_api_key);
-      setKey('YOUCOM_API_KEY', youcom_api_key);
+      await setSetting('key:YOUCOM_API_KEY', youcom_api_key, req.workspaceId);
+      setKey('YOUCOM_API_KEY', youcom_api_key, req.workspaceId);
     }
     if (xai_api_key) {
-      await setSetting('key:XAI_API_KEY', xai_api_key);
-      setKey('XAI_API_KEY', xai_api_key);
+      await setSetting('key:XAI_API_KEY', xai_api_key, req.workspaceId);
+      setKey('XAI_API_KEY', xai_api_key, req.workspaceId);
     }
     if (xai_model !== undefined) {
-      await setSetting('key:XAI_MODEL', xai_model);
-      setKey('XAI_MODEL', xai_model);
+      await setSetting('key:XAI_MODEL', xai_model, req.workspaceId);
+      setKey('XAI_MODEL', xai_model, req.workspaceId);
     }
     res.json({ ok: true });
   })
@@ -329,8 +349,8 @@ router.put(
 router.post(
   '/visit',
   wrap(async (req, res) => {
-    const prev = await getSetting('last_visit');
-    await setSetting('last_visit', new Date().toISOString());
+    const prev = await getSetting('last_visit', null, req.workspaceId);
+    await setSetting('last_visit', new Date().toISOString(), req.workspaceId);
     res.json({ previous_visit: prev });
   })
 );

@@ -45,7 +45,7 @@ export default function FeatureGapsClient() {
 
   return (
     <LabShell
-      title="Feature Gaps"
+      title="Feature gaps"
       subtitle="Spot missing capabilities and where competitors may be pulling ahead."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
         {generating ? <Spinner /> : <Icon name="grid" className="h-4 w-4" />}

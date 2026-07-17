@@ -21,11 +21,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
 async function request(path, { method = 'GET', body, headers: extraHeaders } = {}, _retried = false) {
   const headers = getHeaders(extraHeaders);
   if (!body) delete headers['Content-Type'];
-  const res = await fetch(`${API_BASE}/api${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/api${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    const err = new Error('Could not reach Mira Vue. Check your connection and try again.');
+    err.code = 'NETWORK_ERROR';
+    throw err;
+  }
   const text = await res.text();
   let data;
   try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
@@ -38,7 +45,10 @@ async function request(path, { method = 'GET', body, headers: extraHeaders } = {
       // Couldn't recover — send the user to re-authenticate.
       forceLogout();
     }
-    const err = new Error(data?.error || `Request failed (${res.status})`);
+    const message = data?.code === 'AUTH_UNAVAILABLE'
+      ? 'Sign-in services are temporarily unavailable. Please try again shortly.'
+      : data?.error || `Request failed (${res.status})`;
+    const err = new Error(message);
     err.code = data?.code;
     err.status = res.status;
     throw err;
@@ -131,10 +141,6 @@ export const api = {
     request('/auth/accept-invite', { method: 'POST', body: { workspaceId } }),
   getInviteInfo: (workspaceId) =>
     request(`/auth/invite-info/${workspaceId}`, { headers: {} }),
-
-  // Early access signup (public — no auth)
-  joinWaitlist: (email, source = 'landing') =>
-    request('/waitlist', { method: 'POST', body: { email, source }, headers: {} }),
 
   // Feature labs
   getNextMoves: () => request('/features/next-moves'),

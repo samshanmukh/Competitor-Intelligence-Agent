@@ -2,21 +2,63 @@
 // Runs in Next.js route handlers (Node runtime) so it works on Vercel with no
 // Express backend.
 import { createClient } from '@insforge/sdk';
-import { createHash } from 'crypto';
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'crypto';
 
-const INSFORGE_URL = process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app';
-const INSFORGE_ANON =
-  process.env.INSFORGE_ANON_KEY ||
-  'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f';
+const VISITOR_COOKIE = 'mira_feature_visitor';
 
-export function db() {
-  return createClient({ baseUrl: INSFORGE_URL, anonKey: INSFORGE_ANON });
+function getInsforgeConfig() {
+  const baseUrl = process.env.INSFORGE_BASE_URL;
+  const anonKey = process.env.INSFORGE_ANON_KEY;
+  if (!baseUrl || !anonKey) {
+    throw new Error('Insforge is not configured. Set INSFORGE_BASE_URL and INSFORGE_ANON_KEY.');
+  }
+  return { baseUrl, anonKey };
 }
 
-// Derive a stable, non-reversible per-visitor key from the request IP so we can
-// enforce one vote per IP without storing raw addresses.
-export function voterKey(request) {
-  const fwd = request.headers.get('x-forwarded-for') || '';
-  const ip = fwd.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown';
-  return createHash('sha256').update(`${ip}|mira-feature-votes`).digest('hex');
+export function db() {
+  return createClient(getInsforgeConfig());
+}
+
+function getSigningSecret() {
+  const secret = process.env.FEATURE_REQUEST_SIGNING_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('Set FEATURE_REQUEST_SIGNING_SECRET to at least 32 characters.');
+  }
+  return secret;
+}
+
+function signVisitor(id) {
+  return createHmac('sha256', getSigningSecret()).update(id).digest('hex');
+}
+
+function validSignature(id, signature) {
+  if (!id || !signature) return false;
+  const expected = Buffer.from(signVisitor(id), 'hex');
+  const provided = Buffer.from(signature, 'hex');
+  return expected.length === provided.length && timingSafeEqual(expected, provided);
+}
+
+// Public feature requests use a signed, HTTP-only visitor cookie. This avoids
+// trusting spoofable forwarding headers while keeping the board usable without
+// requiring an account.
+export function visitorIdentity(request) {
+  const raw = request.cookies.get(VISITOR_COOKIE)?.value || '';
+  const [storedId, storedSignature] = raw.split('.');
+  const id = validSignature(storedId, storedSignature) ? storedId : randomUUID();
+  const cookieValue = `${id}.${signVisitor(id)}`;
+  const key = createHash('sha256').update(`${id}|mira-feature-votes`).digest('hex');
+  return { key, cookieValue, isNew: raw !== cookieValue };
+}
+
+export function attachVisitorCookie(response, identity) {
+  if (identity?.isNew) {
+    response.cookies.set(VISITOR_COOKIE, identity.cookieValue, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
+  return response;
 }

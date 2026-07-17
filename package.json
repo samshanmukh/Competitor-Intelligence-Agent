@@ -10,6 +10,9 @@
     "dev:client": "npm run dev --prefix client",
     "dev": "concurrently -n server,client -c blue,magenta \"npm run dev:server\" \"npm run dev:client\"",
     "build": "npm run build --prefix client",
+    "lint": "eslint . --max-warnings=0 && npm run lint --prefix client",
+    "test": "node --test",
+    "check": "npm run test && npm run lint && npm run build",
     "start:server": "node server/index.js",
     "start": "concurrently -n server,client -c blue,magenta \"node server/index.js\" \"npm run start --prefix client\""
   },
@@ -26,6 +29,9 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "@eslint/js": "^9.39.5",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.39.5",
+    "globals": "^17.7.0"
   }
 }

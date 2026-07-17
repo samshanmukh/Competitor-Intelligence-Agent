@@ -11,9 +11,14 @@ function CallbackHandler() {
   useEffect(() => {
     (async () => {
       try {
+        const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
+        if (!baseUrl || !anonKey) {
+          throw new Error('Authentication is not configured. Contact the workspace administrator.');
+        }
         const insforge = createClient({
-          baseUrl: 'https://tpq6mvqe.us-east.insforge.app',
-          anonKey: 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
+          baseUrl,
+          anonKey,
         });
 
         // The SDK auto-detects the `insforge_code` in the URL and exchanges it for a

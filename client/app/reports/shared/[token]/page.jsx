@@ -71,6 +71,11 @@ export default function SharedReportPage() {
           <p className="mt-1 text-sm text-slate-500">
             Shared {timeAgo(report.created_at)} · {c.competitors?.length || 0} competitors
           </p>
+          {report.expires_at && (
+            <p className="mt-1 text-xs text-slate-600">
+              Link expires {new Date(report.expires_at).toLocaleDateString()}
+            </p>
+          )}
         </div>
 
         {c.competitors ? (

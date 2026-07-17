@@ -96,7 +96,7 @@ export default function CompetitorDetailClient({ id }) {
 
   if (loading) {
     return (
-      <div className="max-w-4xl space-y-6">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32" />
         <Skeleton className="h-64" />
@@ -129,7 +129,7 @@ export default function CompetitorDetailClient({ id }) {
   const COLORS = ['#6366f1', '#34d399', '#f59e0b', '#f87171', '#a78bfa'];
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <Link href="/competitors" className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white transition">
         <Icon name="chevronLeft" className="h-4 w-4" /> Competitors
       </Link>

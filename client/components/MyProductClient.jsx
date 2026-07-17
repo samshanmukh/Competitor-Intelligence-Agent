@@ -55,9 +55,9 @@ export default function MyProductClient() {
   };
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">My Product</h1>
+        <h1 className="text-2xl font-semibold text-white">My product</h1>
         <p className="mt-1 text-sm text-slate-500">
           Define your product and get AI-powered positioning analysis vs your tracked competitors.
         </p>
@@ -65,15 +65,16 @@ export default function MyProductClient() {
 
       {/* Product profile */}
       <div className="card p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-white">Product Profile</h2>
+        <h2 className="text-sm font-semibold text-white">Product profile</h2>
         <div>
-          <label className="label">Product Name</label>
-          <input className="input" value={form.name} onChange={set('name')} placeholder="Acme App" />
+          <label htmlFor="my-product-name" className="label">Product name</label>
+          <input id="my-product-name" className="input" value={form.name} onChange={set('name')} placeholder="Acme App" />
         </div>
         <div>
-          <label className="label">Pricing Page URL</label>
+          <label htmlFor="my-product-url" className="label">Pricing page URL</label>
           <div className="flex gap-2">
             <input
+              id="my-product-url"
               className="input flex-1"
               value={form.pricing_url}
               onChange={set('pricing_url')}
@@ -95,8 +96,9 @@ export default function MyProductClient() {
           </div>
         </div>
         <div>
-          <label className="label">Product Description / Market</label>
+          <label htmlFor="my-product-description" className="label">Product description / market</label>
           <textarea
+            id="my-product-description"
             className="input min-h-24 resize-y"
             value={form.description}
             onChange={set('description')}

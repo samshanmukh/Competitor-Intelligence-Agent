@@ -48,7 +48,7 @@ export default function MarketEntryClient() {
 
   return (
     <LabShell
-      title="Market Entry"
+      title="Market entry"
       subtitle="Build a launch checklist for a new geography or customer segment."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
         {generating ? <Spinner /> : <Icon name="map" className="h-4 w-4" />}
@@ -58,12 +58,12 @@ export default function MarketEntryClient() {
       <section className="card p-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">Geography</label>
-            <input className="input" value={form.geography} onChange={set('geography')} placeholder="UK, Germany, APAC..." />
+            <label htmlFor="market-entry-geography" className="label">Geography</label>
+            <input id="market-entry-geography" className="input" value={form.geography} onChange={set('geography')} placeholder="UK, Germany, APAC..." />
           </div>
           <div>
-            <label className="label">Segment</label>
-            <input className="input" value={form.segment} onChange={set('segment')} placeholder="Mid-market finance, devtools teams..." />
+            <label htmlFor="market-entry-segment" className="label">Segment</label>
+            <input id="market-entry-segment" className="input" value={form.segment} onChange={set('segment')} placeholder="Mid-market finance, devtools teams..." />
           </div>
         </div>
       </section>

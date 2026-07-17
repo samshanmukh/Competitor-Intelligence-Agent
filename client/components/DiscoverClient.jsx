@@ -1,9 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { EmptyState, Icon, Skeleton, useToast } from './ui';
+import { PageHeader, PageShell } from './PageShell';
 
 const MODES = [
   { id: 'describe', icon: 'sparkle', title: 'Describe market', hint: 'Plain English — AI finds competitors.' },
@@ -24,15 +25,16 @@ export default function DiscoverClient() {
   const [candidates, setCandidates] = useState(null);
   const [selected, setSelected] = useState({});
   const [saving, setSaving] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
   const toast = useToast();
-  const router = useRouter();
 
-  const step = candidates === null ? 0 : 1;
+  const step = completedCount > 0 ? 2 : candidates === null ? 0 : 1;
   const parsedUrls = urlsText.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
 
   const runDiscovery = async () => {
     setLoading(true);
     setCandidates(null);
+    setCompletedCount(0);
     try {
       const payload = {
         mode,
@@ -65,7 +67,7 @@ export default function DiscoverClient() {
       await api.addCompetitors(chosen, 'approved');
       if (market) await api.saveSettings({ market });
       toast({ type: 'success', title: `${chosen.length} competitor(s) added`, message: 'Monitoring has begun.' });
-      router.push('/competitors');
+      setCompletedCount(chosen.length);
     } catch (err) {
       toast({ type: 'error', title: 'Could not save', message: err.message });
     } finally {
@@ -82,11 +84,11 @@ export default function DiscoverClient() {
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Discover Competitors</h1>
-        <p className="mt-1 text-sm text-slate-500">Find competitors automatically, then approve them for monitoring.</p>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="Discover"
+        description="Find competitors automatically, then approve them for monitoring."
+      />
 
       {/* Stepper */}
       <div className="flex items-center gap-2">
@@ -112,7 +114,7 @@ export default function DiscoverClient() {
             {MODES.map((m) => (
               <button
                 key={m.id}
-                onClick={() => { setMode(m.id); setCandidates(null); }}
+                onClick={() => { setMode(m.id); setCandidates(null); setCompletedCount(0); }}
                 className={`card flex flex-col items-start gap-2 p-4 text-left transition ${
                   mode === m.id ? 'border-accent/60 ring-1 ring-accent/40' : 'hover:border-ink-600'
                 }`}
@@ -132,8 +134,9 @@ export default function DiscoverClient() {
           <div className="card space-y-4 p-5">
             {(mode === 'describe' || mode === 'combo') && (
               <div>
-                <label className="label">Market description</label>
+                <label htmlFor="discover-market-description" className="label">Market description</label>
                 <textarea
+                  id="discover-market-description"
                   className="input min-h-[84px] resize-y"
                   placeholder='"AI running coaching apps for amateur marathoners"'
                   value={description}
@@ -143,15 +146,16 @@ export default function DiscoverClient() {
             )}
             {(mode === 'product' || mode === 'combo') && (
               <div>
-                <label className="label">Your product URL</label>
-                <input className="input" placeholder="https://yourproduct.com" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} />
+                <label htmlFor="discover-product-url" className="label">Your product URL</label>
+                <input id="discover-product-url" className="input" placeholder="https://yourproduct.com" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} />
                 <p className="mt-1.5 text-xs text-slate-500">The agent reads this page to infer your market.</p>
               </div>
             )}
             {(mode === 'direct' || mode === 'combo') && (
               <div>
-                <label className="label">Competitor pricing URLs</label>
+                <label htmlFor="discover-competitor-urls" className="label">Competitor pricing URLs</label>
                 <textarea
+                  id="discover-competitor-urls"
                   className="input min-h-[84px] resize-y font-mono text-xs"
                   placeholder={'https://competitor-a.com/pricing\nhttps://competitor-b.com/plans'}
                   value={urlsText}
@@ -247,6 +251,28 @@ export default function DiscoverClient() {
           </section>
         )
       )}
-    </div>
+
+      {step === 2 && (
+        <section className="card flex flex-col items-center px-6 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
+            <Icon name="check" className="h-6 w-6" />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold text-white">Competitors added</h2>
+          <p className="mt-2 max-w-md text-sm text-slate-400">
+            {completedCount} competitor{completedCount === 1 ? '' : 's'} added. Monitoring is now underway.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setCandidates(null); setCompletedCount(0); }}
+              className="btn-ghost"
+            >
+              Add more
+            </button>
+            <Link href="/competitors" className="btn-primary">View competitors</Link>
+          </div>
+        </section>
+      )}
+    </PageShell>
   );
 }

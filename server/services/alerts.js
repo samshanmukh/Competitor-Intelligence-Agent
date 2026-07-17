@@ -6,6 +6,17 @@ function isSlackUrl(url) {
   return /hooks\.slack\.com/i.test(url || '');
 }
 
+function isAllowedWebhookUrl(value) {
+  try {
+    const url = new URL(value);
+    const slack = url.hostname === 'hooks.slack.com' && url.pathname.startsWith('/services/');
+    const discord = ['discord.com', 'discordapp.com'].includes(url.hostname) && url.pathname.startsWith('/api/webhooks/');
+    return url.protocol === 'https:' && (slack || discord);
+  } catch {
+    return false;
+  }
+}
+
 function slackBlocks({ title, lines = [], url = null, footer = 'Mira Vue' }) {
   const blocks = [
     {
@@ -31,6 +42,7 @@ function slackBlocks({ title, lines = [], url = null, footer = 'Mira Vue' }) {
 }
 
 async function postWebhook(url, { text, title, lines, link }) {
+  if (!isAllowedWebhookUrl(url)) return { sent: false, reason: 'invalid webhook URL' };
   const body = isSlackUrl(url)
     ? { text, blocks: slackBlocks({ title, lines, url: link }) }
     : { text, content: text };
@@ -48,7 +60,7 @@ async function postWebhook(url, { text, title, lines, link }) {
 }
 
 export async function sendWebhook(change, competitor) {
-  const url = await getSetting('webhook_url');
+  const url = await getSetting('webhook_url', null, competitor.workspace_id);
   if (!url) return { sent: false, reason: 'no webhook configured' };
 
   let analysis = {};
@@ -74,7 +86,7 @@ export async function sendWebhook(change, competitor) {
 
 /** Slack/Discord webhook for significant market presence shifts (Phase 4). */
 export async function sendMarketShiftWebhook(workspaceId, shifts, method = 'snapshot') {
-  const url = await getSetting('webhook_url');
+  const url = await getSetting('webhook_url', null, workspaceId);
   if (!url || !shifts?.length) return { sent: false, reason: 'no webhook or shifts' };
 
   const lines = shifts

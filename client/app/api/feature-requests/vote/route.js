@@ -1,6 +1,6 @@
-// Toggle a vote for a feature request — one vote per IP per request.
+// Toggle a vote for a feature request — one vote per signed visitor.
 import { NextResponse } from 'next/server';
-import { db, voterKey } from '../../../../lib/serverInsforge';
+import { attachVisitorCookie, db, visitorIdentity } from '../../../../lib/serverInsforge';
 
 export async function POST(request) {
   let body;
@@ -12,7 +12,9 @@ export async function POST(request) {
   }
 
   const insforge = db();
-  const me = voterKey(request);
+  const identity = visitorIdentity(request);
+  const me = identity.key;
+  const respond = (responseBody, init) => attachVisitorCookie(NextResponse.json(responseBody, init), identity);
   try {
     const { data: existing } = await insforge.database
       .from('feature_votes')
@@ -23,7 +25,7 @@ export async function POST(request) {
 
     if (existing) {
       await insforge.database.from('feature_votes').delete().eq('id', existing.id);
-      return NextResponse.json({ ok: true, voted: false });
+      return respond({ ok: true, voted: false });
     }
 
     const { error } = await insforge.database
@@ -31,10 +33,10 @@ export async function POST(request) {
       .insert({ request_id: requestId, voter_ip: me });
     // Unique violation (double-click race) is still a success — the vote exists.
     if (error && !/duplicate|unique/i.test(error.message || '')) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return respond({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ ok: true, voted: true });
+    return respond({ ok: true, voted: true });
   } catch (err) {
-    return NextResponse.json({ error: err.message || 'Could not vote.' }, { status: 500 });
+    return respond({ error: err.message || 'Could not vote.' }, { status: 500 });
   }
 }

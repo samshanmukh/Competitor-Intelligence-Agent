@@ -6,7 +6,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
-    "lint": "next lint"
+    "lint": "eslint . --max-warnings=0"
   },
   "dependencies": {
     "@insforge/sdk": "^1.4.3",
@@ -17,7 +17,10 @@
     "recharts": "^3.9.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.19",
     "postcss": "^8.4.49",
     "tailwindcss": "3.4.17"
   }

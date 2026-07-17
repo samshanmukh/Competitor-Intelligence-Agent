@@ -1,6 +1,10 @@
 import { ensureUserHasWorkspace, isWorkspaceMember } from '../db/workspace.js';
+import { runWithWorkspaceKeys } from '../services/workspaceExecution.js';
 
-const INSFORGE_URL = (process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app').replace(/\/$/, '');
+const INSFORGE_URL = process.env.INSFORGE_BASE_URL?.replace(/\/$/, '');
+if (!INSFORGE_URL) {
+  throw new Error('INSFORGE_BASE_URL is required');
+}
 
 // Validate a bearer token against Insforge, which verifies the signature AND
 // expiry — so forged/expired tokens are rejected (fixes the decode-only hole).
@@ -59,11 +63,11 @@ export async function resolveWorkspace(req, res, next) {
         return res.status(403).json({ error: 'Not a member of this workspace', code: 'FORBIDDEN_WORKSPACE' });
       }
       req.workspaceId = wsId;
-      return next();
+      return runWithWorkspaceKeys(wsId, next);
     }
     const workspace = await ensureUserHasWorkspace(req.user.id, req.user.email);
     req.workspaceId = workspace.id;
-    next();
+    return runWithWorkspaceKeys(workspace.id, next);
   } catch (err) {
     next(err);
   }

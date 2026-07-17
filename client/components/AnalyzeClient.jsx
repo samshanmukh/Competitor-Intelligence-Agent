@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
 import { Icon, Skeleton, useToast } from './ui';
 import ReportView from './ReportView';
+import { PageHeader, PageShell } from './PageShell';
 
 export default function AnalyzeClient() {
   const [product, setProduct] = useState(undefined); // undefined = loading, null = none
@@ -39,13 +40,11 @@ export default function AnalyzeClient() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-20">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-white">Competitive Analysis</h1>
-        <p className="text-sm text-slate-500">
-          Define your product, find its closest competitors, and get a full value + pricing + reviews breakdown.
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="Analysis"
+        description="Define your product, find its closest competitors, and get a full value, pricing, and reviews breakdown."
+      />
 
       <ProductStage product={product} onSaved={(p) => setProduct(p)} />
 
@@ -60,7 +59,7 @@ export default function AnalyzeClient() {
       {product && competitors.length > 0 && (
         <ReportStage competitors={competitors} onScored={load} />
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -152,13 +151,13 @@ function ProductStage({ product, onSaved }) {
     <StageCard step={1} title="Your product">
       <div className="space-y-4">
         <div>
-          <label className="label">Company / product name</label>
-          <input className="input" value={form.name} onChange={set('name')} placeholder="Acme Analytics" autoFocus />
+          <label htmlFor="analysis-product-name" className="label">Company / product name</label>
+          <input id="analysis-product-name" className="input" value={form.name} onChange={set('name')} placeholder="Acme Analytics" autoFocus />
         </div>
         <div>
-          <label className="label">Product URL <span className="text-slate-600 normal-case">(optional, helps find competitors)</span></label>
+          <label htmlFor="analysis-product-url" className="label">Product URL <span className="text-slate-600 normal-case">(optional, helps find competitors)</span></label>
           <div className="flex gap-2">
-            <input className="input flex-1" value={form.pricing_url} onChange={set('pricing_url')} placeholder="https://acme.com/pricing" />
+            <input id="analysis-product-url" className="input flex-1" value={form.pricing_url} onChange={set('pricing_url')} placeholder="https://acme.com/pricing" />
             <button onClick={autofill} disabled={inferring || !form.pricing_url} className="btn-ghost shrink-0">
               <Icon name="sparkle" className={`h-4 w-4 ${inferring ? 'animate-spin' : ''}`} />
               {inferring ? 'Reading…' : 'Auto-fill'}
@@ -166,8 +165,8 @@ function ProductStage({ product, onSaved }) {
           </div>
         </div>
         <div>
-          <label className="label">Details <span className="text-slate-600 normal-case">(optional)</span></label>
-          <textarea className="input min-h-20 resize-y" value={form.description} onChange={set('description')}
+          <label htmlFor="analysis-product-details" className="label">Details <span className="text-slate-600 normal-case">(optional)</span></label>
+          <textarea id="analysis-product-details" className="input min-h-20 resize-y" value={form.description} onChange={set('description')}
             placeholder="What you do and who it's for. The more specific, the better the competitor matches." />
         </div>
         <div className="flex justify-end gap-2">

@@ -1,7 +1,7 @@
 import FeatureRequestsClient from '../../components/FeatureRequestsClient';
 
 export const metadata = {
-  title: 'Feature requests · Mira Vue',
+  title: 'Feature requests',
   description: 'Vote on what Mira Vue builds next, or submit your own request.',
 };
 

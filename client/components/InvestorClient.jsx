@@ -52,7 +52,7 @@ export default function InvestorClient() {
 
   return (
     <LabShell
-      title="Investor One-Pager"
+      title="Investor one-pager"
       subtitle="Convert competitive context into a crisp fundraising memo."
       action={<div className="flex gap-2">
         {result && <button onClick={copy} className="btn-ghost text-sm"><Icon name="copy" className="h-4 w-4" />{copied ? 'Copied' : 'Copy markdown'}</button>}

@@ -40,7 +40,7 @@ export default function PositioningLabClient() {
 
   return (
     <LabShell
-      title="Positioning Lab"
+      title="Positioning lab"
       subtitle="Pressure-test three ways to explain why your product should win."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
         {generating ? <Spinner /> : <Icon name="sparkle" className="h-4 w-4" />}
@@ -48,8 +48,8 @@ export default function PositioningLabClient() {
       </button>}
     >
       <section className="card p-5">
-        <label className="label">Focus (optional)</label>
-        <input className="input" value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="Example: enterprise security buyers, PLG teams, AI-native category" />
+        <label htmlFor="positioning-focus" className="label">Focus (optional)</label>
+        <input id="positioning-focus" className="input" value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="Example: enterprise security buyers, PLG teams, AI-native category" />
       </section>
 
       {loading ? (

@@ -56,7 +56,7 @@ export default function DistributionClient() {
     <div className="mx-auto max-w-3xl space-y-6 pb-20">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Market distribution</h1>
+          <h1 className="text-2xl font-semibold text-white">Distribution</h1>
           <p className="mt-1 text-sm text-slate-500">
             Published analyst share and triangulated presence across your tracked competitors.
           </p>

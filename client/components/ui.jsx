@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const PATHS = {
@@ -78,7 +78,12 @@ export function StatusDot({ competitor }) {
   if (competitor.last_error) { color = 'bg-rose-500'; title = 'Last fetch failed'; }
   else if (competitor.last_changed_at) { color = 'bg-accent-soft'; title = 'Change detected'; }
   else if (competitor.last_checked_at) { color = 'bg-emerald-500'; title = 'Up to date'; }
-  return <span title={title} className={`inline-block h-2 w-2 rounded-full ${color}`} />;
+  return (
+    <span title={title} className="inline-flex items-center">
+      <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${color}`} />
+      <span className="sr-only">{title}</span>
+    </span>
+  );
 }
 
 // ─── Value Score ─────────────────────────────────────────────────────────────
@@ -136,12 +141,44 @@ export function KpiCard({ label, value, sub, icon, trend, color = 'accent' }) {
 
 // ─── Tab Bar ─────────────────────────────────────────────────────────────────
 export function TabBar({ tabs, active, onChange }) {
+  const buttonRefs = useRef([]);
+
+  const selectByIndex = (index) => {
+    const nextIndex = (index + tabs.length) % tabs.length;
+    onChange(tabs[nextIndex].id);
+    buttonRefs.current[nextIndex]?.focus();
+  };
+
+  const handleKeyDown = (event, index) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      selectByIndex(index + 1);
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      selectByIndex(index - 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      selectByIndex(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      selectByIndex(tabs.length - 1);
+    }
+  };
+
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1 w-fit">
-      {tabs.map((t) => (
+    <div role="tablist" aria-label="View options" className="flex w-fit items-center gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1">
+      {tabs.map((t, index) => (
         <button
           key={t.id}
+          ref={(node) => { buttonRefs.current[index] = node; }}
+          type="button"
+          role="tab"
+          aria-selected={active === t.id}
+          aria-controls={t.panelId}
+          id={t.tabId}
+          tabIndex={active === t.id ? 0 : -1}
           onClick={() => onChange(t.id)}
+          onKeyDown={(event) => handleKeyDown(event, index)}
           className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
             active === t.id
               ? 'bg-ink-700 text-white shadow-sm'
@@ -165,22 +202,78 @@ export function TabBar({ tabs, active, onChange }) {
 
 // ─── Modal ───────────────────────────────────────────────────────────────────
 export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
+  const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
-    const close = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', close);
-    return () => document.removeEventListener('keydown', close);
-  }, [open, onClose]);
+    const previouslyFocused = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const frame = requestAnimationFrame(() => {
+      const preferred = dialogRef.current?.querySelector('[autofocus]');
+      const firstFocusable = dialogRef.current?.querySelector(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      (preferred || firstFocusable || dialogRef.current)?.focus();
+    });
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = [...dialogRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )].filter((element) => !element.hasAttribute('hidden') && element.getClientRects().length > 0);
+      if (!focusable.length) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative ${width} w-full card shadow-2xl`}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/60 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className={`relative ${width} max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain card shadow-2xl`}
+      >
         <div className="flex items-center justify-between border-b border-ink-700 px-5 py-4">
-          <h2 className="text-base font-semibold text-white">{title}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition">
+          <h2 id={titleId} className="text-base font-semibold text-white">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-1 text-slate-500 transition hover:bg-ink-800 hover:text-white">
             <Icon name="x" className="h-4 w-4" />
           </button>
         </div>
@@ -353,9 +446,11 @@ export function ToastProvider({ children }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex w-80 flex-col gap-2">
+      <div aria-live="polite" aria-relevant="additions" className="pointer-events-none fixed bottom-5 right-5 z-50 flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2">
         {toasts.map((t) => (
           <div key={t.id}
+            role={t.type === 'error' ? 'alert' : 'status'}
+            aria-atomic="true"
             className={`pointer-events-auto card px-4 py-3 text-sm shadow-xl transition-all ${
               t.type === 'error' ? 'border-rose-800/60' : t.type === 'success' ? 'border-emerald-800/60' : ''
             }`}>

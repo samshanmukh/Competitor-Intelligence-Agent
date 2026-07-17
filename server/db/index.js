@@ -1,9 +1,15 @@
 import { createClient } from '@insforge/sdk';
 import { createHash } from 'node:crypto';
 
+const baseUrl = process.env.INSFORGE_BASE_URL;
+const anonKey = process.env.INSFORGE_ANON_KEY;
+if (!baseUrl || !anonKey) {
+  throw new Error('INSFORGE_BASE_URL and INSFORGE_ANON_KEY are required');
+}
+
 const insforge = createClient({
-  baseUrl: process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app',
-  anonKey: process.env.INSFORGE_ANON_KEY || 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
+  baseUrl,
+  anonKey,
 });
 
 export function hashContent(content) {
@@ -11,20 +17,32 @@ export function hashContent(content) {
 }
 
 // ---------- Settings ----------
-export async function getSetting(key, fallback = null) {
-  const { data } = await insforge.database.from('settings').select('value').eq('key', key).maybeSingle();
+function scopedSettingKey(key, workspaceId) {
+  return workspaceId == null ? key : `workspace:${workspaceId}:${key}`;
+}
+
+export async function getSetting(key, fallback = null, workspaceId = null) {
+  const { data } = await insforge.database
+    .from('settings')
+    .select('value')
+    .eq('key', scopedSettingKey(key, workspaceId))
+    .maybeSingle();
   return data ? data.value : fallback;
 }
 
-export async function setSetting(key, value) {
+export async function setSetting(key, value, workspaceId = null) {
   await insforge.database
     .from('settings')
-    .upsert({ key, value, updated_at: new Date().toISOString() });
+    .upsert({ key: scopedSettingKey(key, workspaceId), value, updated_at: new Date().toISOString() });
 }
 
-export async function getAllSettings() {
+export async function getAllSettings(workspaceId = null) {
   const { data } = await insforge.database.from('settings').select('key, value');
-  return Object.fromEntries((data || []).map((r) => [r.key, r.value]));
+  const prefix = workspaceId == null ? '' : `workspace:${workspaceId}:`;
+  const rows = workspaceId == null
+    ? (data || []).filter((r) => !r.key.startsWith('workspace:'))
+    : (data || []).filter((r) => r.key.startsWith(prefix));
+  return Object.fromEntries(rows.map((r) => [r.key.slice(prefix.length), r.value]));
 }
 
 // ---------- Competitors ----------
@@ -36,18 +54,22 @@ export async function listCompetitors(status, workspaceId) {
   return data || [];
 }
 
-export async function getCompetitor(id) {
-  const { data } = await insforge.database.from('competitors').select().eq('id', id).maybeSingle();
+export async function getCompetitor(id, workspaceId = null) {
+  let query = insforge.database.from('competitors').select().eq('id', id);
+  if (workspaceId != null) query = query.eq('workspace_id', workspaceId);
+  const { data } = await query.maybeSingle();
   return data;
 }
 
-export async function getCompetitorByPricingUrl(url) {
-  const { data } = await insforge.database.from('competitors').select().eq('pricing_url', url).maybeSingle();
+export async function getCompetitorByPricingUrl(url, workspaceId = null) {
+  let query = insforge.database.from('competitors').select().eq('pricing_url', url);
+  if (workspaceId != null) query = query.eq('workspace_id', workspaceId);
+  const { data } = await query.maybeSingle();
   return data;
 }
 
 export async function upsertCompetitor({ name, website, pricing_url, notes, source = 'manual', status = 'pending', workspace_id = null }) {
-  const existing = await getCompetitorByPricingUrl(pricing_url);
+  const existing = await getCompetitorByPricingUrl(pricing_url, workspace_id);
   if (existing) return existing;
   const { data } = await insforge.database
     .from('competitors')
@@ -57,13 +79,13 @@ export async function upsertCompetitor({ name, website, pricing_url, notes, sour
   return data;
 }
 
-export async function updateCompetitorStatus(id, status) {
-  const { data } = await insforge.database
+export async function updateCompetitorStatus(id, status, workspaceId = null) {
+  let query = insforge.database
     .from('competitors')
     .update({ status })
-    .eq('id', id)
-    .select()
-    .maybeSingle();
+    .eq('id', id);
+  if (workspaceId != null) query = query.eq('workspace_id', workspaceId);
+  const { data } = await query.select().maybeSingle();
   return data;
 }
 
@@ -82,8 +104,10 @@ export async function setCompetitorChecked(id, { error = null, changed = false }
   return data;
 }
 
-export async function deleteCompetitor(id) {
-  await insforge.database.from('competitors').delete().eq('id', id);
+export async function deleteCompetitor(id, workspaceId = null) {
+  let query = insforge.database.from('competitors').delete().eq('id', id);
+  if (workspaceId != null) query = query.eq('workspace_id', workspaceId);
+  await query;
 }
 
 // ---------- Snapshots ----------
@@ -200,39 +224,6 @@ export async function markChangesSeen(workspaceId = null) {
   if (ids.length) {
     await insforge.database.from('changes').update({ seen: true }).in('id', ids);
   }
-}
-
-// ---------- Waitlist ----------
-export async function addToWaitlist(email, { source = null, referrer = null } = {}) {
-  const clean = String(email || '').trim().toLowerCase();
-  if (!clean) return { ok: false, error: 'Email is required' };
-
-  // Idempotent: if the email is already on the list, treat it as success.
-  const { data: existing } = await insforge.database
-    .from('waitlist')
-    .select('id')
-    .eq('email', clean)
-    .maybeSingle();
-  if (existing) return { ok: true, already: true };
-
-  const { data, error } = await insforge.database
-    .from('waitlist')
-    .insert({ email: clean, source, referrer })
-    .select()
-    .maybeSingle();
-  if (error) {
-    // Unique-violation race → still a success from the user's perspective.
-    if (/duplicate|unique/i.test(error.message || '')) return { ok: true, already: true };
-    return { ok: false, error: error.message };
-  }
-  return { ok: true, already: false, entry: data };
-}
-
-export async function countWaitlist() {
-  const { count } = await insforge.database
-    .from('waitlist')
-    .select('id', { count: 'exact', head: true });
-  return count || 0;
 }
 
 export default insforge;

@@ -1,24 +1,26 @@
-// In-memory key cache — loaded from Insforge settings on startup so keys set
-// via the UI survive server restarts. Falls back to process.env if not in DB.
+// Per-workspace in-memory key cache. Workspace values are hydrated by
+// resolveWorkspace; process.env remains the server-wide fallback.
+import { getCurrentWorkspaceId } from './requestContext.js';
 
-const KEY_NAMES = ['YOUCOM_API_KEY', 'XAI_API_KEY', 'XAI_MODEL'];
 const cache = {};
+const workspaceCache = new Map();
 
-export function getKey(name) {
-  return cache[name] || process.env[name] || null;
+export function getKey(name, workspaceId = getCurrentWorkspaceId()) {
+  return workspaceCache.get(String(workspaceId))?.[name] || cache[name] || process.env[name] || null;
 }
 
-export function setKey(name, value) {
+export function setKey(name, value, workspaceId = getCurrentWorkspaceId()) {
+  if (workspaceId != null) {
+    const id = String(workspaceId);
+    const values = workspaceCache.get(id) || {};
+    if (value) values[name] = value;
+    else delete values[name];
+    workspaceCache.set(id, values);
+    return;
+  }
   if (value) {
     cache[name] = value;
   } else {
     delete cache[name];
-  }
-}
-
-export async function loadKeysFromDB(getSetting) {
-  for (const name of KEY_NAMES) {
-    const value = await getSetting(`key:${name}`);
-    if (value) cache[name] = value;
   }
 }

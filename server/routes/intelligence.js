@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
-import { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors, getSetting, setSetting, listRecentChanges } from '../db/index.js';
+import insforge, { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors, getSetting, setSetting, listRecentChanges } from '../db/index.js';
 import { getProduct } from '../db/products.js';
 import { getMarketModel, saveMarketModel, insertModelHistory, getModelHistory } from '../db/marketModel.js';
 import { completeJSON, complete } from '../services/ai.js';
@@ -32,7 +32,7 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).cat
 
 // Price history — extract price points from all snapshots for a competitor
 router.get('/competitors/:id/price-history', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const competitor = await getCompetitor(req.params.id);
+  const competitor = await getCompetitor(req.params.id, req.workspaceId);
   if (!competitor) return res.status(404).json({ error: 'Not found' });
 
   const snapshots = await listSnapshots(competitor.id);
@@ -124,8 +124,8 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
 
   const snapshots = await Promise.all(
     competitorIds.map(async (id) => {
-      const c = await getCompetitor(id);
-      const snap = await getLatestSnapshot(id);
+      const c = await getCompetitor(id, req.workspaceId);
+      const snap = c ? await getLatestSnapshot(id) : null;
       return { competitor: c, content: snap?.content };
     })
   );
@@ -217,7 +217,7 @@ Be specific, reference actual competitor names and prices.`,
 
 // Battlecard generator
 router.post('/competitors/:id/battlecard', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const competitor = await getCompetitor(req.params.id);
+  const competitor = await getCompetitor(req.params.id, req.workspaceId);
   if (!competitor) return res.status(404).json({ error: 'Not found' });
 
   const snap = await getLatestSnapshot(competitor.id);
@@ -250,7 +250,7 @@ Return JSON:
 
 // Value scoring — run AI analysis and update competitor record
 router.post('/competitors/:id/value-score', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const competitor = await getCompetitor(req.params.id);
+  const competitor = await getCompetitor(req.params.id, req.workspaceId);
   if (!competitor) return res.status(404).json({ error: 'Not found' });
 
   const snap = await getLatestSnapshot(competitor.id);
@@ -268,15 +268,11 @@ Return: { "score": number, "reasoning": "2-3 sentences" }`,
   });
 
   if (result?.score) {
-    const { createClient } = await import('@insforge/sdk');
-    const insforge = createClient({
-      baseUrl: process.env.INSFORGE_BASE_URL || 'https://tpq6mvqe.us-east.insforge.app',
-      anonKey: process.env.INSFORGE_ANON_KEY || 'anon_b6023a1adec5472cfe335ee7fec1139a85bd05a43a2f0513e2eba963c4a71d1f',
-    });
     await insforge.database
       .from('competitors')
       .update({ value_score: result.score, value_analysis: result.reasoning })
-      .eq('id', competitor.id);
+      .eq('id', competitor.id)
+      .eq('workspace_id', req.workspaceId);
   }
 
   res.json({ score: result?.score || null, reasoning: result?.reasoning || null });
@@ -286,7 +282,7 @@ Return: { "score": number, "reasoning": "2-3 sentences" }`,
 router.post('/reviews', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const { competitorIds } = req.body || {};
   const competitors = competitorIds?.length
-    ? await Promise.all(competitorIds.map((id) => getCompetitor(id)))
+    ? await Promise.all(competitorIds.map((id) => getCompetitor(id, req.workspaceId)))
     : await listCompetitors('approved', req.workspaceId);
 
   const valid = competitors.filter(Boolean);
@@ -589,9 +585,11 @@ router.post('/market/start', requireAuth, resolveWorkspace, wrap(async (req, res
 }));
 
 // Poll a market-intelligence job.
-router.get('/market/status/:jobId', requireAuth, wrap(async (req, res) => {
+router.get('/market/status/:jobId', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const job = await getJob(req.params.jobId);
-  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  if (!job || String(job.workspace_id) !== String(req.workspaceId)) {
+    return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  }
   res.json({ status: job.status, result: job.result, error: job.error });
 }));
 
@@ -1115,9 +1113,11 @@ router.post('/market-model/fact-check/start', requireAuth, resolveWorkspace, wra
   res.json({ jobId });
 }));
 
-router.get('/market-model/fact-check/status/:jobId', requireAuth, wrap(async (req, res) => {
+router.get('/market-model/fact-check/status/:jobId', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const job = await getJob(req.params.jobId);
-  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  if (!job || String(job.workspace_id) !== String(req.workspaceId)) {
+    return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  }
   res.json({ status: job.status, result: job.result, error: job.error });
 }));
 
@@ -1149,9 +1149,11 @@ router.post('/market-model/start', requireAuth, resolveWorkspace, wrap(async (re
   res.json({ jobId });
 }));
 
-router.get('/market-model/status/:jobId', requireAuth, wrap(async (req, res) => {
+router.get('/market-model/status/:jobId', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const job = await getJob(req.params.jobId);
-  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  if (!job || String(job.workspace_id) !== String(req.workspaceId)) {
+    return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  }
   res.json({ status: job.status, result: job.result, error: job.error });
 }));
 

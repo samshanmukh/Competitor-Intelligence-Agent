@@ -41,24 +41,24 @@ export default function WinLossClient() {
   };
 
   return (
-    <LabShell title="Win / Loss Lab" subtitle="Turn sales notes into objections, talk tracks, and battlecard updates.">
+    <LabShell title="Win / loss" subtitle="Turn sales notes into objections, talk tracks, and battlecard updates.">
       <section className="card p-5 space-y-4">
         <div>
-          <label className="label">Deal notes</label>
-          <textarea className="input min-h-28 resize-y" value={form.notes} onChange={set('notes')} placeholder="Paste the call notes, buyer objection, or closed-lost recap..." />
+          <label htmlFor="win-loss-notes" className="label">Deal notes</label>
+          <textarea id="win-loss-notes" className="input min-h-28 resize-y" value={form.notes} onChange={set('notes')} placeholder="Paste the call notes, buyer objection, or closed-lost recap..." />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">Outcome</label>
-            <select className="input" value={form.outcome} onChange={set('outcome')}>
+            <label htmlFor="win-loss-outcome" className="label">Outcome</label>
+            <select id="win-loss-outcome" className="input" value={form.outcome} onChange={set('outcome')}>
               <option value="unknown">Unknown</option>
               <option value="won">Won</option>
               <option value="lost">Lost</option>
             </select>
           </div>
           <div>
-            <label className="label">Competitor (optional)</label>
-            <input className="input" value={form.competitor} onChange={set('competitor')} placeholder="Competitor named by buyer" />
+            <label htmlFor="win-loss-competitor" className="label">Competitor (optional)</label>
+            <input id="win-loss-competitor" className="input" value={form.competitor} onChange={set('competitor')} placeholder="Competitor named by buyer" />
           </div>
         </div>
         <button onClick={save} disabled={saving || !form.notes.trim()} className="btn-primary">

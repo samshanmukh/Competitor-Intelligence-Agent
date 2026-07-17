@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Icon } from './ui';
+import { Icon, Modal } from './ui';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
@@ -26,14 +26,19 @@ function groupOf(status) {
 export default function FeatureRequestsClient() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [modal, setModal] = useState(null); // null | { mode: 'new' | 'edit', request }
 
   async function load() {
+    setLoadError('');
     try {
       const res = await fetch('/api/feature-requests');
       const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Could not load feature requests.');
       setRequests(data.requests || []);
-    } catch { /* ignore */ }
+    } catch (err) {
+      setLoadError(err.message || 'Could not load feature requests.');
+    }
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -91,13 +96,20 @@ export default function FeatureRequestsClient() {
         <div className="mt-10 space-y-8">
           {loading && <p className="text-sm text-slate-500">Loading…</p>}
 
-          {!loading && !hasAny && (
+          {!loading && loadError && (
+            <div role="alert" className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6 text-sm text-rose-300">
+              <p>{loadError}</p>
+              <button type="button" onClick={load} className="mt-3 font-medium text-white hover:underline">Try again</button>
+            </div>
+          )}
+
+          {!loading && !loadError && !hasAny && (
             <div className="rounded-2xl border border-ink-700 bg-ink-900 p-8 text-center text-sm text-slate-400">
               No requests yet. Be the first — hit <span className="text-white">New request</span>.
             </div>
           )}
 
-          {!loading && GROUPS.map((g) => {
+          {!loading && !loadError && GROUPS.map((g) => {
             const items = grouped[g.key];
             if (!items?.length) return null;
             return (
@@ -233,19 +245,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: EASE }}
-        className="relative w-full max-w-md rounded-3xl border border-white/10 bg-ink-900 p-7 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button type="button" onClick={onClose} aria-label="Close" className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-slate-200">
-          <Icon name="x" className="h-4 w-4" />
-        </button>
-        <h3 className="text-xl font-semibold text-white">{isEdit ? 'Edit request' : 'New request'}</h3>
+    <Modal open onClose={onClose} title={isEdit ? 'Edit request' : 'New request'} width="max-w-md">
         <p className="mt-2 text-sm text-slate-400">{isEdit ? 'Update your request or delete it.' : 'What should we build? Tell us and set a priority.'}</p>
         <form onSubmit={submit} className="mt-5 space-y-4">
           <textarea
@@ -265,6 +265,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
                   key={pk}
                   type="button"
                   onClick={() => setPriority(pk)}
+                  aria-pressed={priority === pk}
                   className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium capitalize transition ${priority === pk ? PRIO_CLS[pk] + ' ring-1 ring-inset ring-white/10' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
                 >
                   {pk}
@@ -291,7 +292,6 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
             </button>
           )}
         </form>
-      </motion.div>
-    </div>
+    </Modal>
   );
 }

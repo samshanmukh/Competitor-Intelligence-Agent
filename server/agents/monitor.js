@@ -111,10 +111,11 @@ export async function refreshCompetitor(competitor) {
  * Refresh many competitors sequentially (the You.com client serializes calls
  * anyway, and sequential keeps us rate-limit friendly). Returns an array of results.
  */
-export async function refreshAll(competitors, onProgress) {
+export async function refreshAll(competitors, onProgress, workspaceId = null) {
   const results = [];
   for (let i = 0; i < competitors.length; i++) {
-    const comp = (await getCompetitor(competitors[i].id)) || competitors[i];
+    const comp = (await getCompetitor(competitors[i].id, workspaceId)) || competitors[i];
+    if (workspaceId != null && String(comp.workspace_id) !== String(workspaceId)) continue;
     const res = await refreshCompetitor(comp);
     results.push(res);
     if (onProgress) onProgress(res, i + 1, competitors.length);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
+import { requireAuth } from '../middleware/auth.js';
 import {
   getUserWorkspaces,
   createWorkspace,
@@ -12,6 +12,7 @@ import {
   claimPendingInvites,
   findPendingInvite,
   isWorkspaceMember,
+  getWorkspaceMember,
 } from '../db/workspace.js';
 import { sendEmail, emailConfigured } from '../services/email.js';
 
@@ -19,6 +20,25 @@ const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const APP_URL = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+async function authorizeWorkspace(req, res, { admin = false } = {}) {
+  const ws = await getWorkspace(req.params.id);
+  if (!ws) {
+    res.status(404).json({ error: 'Not found' });
+    return null;
+  }
+  const member = await getWorkspaceMember(req.user.id, ws.id);
+  const isOwner = String(ws.owner_id) === String(req.user.id);
+  if (!member && !isOwner) {
+    res.status(403).json({ error: 'Not a member of this workspace', code: 'FORBIDDEN_WORKSPACE' });
+    return null;
+  }
+  if (admin && !isOwner && member?.role !== 'admin') {
+    res.status(403).json({ error: 'Workspace admin access required', code: 'FORBIDDEN' });
+    return null;
+  }
+  return { ws, member, isOwner };
+}
 
 // Current user + workspaces
 router.get('/me', requireAuth, wrap(async (req, res) => {
@@ -47,13 +67,15 @@ router.post('/workspaces', requireAuth, wrap(async (req, res) => {
 
 // Get workspace detail
 router.get('/workspaces/:id', requireAuth, wrap(async (req, res) => {
-  const ws = await getWorkspace(req.params.id);
-  if (!ws) return res.status(404).json({ error: 'Not found' });
-  res.json({ workspace: ws });
+  const authz = await authorizeWorkspace(req, res);
+  if (!authz) return;
+  res.json({ workspace: authz.ws });
 }));
 
 // Update workspace (name and/or weekly-digest settings)
 router.patch('/workspaces/:id', requireAuth, wrap(async (req, res) => {
+  const authz = await authorizeWorkspace(req, res, { admin: true });
+  if (!authz) return;
   const { name, digest_enabled, digest_email } = req.body || {};
   const updates = {};
   if (name) updates.name = name.trim();
@@ -65,6 +87,8 @@ router.patch('/workspaces/:id', requireAuth, wrap(async (req, res) => {
 
 // Send a test digest immediately (to verify email setup).
 router.post('/workspaces/:id/digest-test', requireAuth, wrap(async (req, res) => {
+  const authz = await authorizeWorkspace(req, res, { admin: true });
+  if (!authz) return;
   const { getWorkspace: getWs } = await import('../db/workspace.js');
   const { sendEmail, emailConfigured } = await import('../services/email.js');
   if (!emailConfigured()) {
@@ -83,14 +107,21 @@ router.post('/workspaces/:id/digest-test', requireAuth, wrap(async (req, res) =>
 
 // Get workspace members
 router.get('/workspaces/:id/members', requireAuth, wrap(async (req, res) => {
+  const authz = await authorizeWorkspace(req, res);
+  if (!authz) return;
   const members = await getWorkspaceMembers(req.params.id);
   res.json({ members });
 }));
 
 // Add member (invite) — stores pending row and emails a join link when Resend is configured.
 router.post('/workspaces/:id/members', requireAuth, wrap(async (req, res) => {
+  const authz = await authorizeWorkspace(req, res, { admin: true });
+  if (!authz) return;
   const { email, role = 'analyst' } = req.body || {};
   if (!email) return res.status(400).json({ error: 'email required' });
+  if (!['admin', 'analyst'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role' });
+  }
   const normalized = email.trim().toLowerCase();
   const ws = await getWorkspace(req.params.id);
   if (!ws) return res.status(404).json({ error: 'Workspace not found' });
@@ -153,6 +184,11 @@ router.post('/accept-invite', requireAuth, wrap(async (req, res) => {
 
 // Remove member
 router.delete('/workspaces/:id/members/:userId', requireAuth, wrap(async (req, res) => {
+  const authz = await authorizeWorkspace(req, res, { admin: true });
+  if (!authz) return;
+  if (String(authz.ws.owner_id) === String(req.params.userId)) {
+    return res.status(400).json({ error: 'Workspace owner cannot be removed' });
+  }
   await removeWorkspaceMember(req.params.id, req.params.userId);
   res.json({ ok: true });
 }));

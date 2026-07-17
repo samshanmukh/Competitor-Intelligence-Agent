@@ -55,11 +55,11 @@ export default function EvidenceClient() {
   };
 
   return (
-    <LabShell title="Evidence Locker" subtitle="Store buyer quotes, source notes, and competitor proof points you can reuse in reports.">
+    <LabShell title="Evidence" subtitle="Store buyer quotes, source notes, and competitor proof points you can reuse in reports.">
       <section className="card p-5 space-y-4">
         <div>
-          <label className="label">Quote or proof point</label>
-          <textarea className="input min-h-24 resize-y" value={form.quote} onChange={set('quote')} placeholder="Buyer quote, analyst note, pricing claim, review excerpt..." />
+          <label htmlFor="evidence-quote" className="label">Quote or proof point</label>
+          <textarea id="evidence-quote" className="input min-h-24 resize-y" value={form.quote} onChange={set('quote')} placeholder="Buyer quote, analyst note, pricing claim, review excerpt..." />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Source"><input className="input" value={form.source} onChange={set('source')} placeholder="G2 review, sales call, URL" /></Field>
@@ -97,7 +97,7 @@ export default function EvidenceClient() {
                     {item.source && <span className="chip border-ink-700 bg-ink-850 text-slate-400">{item.source}</span>}
                   </div>
                 </div>
-                <button onClick={() => remove(item.id)} disabled={deletingId === item.id} className="text-slate-600 transition hover:text-rose-400">
+                <button type="button" aria-label="Delete evidence" onClick={() => remove(item.id)} disabled={deletingId === item.id} className="text-slate-600 transition hover:text-rose-400">
                   <Icon name={deletingId === item.id ? 'refresh' : 'trash'} className={`h-4 w-4 ${deletingId === item.id ? 'animate-spin' : ''}`} />
                 </button>
               </div>
@@ -110,5 +110,5 @@ export default function EvidenceClient() {
 }
 
 function Field({ label, children }) {
-  return <div><label className="label">{label}</label>{children}</div>;
+  return <label className="block"><span className="label">{label}</span>{children}</label>;
 }

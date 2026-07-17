@@ -70,6 +70,16 @@ export default function CompetitorsClient() {
     }
   };
 
+  const saveAlertPrefs = async (next, previous) => {
+    setAlertPrefs(next);
+    try {
+      await api.saveCompetitorAlerts(next);
+    } catch (err) {
+      if (previous) setAlertPrefs(previous);
+      toast({ type: 'error', title: 'Could not save alert settings', message: err.message });
+    }
+  };
+
   const approve = async (id) => {
     await api.setStatus(id, 'approved');
     setCompetitors((cs) => cs.map((c) => c.id === id ? { ...c, status: 'approved' } : c));
@@ -82,7 +92,7 @@ export default function CompetitorsClient() {
   });
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-white">Competitors</h1>
@@ -115,7 +125,7 @@ export default function CompetitorsClient() {
               </button>
             ))}
           </div>
-          <button onClick={() => setView(view === 'grid' ? 'list' : 'grid')} className="btn-ghost p-2">
+          <button type="button" aria-label={`Switch to ${view === 'grid' ? 'list' : 'grid'} view`} onClick={() => setView(view === 'grid' ? 'list' : 'grid')} className="btn-ghost p-2">
             <Icon name={view === 'grid' ? 'list' : 'grid'} className="h-4 w-4" />
           </button>
           <Link href="/discover" className="btn-primary">
@@ -131,23 +141,22 @@ export default function CompetitorsClient() {
           <input
             type="checkbox"
             checked={alertPrefs.enabled !== false}
-            onChange={async (e) => {
+            onChange={(e) => {
+              const previous = alertPrefs;
               const next = { ...alertPrefs, enabled: e.target.checked };
-              setAlertPrefs(next);
-              await api.saveCompetitorAlerts(next).catch(() => {});
+              saveAlertPrefs(next, previous);
             }}
           />
-          Notify on drops ≥
+          Enable
         </label>
+        <label htmlFor="alert-threshold" className="text-xs text-slate-400">Notify on drops of at least</label>
         <input
+          id="alert-threshold"
           type="number"
           className="input w-20 py-1 text-xs"
           value={alertPrefs.thresholdPct ?? 10}
-          onChange={async (e) => {
-            const next = { ...alertPrefs, thresholdPct: Number(e.target.value) || 10 };
-            setAlertPrefs(next);
-            await api.saveCompetitorAlerts(next).catch(() => {});
-          }}
+          onChange={(e) => setAlertPrefs((current) => ({ ...current, thresholdPct: Number(e.target.value) || 10 }))}
+          onBlur={() => saveAlertPrefs(alertPrefs)}
         />
         <span className="text-xs text-slate-500">%</span>
       </div>

@@ -13,13 +13,12 @@ import intelligenceRouter from './routes/intelligence.js';
 import productsRouter from './routes/products.js';
 import reportsRouter from './routes/reports.js';
 import companyRouter from './routes/company.js';
-import waitlistRouter from './routes/waitlist.js';
 import featuresRouter from './routes/features.js';
-import { listCompetitors, getSetting } from './db/index.js';
+import { listCompetitors } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
-import { loadKeysFromDB } from './services/keys.js';
 import { reconcileStaleJobs } from './services/jobs.js';
 import { sendWeeklyDigests } from './services/digest.js';
+import { runWithWorkspaceKeys } from './services/workspaceExecution.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
@@ -39,7 +38,6 @@ app.use('/api/intelligence', intelligenceRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/company', companyRouter);
-app.use('/api/waitlist', waitlistRouter);
 app.use('/api/features', featuresRouter);
 
 // Centralized error handler — turns thrown errors into JSON with sensible codes.
@@ -59,10 +57,6 @@ if (existsSync(clientDist)) {
   }
 }
 
-loadKeysFromDB(getSetting).catch((err) => {
-  console.warn('[startup] Could not load keys from DB:', err.message);
-});
-
 // Any job left 'running' was interrupted by a restart — mark it failed so clients
 // get a clear "please re-run" instead of polling forever / hitting JOB_NOT_FOUND.
 reconcileStaleJobs().catch(() => {});
@@ -80,7 +74,21 @@ if ((process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false') {
     if (!competitors.length) return;
     console.log(`[cron] auto-refreshing ${competitors.length} competitors`);
     try {
-      const results = await refreshAll(competitors);
+      const byWorkspace = new Map();
+      for (const competitor of competitors) {
+        if (competitor.workspace_id == null) continue;
+        const key = String(competitor.workspace_id);
+        if (!byWorkspace.has(key)) byWorkspace.set(key, []);
+        byWorkspace.get(key).push(competitor);
+      }
+      const results = [];
+      for (const [workspaceId, workspaceCompetitors] of byWorkspace) {
+        const scoped = await runWithWorkspaceKeys(
+          workspaceId,
+          () => refreshAll(workspaceCompetitors, null, workspaceId)
+        );
+        results.push(...scoped);
+      }
       const changed = results.filter((r) => r.status === 'changed').length;
       console.log(`[cron] done — ${changed} change(s) detected`);
     } catch (err) {

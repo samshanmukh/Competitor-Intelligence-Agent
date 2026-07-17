@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from './ui';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
@@ -20,190 +20,18 @@ const WELL = 'rounded-xl bg-ink-950/70 shadow-[inset_0_1px_3px_rgba(0,0,0,0.55)]
 
 // Scroll-reveal wrapper.
 function Reveal({ children, delay = 0, y = 24, className = '' }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { opacity: 0, y }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.6, delay, ease: EASE }}
+      transition={reduceMotion ? undefined : { duration: 0.6, delay, ease: EASE }}
       className={className}
     >
       {children}
     </motion.div>
-  );
-}
-
-// Inline email capture -> POST /api/waitlist (same-origin route handler, so it
-// works in dev and on Vercel with no Express backend).
-function WaitlistForm({ size = 'lg', source = 'landing' }) {
-  const [email, setEmail] = useState('');
-  const [state, setState] = useState('idle'); // idle | loading | done | error
-  const [message, setMessage] = useState('');
-  const [comment, setComment] = useState('');
-  const [fbState, setFbState] = useState('idle'); // idle | loading | done
-
-  async function submit(e) {
-    e.preventDefault();
-    if (state === 'loading') return;
-    setState('loading');
-    setMessage('');
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), source }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || 'Something went wrong. Please try again.');
-      setState('done');
-      setMessage(data?.already ? 'You already have early access reserved. We\'ll be in touch.' : 'You\'re in! We\'ll email when your early access invite is ready.');
-    } catch (err) {
-      setState('error');
-      setMessage(err?.message || 'Something went wrong. Please try again.');
-    }
-  }
-
-  async function sendFeedback(e) {
-    e.preventDefault();
-    if (fbState === 'loading' || !comment.trim()) return;
-    setFbState('loading');
-    try {
-      await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), comment: comment.trim(), source }),
-      });
-    } catch {
-      /* best-effort; don't block the user on feedback */
-    }
-    setFbState('done');
-  }
-
-  if (state === 'done') {
-    return (
-      <div className="mx-auto w-full max-w-md space-y-3">
-        <div className="flex items-center justify-center gap-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 text-sm text-emerald-300">
-          <Icon name="check" className="h-4 w-4 shrink-0" />
-          <span>{message}</span>
-        </div>
-        {fbState === 'done' ? (
-          <p className="text-center text-sm text-slate-400">Thanks for the note. It helps us build the right thing.</p>
-        ) : (
-          <form onSubmit={sendFeedback} className="space-y-2.5">
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={3}
-              aria-label="Optional feedback or comment"
-              placeholder="Optional: what are you hoping Mira helps you with? Any comments?"
-              className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
-            />
-            <button
-              type="submit"
-              disabled={fbState === 'loading' || !comment.trim()}
-              className="w-full rounded-full bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
-            >
-              {fbState === 'loading' ? 'Sending…' : 'Send feedback'}
-            </button>
-          </form>
-        )}
-      </div>
-    );
-  }
-
-  const big = size === 'lg';
-  return (
-    <form onSubmit={submit} className="mx-auto w-full max-w-md">
-      <div className="flex flex-col gap-2.5 rounded-2xl sm:flex-row sm:gap-2 sm:rounded-full sm:border sm:border-white/10 sm:bg-white/5 sm:p-1.5 sm:backdrop-blur">
-        <input
-          type="email"
-          required
-          aria-label="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@company.com"
-          className={`flex-1 rounded-full border border-white/10 bg-white/5 text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50 sm:border-transparent sm:bg-transparent ${big ? 'px-5 py-3 text-base' : 'px-4 py-2.5 text-sm'}`}
-        />
-        <button
-          type="submit"
-          disabled={state === 'loading'}
-          className={`group inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-accent font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:opacity-60 ${big ? 'px-6 py-3 text-base' : 'px-5 py-2.5 text-sm'}`}
-        >
-          {state === 'loading' ? 'Getting access…' : <>Get early access <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" /></>}
-        </button>
-      </div>
-      {state === 'error' && <p className="mt-2 text-center text-xs text-rose-400">{message}</p>}
-      {state !== 'error' && <p className="mt-3 text-center text-xs text-slate-500">Free in early access. No credit card required.</p>}
-    </form>
-  );
-}
-
-// Combined waitlist form for the header popup: email (required) + an optional
-// queries/comments box, submitted together.
-function ModalWaitlistForm({ source = 'header-modal' }) {
-  const [email, setEmail] = useState('');
-  const [comment, setComment] = useState('');
-  const [state, setState] = useState('idle'); // idle | loading | done | error
-  const [message, setMessage] = useState('');
-
-  async function submit(e) {
-    e.preventDefault();
-    if (state === 'loading') return;
-    setState('loading');
-    setMessage('');
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), comment: comment.trim() || undefined, source }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || 'Something went wrong. Please try again.');
-      setState('done');
-      setMessage(data?.already ? 'You already have early access reserved. Thanks for the note.' : 'You\'re in! We\'ll be in touch.');
-    } catch (err) {
-      setState('error');
-      setMessage(err?.message || 'Something went wrong. Please try again.');
-    }
-  }
-
-  if (state === 'done') {
-    return (
-      <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3.5 text-sm text-emerald-300">
-        <Icon name="check" className="h-4 w-4 shrink-0" />
-        <span>{message}</span>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={submit} className="space-y-3">
-      <input
-        type="email"
-        required
-        aria-label="Email address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@company.com"
-        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
-      />
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        rows={3}
-        aria-label="Questions or comments (optional)"
-        placeholder="Questions or comments? (optional)"
-        className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
-      />
-      <button
-        type="submit"
-        disabled={state === 'loading'}
-        className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:opacity-60"
-      >
-        {state === 'loading' ? 'Getting access…' : 'Get early access'}
-      </button>
-      {state === 'error' && <p className="text-center text-xs text-rose-400">{message}</p>}
-    </form>
   );
 }
 
@@ -253,16 +81,10 @@ function PositioningMock() {
 
 export default function LandingPage() {
   const [authed, setAuthed] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
   useEffect(() => {
     setAuthed(Boolean(typeof window !== 'undefined' && localStorage.getItem('cia_token')));
   }, []);
-  useEffect(() => {
-    if (!modalOpen) return;
-    const onKey = (e) => { if (e.key === 'Escape') setModalOpen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [modalOpen]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink-950 text-slate-200">
@@ -281,7 +103,10 @@ export default function LandingPage() {
             {authed ? (
               <Link href="/app" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
             ) : (
-              <button type="button" onClick={() => setModalOpen(true)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Get early access</button>
+              <>
+                <Link href="/login" className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
+                <Link href="/signup" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
+              </>
             )}
           </div>
         </div>
@@ -294,18 +119,18 @@ export default function LandingPage() {
           {/* Drifting aurora blobs */}
           <motion.div
             className="absolute left-[18%] top-[-6%] h-[420px] w-[420px] rounded-full bg-accent/25 blur-[130px]"
-            animate={{ x: [0, 60, 0], y: [0, 30, 0], scale: [1, 1.12, 1] }}
-            transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+            animate={reduceMotion ? undefined : { x: [0, 60, 0], y: [0, 30, 0], scale: [1, 1.12, 1] }}
+            transition={reduceMotion ? undefined : { duration: 16, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
             className="absolute right-[14%] top-[8%] h-[360px] w-[360px] rounded-full bg-violet-600/22 blur-[130px]"
-            animate={{ x: [0, -50, 0], y: [0, 40, 0], scale: [1.1, 1, 1.1] }}
-            transition={{ duration: 19, repeat: Infinity, ease: 'easeInOut' }}
+            animate={reduceMotion ? undefined : { x: [0, -50, 0], y: [0, 40, 0], scale: [1.1, 1, 1.1] }}
+            transition={reduceMotion ? undefined : { duration: 19, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
             className="absolute left-1/2 top-[18%] h-[280px] w-[280px] -translate-x-1/2 rounded-full bg-sky-500/15 blur-[120px]"
-            animate={{ y: [0, -24, 0], scale: [1, 1.08, 1] }}
-            transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut' }}
+            animate={reduceMotion ? undefined : { y: [0, -24, 0], scale: [1, 1.08, 1] }}
+            transition={reduceMotion ? undefined : { duration: 13, repeat: Infinity, ease: 'easeInOut' }}
           />
           {/* Conic glow ring */}
           <div
@@ -344,9 +169,9 @@ export default function LandingPage() {
         <div className="mx-auto max-w-4xl px-5 pt-20 pb-14 text-center md:pt-28">
           <motion.a
             href="#why"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { duration: 0.5, ease: EASE }}
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 backdrop-blur transition hover:border-white/20"
           >
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -355,30 +180,30 @@ export default function LandingPage() {
           </motion.a>
 
           <motion.h1
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.06, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.06, ease: EASE }}
             className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl"
           >
-            <span className="bg-gradient-to-r from-accent-soft via-indigo-300 to-violet-300 bg-clip-text text-transparent">Decision support</span>
-            <br className="hidden sm:block" /> for startup founders
+            <span className="bg-gradient-to-r from-accent-soft via-indigo-300 to-violet-300 bg-clip-text text-transparent">Competitive and market intelligence</span>
+            <br className="hidden sm:block" /> for founders
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.12, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.12, ease: EASE }}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Mira learns your business, watches your market, and helps you prioritize your next move.
+            Mira turns your business, market, and competitor signals into decision support for your next move.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.18, ease: EASE }}
             className="mt-9"
-            id="early-access"
+            id="get-started"
           >
             {authed ? (
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -388,7 +213,12 @@ export default function LandingPage() {
                 <a href="#how" className="rounded-full border border-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">See how it works</a>
               </div>
             ) : (
-              <WaitlistForm size="lg" source="hero" />
+              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link href="/signup" className="group inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
+                  Create your account <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                </Link>
+                <Link href="/login" className="rounded-full border border-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">Sign in</Link>
+              </div>
             )}
           </motion.div>
         </div>
@@ -396,9 +226,9 @@ export default function LandingPage() {
         {/* Product preview */}
         <div className="mx-auto max-w-5xl px-5 pb-20">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.24, ease: EASE }}
+            initial={reduceMotion ? false : { opacity: 0, y: 40 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { duration: 0.8, delay: 0.24, ease: EASE }}
             className="relative"
           >
             <div className="absolute -inset-x-10 -top-8 bottom-0 -z-10 rounded-[40px] bg-accent/10 blur-3xl" />
@@ -573,16 +403,18 @@ export default function LandingPage() {
       <section className="px-5 pb-24">
         <Reveal className="relative mx-auto max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-b from-accent/15 to-ink-900 px-6 py-20 text-center">
           <div className="pointer-events-none absolute left-1/2 top-0 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-accent/25 blur-[120px]" />
-          <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">Limited early-access spots</span>
-          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">Be first in line</h2>
-          <p className="mx-auto mt-4 max-w-md text-slate-400">Get early access. We&apos;ll email your invite the moment it&apos;s ready.</p>
+          <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">Open to everyone</span>
+          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">See your market clearly</h2>
+          <p className="mx-auto mt-4 max-w-md text-slate-400">Create your account and start turning market signals into focused next moves.</p>
           <div className="mt-9">
             {authed ? (
               <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-7 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
                 <Icon name="sparkle" className="h-4 w-4" /> Go to app
               </Link>
             ) : (
-              <WaitlistForm size="lg" source="footer-cta" />
+              <Link href="/signup" className="group inline-flex items-center gap-1.5 rounded-full bg-accent px-7 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
+                Create your account <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+              </Link>
             )}
           </div>
         </Reveal>
@@ -597,38 +429,12 @@ export default function LandingPage() {
             <a href="#how" className="transition hover:text-slate-300">How it works</a>
             <a href="#why" className="transition hover:text-slate-300">Why Mira</a>
             <Link href="/requests" className="transition hover:text-slate-300">Feature requests</Link>
+            {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
+            {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}
           </div>
           <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira Vue</span>
         </div>
       </footer>
-
-      {/* Early access modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModalOpen(false)}>
-          <div className="absolute inset-0 bg-ink-950/80 backdrop-blur-sm" />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: EASE }}
-            className="relative w-full max-w-md rounded-3xl border border-white/10 bg-ink-900 p-7 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.9)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              aria-label="Close"
-              className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-slate-200"
-            >
-              <Icon name="x" className="h-4 w-4" />
-            </button>
-            <h3 className="text-xl font-semibold text-white">Get early access</h3>
-            <p className="mt-2 text-sm text-slate-400">Drop your email for an early access invite. Add any questions or comments below (optional).</p>
-            <div className="mt-6">
-              <ModalWaitlistForm source="header-modal" />
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }

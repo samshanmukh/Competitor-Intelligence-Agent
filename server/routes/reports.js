@@ -6,6 +6,11 @@ import { diffReportDistribution, distributionSnapshotKey } from '../services/mar
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+const SHARE_TTL_DAYS = Math.min(365, Math.max(1, Number(process.env.SHARED_REPORT_TTL_DAYS) || 30));
+
+function shareExpiresAt(createdAt) {
+  return new Date(new Date(createdAt).getTime() + SHARE_TTL_DAYS * 86400 * 1000).toISOString();
+}
 
 // List saved reports for the workspace (metadata only).
 router.get('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
@@ -14,7 +19,9 @@ router.get('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
     .select('id, title, token, created_by, created_at')
     .eq('workspace_id', req.workspaceId)
     .order('created_at', { ascending: false });
-  res.json({ reports: data || [] });
+  res.json({
+    reports: (data || []).map((report) => ({ ...report, expires_at: shareExpiresAt(report.created_at) })),
+  });
 }));
 
 // Save a new report snapshot.
@@ -33,7 +40,7 @@ router.post('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
     })
     .select('id, title, token, created_at')
     .maybeSingle();
-  res.json({ report: data });
+  res.json({ report: data ? { ...data, expires_at: shareExpiresAt(data.created_at) } : data });
 }));
 
 // Public read-only view by share token (no auth). Must be before /:id.
@@ -44,9 +51,15 @@ router.get('/shared/:token', wrap(async (req, res) => {
     .eq('token', req.params.token)
     .maybeSingle();
   if (!data) return res.status(404).json({ error: 'Not found' });
+  const expiresAt = shareExpiresAt(data.created_at);
+  if (Date.now() >= new Date(expiresAt).getTime()) {
+    return res.status(410).json({ error: 'This shared report link has expired.', code: 'SHARE_EXPIRED' });
+  }
   let content = null;
   try { content = data.content ? JSON.parse(data.content) : null; } catch { content = null; }
-  res.json({ report: { ...data, content } });
+  res.set('Cache-Control', 'private, no-store');
+  console.info('[shared-report] viewed', { reportId: data.id });
+  res.json({ report: { ...data, content, expires_at: expiresAt } });
 }));
 
 // Fetch one saved report (full content), scoped to the workspace.
@@ -60,7 +73,7 @@ router.get('/:id', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   if (!data) return res.status(404).json({ error: 'Not found' });
   let content = null;
   try { content = data.content ? JSON.parse(data.content) : null; } catch { content = null; }
-  res.json({ report: { ...data, content } });
+  res.json({ report: { ...data, content, expires_at: shareExpiresAt(data.created_at) } });
 }));
 
 // Compare a saved report's market distribution to the current workspace snapshot.

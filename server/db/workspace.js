@@ -30,13 +30,6 @@ export async function ensureUserHasWorkspace(userId, email) {
   const slug = `ws-${userId.slice(-8)}-${Date.now().toString(36)}`;
   const name = email ? `${email.split('@')[0]}'s Workspace` : 'My Workspace';
   const ws = await createWorkspace({ name, slug, ownerId: userId });
-
-  // Migrate any unscoped competitors to this new workspace.
-  await insforge.database
-    .from('competitors')
-    .update({ workspace_id: ws.id })
-    .is('workspace_id', null);
-
   return ws;
 }
 
@@ -49,6 +42,17 @@ export async function isWorkspaceMember(userId, workspaceId) {
     .eq('user_id', userId)
     .maybeSingle();
   return Boolean(data);
+}
+
+export async function getWorkspaceMember(userId, workspaceId) {
+  if (!userId || !Number.isFinite(Number(workspaceId))) return null;
+  const { data } = await insforge.database
+    .from('workspace_members')
+    .select()
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data;
 }
 
 export async function getWorkspace(id) {

@@ -47,7 +47,7 @@ export default function MovesClient() {
 
   return (
     <LabShell
-      title="Next Moves"
+      title="Next moves"
       subtitle="A short, founder-facing brief of what to do next from market and competitor signals."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
         {generating ? <Spinner /> : <Icon name="sparkle" className="h-4 w-4" />}

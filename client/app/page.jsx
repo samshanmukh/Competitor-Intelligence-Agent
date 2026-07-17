@@ -1,9 +1,9 @@
 import LandingPage from '../components/LandingPage';
 
 export const metadata = {
-  title: 'Mira Vue · Understand your business',
+  title: { absolute: 'Mira Vue · Competitive and market intelligence for founders' },
   description:
-    'Decision support for startup founders. Mira learns your business, watches your market, and helps you prioritize your next move.',
+    'Competitive and market intelligence for founders, turning business and competitor signals into decision support for the next move.',
 };
 
 export default function Home() {

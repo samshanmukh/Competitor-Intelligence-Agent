@@ -1,18 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { api } from '../lib/api';
 import { EmptyState, Icon, ImpactBadge, Skeleton, timeAgo, useToast } from './ui';
 
 function ChangeCard({ change }) {
   const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const analysis = typeof change.analysis === 'string' ? (() => { try { return JSON.parse(change.analysis); } catch { return null; } })() : change.analysis;
 
   return (
     <div className="card overflow-hidden">
-      <div
-        className="flex items-start gap-3 p-4 cursor-pointer hover:bg-ink-850/30 transition"
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        className="flex w-full cursor-pointer items-start gap-3 p-4 text-left transition hover:bg-ink-850/30 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent/50"
         onClick={() => setExpanded((e) => !e)}
       >
         <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
@@ -47,10 +51,10 @@ function ChangeCard({ change }) {
           name={expanded ? 'chevronUp' : 'chevronDown'}
           className="h-4 w-4 shrink-0 text-slate-600 mt-0.5"
         />
-      </div>
+      </button>
 
       {expanded && (
-        <div className="border-t border-ink-700 bg-ink-950/40">
+        <div id={detailsId} className="border-t border-ink-700 bg-ink-950/40">
           {change.diff && (
             <div className="p-4">
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Diff</h3>
@@ -101,7 +105,7 @@ export default function ChangesClient() {
   const loading = changes === null;
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-white">Changes</h1>

@@ -91,9 +91,9 @@ export default function CompanyDeepDiveClient() {
   }, []);
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Company Deep Dive</h1>
+        <h1 className="text-2xl font-semibold text-white">Deep dive</h1>
         <p className="mt-1 text-sm text-slate-500">
           Enter any company — get a full dossier: overview, financials, market value, web traffic, and review analysis.
         </p>
@@ -103,14 +103,14 @@ export default function CompanyDeepDiveClient() {
       <div className="card p-5">
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <div>
-            <label className="label">Company name</label>
-            <input className="input" placeholder="Notion" value={form.company} disabled={running}
+            <label htmlFor="deep-dive-company" className="label">Company name</label>
+            <input id="deep-dive-company" className="input" placeholder="Notion" value={form.company} disabled={running}
               onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
               onKeyDown={(e) => { if (e.key === 'Enter') run(); }} autoFocus />
           </div>
           <div>
-            <label className="label">Website / domain (optional)</label>
-            <input className="input" placeholder="notion.so" value={form.url} disabled={running}
+            <label htmlFor="deep-dive-url" className="label">Website / domain (optional)</label>
+            <input id="deep-dive-url" className="input" placeholder="notion.so" value={form.url} disabled={running}
               onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
               onKeyDown={(e) => { if (e.key === 'Enter') run(); }} />
           </div>

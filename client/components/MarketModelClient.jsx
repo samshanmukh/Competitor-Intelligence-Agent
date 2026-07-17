@@ -67,6 +67,7 @@ const CONF = {
 };
 
 export default function MarketModelClient() {
+  const toast = useToast();
   const [model, setModel] = useState(null);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
@@ -110,14 +111,18 @@ export default function MarketModelClient() {
     try {
       const { model: updated } = await api.applyTam(value);
       if (updated) setModel(updated);
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not apply sourced TAM', message: err.message });
+    }
   }
 
   async function reconcileBottomUp() {
     try {
       const { model: updated } = await api.reconcileBottomUp();
       if (updated) setModel(updated);
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast({ type: 'error', title: 'Could not reconcile model', message: err.message });
+    }
   }
 
   async function runFactCheck() {
@@ -139,7 +144,9 @@ export default function MarketModelClient() {
       try {
         const { model: saved } = await api.getMarketModel();
         if (saved) setModel(saved);
-      } catch { /* ignore */ }
+      } catch (err) {
+        setError(err?.message || 'Could not load the saved market model.');
+      }
       loadHistory();
       loadPulse();
       const jobId = typeof window !== 'undefined' ? localStorage.getItem(JOB_KEY) : null;
@@ -200,7 +207,11 @@ export default function MarketModelClient() {
       const d = derive(m.tam?.value_usd, inputs, baseAcv);
       const next = { ...m, inputs, sam: { ...m.sam, value_usd: d.sam }, som: { ...m.som, value_usd: d.som }, som_timeline: d.som_timeline };
       clearTimeout(saveRef.current);
-      saveRef.current = setTimeout(() => { api.saveMarketModel(inputs).catch(() => {}); }, 700);
+      saveRef.current = setTimeout(() => {
+        api.saveMarketModel(inputs).catch((err) => {
+          setError(err?.message || 'Your assumption changes could not be saved.');
+        });
+      }, 700);
       return next;
     });
   }
@@ -213,7 +224,7 @@ export default function MarketModelClient() {
     <div className="mx-auto max-w-4xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Market model</h1>
+          <h1 className="text-2xl font-semibold text-white">Market model</h1>
           <p className="mt-1 text-sm text-slate-400">TAM → SAM → SOM for your business. Every number is sourced or an editable assumption.</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -271,16 +282,60 @@ export default function MarketModelClient() {
 
 // Right-side drawer: independent verification of the model's claims.
 function FactDrawer({ factCheck, currentTam, busy, error, onRerun, onApplyTam, onClose }) {
+  const dialogRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const suggestTam = factCheck?.suggested_tam_usd;
   const showApply = suggestTam && currentTam && Math.abs(suggestTam - currentTam) / currentTam > 0.05;
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.querySelector('button')?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = [...dialogRef.current.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )].filter((element) => element.getClientRects().length > 0);
+      if (!focusable.length) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm" />
-      <div className="relative flex h-full w-full max-w-md flex-col border-l border-ink-700 bg-ink-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex justify-end" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm" onMouseDown={onClose} />
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="fact-drawer-title" tabIndex={-1} className="relative flex h-full w-full max-w-md flex-col border-l border-ink-700 bg-ink-900 shadow-2xl">
         <div className="flex items-center justify-between border-b border-ink-800 px-5 py-4">
           <div className="flex items-center gap-2">
             <Icon name="shield" className="h-4 w-4 text-accent-soft" />
-            <h3 className="text-sm font-semibold text-white">Fact-check</h3>
+            <h3 id="fact-drawer-title" className="text-sm font-semibold text-white">Fact-check</h3>
           </div>
           <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-slate-200">
             <Icon name="x" className="h-4 w-4" />

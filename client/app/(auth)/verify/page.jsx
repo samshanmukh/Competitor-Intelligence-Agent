@@ -3,11 +3,13 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { verifyEmailCode, resendCode } from '../../../lib/auth';
+import { verifyEmailCode, resendCode, rememberReturnPath, safeReturnPath } from '../../../lib/auth';
 
 function VerifyForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const returnTo = safeReturnPath(params.get('from'));
+  const loginHref = returnTo === '/app' ? '/login' : `/login?from=${encodeURIComponent(returnTo)}`;
 
   const [email, setEmail] = useState(params.get('email') || '');
   const [otp, setOtp] = useState('');
@@ -23,7 +25,8 @@ function VerifyForm() {
     setError('');
     try {
       await verifyEmailCode({ email: email.trim(), otp: otp.trim() });
-      router.push('/app');
+      rememberReturnPath(null);
+      router.push(returnTo);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,8 +57,9 @@ function VerifyForm() {
       </div>
 
       <div>
-        <label className="label">Email</label>
+        <label htmlFor="verify-email" className="label">Email</label>
         <input
+          id="verify-email"
           type="email"
           className="input"
           value={email}
@@ -67,8 +71,9 @@ function VerifyForm() {
       </div>
 
       <div>
-        <label className="label">Verification code</label>
+        <label htmlFor="verify-code" className="label">Verification code</label>
         <input
+          id="verify-code"
           className="input text-center text-lg tracking-[0.4em] font-mono"
           value={otp}
           onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -95,7 +100,7 @@ function VerifyForm() {
       </button>
 
       <p className="text-center text-xs text-slate-500">
-        <Link href="/login" className="text-accent-soft hover:text-white transition">Back to sign in</Link>
+        <Link href={loginHref} className="text-accent-soft hover:text-white transition">Back to sign in</Link>
       </p>
     </form>
   );

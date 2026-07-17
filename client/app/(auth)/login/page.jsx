@@ -2,12 +2,15 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { signIn, verifyEmailCode, resendCode } from '../../../lib/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, verifyEmailCode, resendCode, safeReturnPath, rememberReturnPath } from '../../../lib/auth';
 import OAuthButtons from '../../../components/OAuthButtons';
 
 function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const returnTo = safeReturnPath(params.get('from'));
+  const signupHref = returnTo === '/app' ? '/signup' : `/signup?from=${encodeURIComponent(returnTo)}`;
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -27,7 +30,8 @@ function LoginForm() {
     setError('');
     try {
       await signIn({ email: form.email, password: form.password });
-      router.push('/app');
+      rememberReturnPath(null);
+      router.push(returnTo);
     } catch (err) {
       // If the account exists but isn't verified, switch to inline code entry.
       if (/verif/i.test(err.message)) {
@@ -46,7 +50,8 @@ function LoginForm() {
     setError('');
     try {
       await verifyEmailCode({ email: form.email, otp: otp.trim() });
-      router.push('/app');
+      rememberReturnPath(null);
+      router.push(returnTo);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -79,6 +84,7 @@ function LoginForm() {
         </div>
         <input
           className="input text-center text-lg tracking-[0.4em] font-mono"
+          aria-label="Verification code"
           value={otp}
           onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
           placeholder="000000"
@@ -111,12 +117,12 @@ function LoginForm() {
     <div className="space-y-4">
       <form onSubmit={submit} className="card space-y-4 p-6">
         <div>
-          <label className="label">Email</label>
-          <input type="email" className="input" value={form.email} onChange={set('email')} placeholder="you@company.com" required autoFocus />
+          <label htmlFor="login-email" className="label">Email</label>
+          <input id="login-email" type="email" className="input" value={form.email} onChange={set('email')} placeholder="you@company.com" required autoFocus />
         </div>
         <div>
-          <label className="label">Password</label>
-          <input type="password" className="input" value={form.password} onChange={set('password')} placeholder="••••••••" required />
+          <label htmlFor="login-password" className="label">Password</label>
+          <input id="login-password" type="password" className="input" value={form.password} onChange={set('password')} placeholder="••••••••" required />
         </div>
         {error && (
           <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
@@ -124,12 +130,12 @@ function LoginForm() {
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
-        <OAuthButtons mode="signin" />
+        <OAuthButtons mode="signin" from={returnTo} />
       </form>
 
       <p className="text-center text-sm text-slate-500">
         No account?{' '}
-        <Link href="/signup" className="text-accent-soft hover:text-white transition">Create one</Link>
+        <Link href={signupHref} className="text-accent-soft hover:text-white transition">Create one</Link>
       </p>
     </div>
   );

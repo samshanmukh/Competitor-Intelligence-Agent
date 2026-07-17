@@ -7,7 +7,7 @@
 // result when it's done.
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
-import { complete, completeJSON } from '../services/ai.js';
+import { completeJSON } from '../services/ai.js';
 import { research, financeResearch } from '../services/youcom.js';
 import { getWebsiteTraffic, crawlContent, apifyConfigured } from '../services/apify.js';
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
@@ -15,7 +15,7 @@ import { sendPushToWorkspace } from '../services/push.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-router.use(requireAuth);
+router.use(requireAuth, resolveWorkspace);
 
 function flatten(payload) {
   const parts = [];
@@ -156,7 +156,7 @@ async function runDeepDive(company, url) {
 }
 
 // Start a background deep-dive; returns a jobId immediately.
-router.post('/deep-dive/start', resolveWorkspace, wrap(async (req, res) => {
+router.post('/deep-dive/start', wrap(async (req, res) => {
   const { company, url } = req.body || {};
   if (!company) return res.status(400).json({ error: 'company required' });
   const workspaceId = req.workspaceId;
@@ -182,7 +182,9 @@ router.post('/deep-dive/start', resolveWorkspace, wrap(async (req, res) => {
 
 router.get('/deep-dive/status/:jobId', wrap(async (req, res) => {
   const job = await getJob(req.params.jobId);
-  if (!job) return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  if (!job || String(job.workspace_id) !== String(req.workspaceId)) {
+    return res.status(404).json({ error: 'Job not found or expired', code: 'JOB_NOT_FOUND' });
+  }
   res.json({ status: job.status, result: job.result, error: job.error });
 }));
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { signInWithOAuth } from '../lib/auth';
 
-export default function OAuthButtons({ mode = 'signin' }) {
+export default function OAuthButtons({ mode = 'signin', from }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
 
@@ -11,7 +11,7 @@ export default function OAuthButtons({ mode = 'signin' }) {
     setLoading(provider);
     setError('');
     try {
-      await signInWithOAuth({ provider });
+      await signInWithOAuth(provider, { from });
     } catch (err) {
       setError(err.message || 'OAuth failed');
       setLoading(null);
