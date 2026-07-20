@@ -6,8 +6,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || 'Mira', {
       body: payload.body || 'A competitor pricing change was detected.',
-      icon: '/mira-icon.png',
-      badge: '/favicon.png',
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
       data: { url: payload.url || '/' },
       tag: payload.tag || 'pricing-change',
       renotify: true,

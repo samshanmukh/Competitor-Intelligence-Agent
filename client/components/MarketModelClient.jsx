@@ -561,7 +561,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
   a { color:#4f46e5; text-decoration:none; }
   @media print { body { margin:0; } }
 </style></head><body>
-  <div class="brand"><img src="/mira-logo.png" alt="Mira" height="36" /></div>
+  <div class="brand">Mira</div>
   <h1>Investor market brief</h1>
   <div class="muted">${esc(inputs.geography || 'Global')} · ${new Date().toLocaleDateString()} · Directional estimates</div>
   ${model.summary ? `<p style="margin-top:14px;font-size:14px">${esc(model.summary)}</p>` : ''}
@@ -612,7 +612,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
   a { color:#4f46e5; text-decoration:none; }
   @media print { body { margin:0; } }
 </style></head><body>
-  <div class="brand"><img src="/mira-logo.png" alt="Mira" height="36" /></div>
+  <div class="brand">Mira</div>
   <h1>Market model</h1>
   <div class="muted">${esc(inputs.geography || 'Global')} · TAM confidence: ${esc(model.tam?.confidence || 'n/a')} · ${new Date().toLocaleDateString()}</div>
   ${model.summary ? `<p class="box" style="margin-top:14px">${esc(model.summary)}</p>` : ''}

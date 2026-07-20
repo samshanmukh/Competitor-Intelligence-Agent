@@ -1,37 +1,30 @@
 import Link from 'next/link';
-import Image from 'next/image';
 
 /**
- * Mira brand mark. Prefer this over "Mira AI" text in chrome.
- * `full` = wordmark (crescent + Mira). `mark` = square icon.
+ * Mira text wordmark for app chrome. No image logo.
  */
 export default function BrandLogo({
   href = '/',
   className = '',
   height = 28,
   variant = 'full',
-  priority = false,
 }) {
-  const isMark = variant === 'mark';
-  const src = isMark ? '/mira-icon.png' : '/mira-logo.png';
-  const width = isMark ? height : Math.round((height * 1024) / 682);
+  const sizeClass =
+    height >= 40 ? 'text-2xl' : height >= 32 ? 'text-xl' : height >= 26 ? 'text-base' : height <= 18 ? 'text-xs' : 'text-sm';
 
-  const img = (
-    <Image
-      src={src}
-      alt="Mira"
-      width={width}
-      height={height}
-      priority={priority}
-      className={`object-contain ${isMark ? 'rounded-lg' : ''} ${className}`}
-      style={{ height, width: isMark ? height : 'auto' }}
-    />
+  const mark = (
+    <span
+      style={{ fontFamily: 'var(--font-brand)' }}
+      className={`font-semibold leading-none tracking-tight text-white ${sizeClass} ${className}`}
+    >
+      {variant === 'mark' ? 'M' : 'Mira'}
+    </span>
   );
 
-  if (href === null || href === false) return img;
+  if (href === null || href === false) return mark;
   return (
     <Link href={href} className="inline-flex shrink-0 items-center" aria-label="Mira home">
-      {img}
+      {mark}
     </Link>
   );
 }

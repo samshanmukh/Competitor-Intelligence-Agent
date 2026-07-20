@@ -236,10 +236,7 @@ export default function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-                <span className="ml-3 flex items-center gap-2 text-xs text-slate-500">
-                  <BrandLogo href={false} height={16} />
-                  Business report · Acme Analytics
-                </span>
+                <span className="ml-3 text-xs text-slate-500">Mira · Business report · Acme Analytics</span>
               </div>
               <div className="grid gap-4 p-5 md:grid-cols-3">
                 {/* Market growth tile */}
