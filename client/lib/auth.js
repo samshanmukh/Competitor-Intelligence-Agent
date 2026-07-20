@@ -1,18 +1,3 @@
-import { createClient } from '@insforge/sdk';
-
-let _client = null;
-function getClient() {
-  if (!_client) {
-    const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
-    if (!baseUrl || !anonKey) {
-      throw new Error('Authentication is not configured. Contact the workspace administrator.');
-    }
-    _client = createClient({ baseUrl, anonKey });
-  }
-  return _client;
-}
-
 const TOKEN_KEY = 'cia_token';
 const WORKSPACE_KEY = 'cia_workspace';
 const RETURN_TO_KEY = 'cia_return_to';
@@ -99,27 +84,16 @@ async function authProxy(path, body) {
 function applySession(data) {
   if (!data?.accessToken) return null;
   setToken(data.accessToken);
-  try {
-    getClient().setAccessToken?.(data.accessToken);
-  } catch {
-    /* client may be unconfigured in edge cases */
-  }
   return data.accessToken;
 }
 
 export async function signUp({ email, password, name }) {
+  // Same-origin only — never call InsForge from the browser (Safari SSL / network blocks).
   let data;
   try {
     data = await authProxy('/api/auth/password/sign-up', { email, password, name });
-  } catch (proxyErr) {
-    // Fallback for local/dev if the Next proxy isn't available.
-    try {
-      const result = await getClient().auth.signUp({ email, password, name });
-      if (result.error) throw new Error(result.error.message || 'Sign up failed');
-      data = result.data;
-    } catch (directErr) {
-      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
-    }
+  } catch (err) {
+    throw new Error(friendlyAuthNetworkError(err));
   }
 
   if (data?.accessToken) {
@@ -131,17 +105,12 @@ export async function signUp({ email, password, name }) {
 }
 
 export async function signIn({ email, password }) {
+  // Same-origin only — never call InsForge from the browser (Safari SSL / network blocks).
   let data;
   try {
     data = await authProxy('/api/auth/password/sign-in', { email, password });
-  } catch (proxyErr) {
-    try {
-      const result = await getClient().auth.signInWithPassword({ email, password });
-      if (result.error) throw new Error(result.error.message || 'Sign in failed');
-      data = result.data;
-    } catch (directErr) {
-      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
-    }
+  } catch (err) {
+    throw new Error(friendlyAuthNetworkError(err));
   }
 
   if (!data?.accessToken) throw new Error('No access token received');
@@ -203,13 +172,12 @@ function friendlyAuthNetworkError(err) {
 }
 
 export async function signInWithOAuth(provider, { from } = {}) {
-  // Keep redirectTo path-stable for InsForge allowlists; return path lives in sessionStorage.
+  // OAuth still redirects through InsForge after Google/GitHub. On some mobile
+  // networks Safari rejects InsForge's TLS cert ("Connection Is Not Private"),
+  // so we keep this path proxy-only and never fall back to a direct InsForge call.
   rememberReturnPath(from);
   const redirectTo = new URL('/auth/callback', window.location.origin).toString();
 
-  // Prefer same-origin proxy so browsers that block *.insforge.app still work.
-  let authUrl = null;
-  let proxyError = null;
   try {
     const { verifier, challenge } = await createPkcePair();
     sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
@@ -221,24 +189,18 @@ export async function signInWithOAuth(provider, { from } = {}) {
     const text = await res.text();
     let data = {};
     try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
-    if (res.ok && data.authUrl) authUrl = data.authUrl;
-    else proxyError = new Error(data.error || `OAuth sign in failed (${res.status})`);
-  } catch (err) {
-    proxyError = err;
-  }
-
-  if (!authUrl) {
-    // Fall back to direct InsForge SDK call when the proxy path fails.
-    try {
-      const { error } = await getClient().auth.signInWithOAuth(provider, { redirectTo });
-      if (error) throw new Error(error.message || 'OAuth sign in failed');
-      return;
-    } catch (directErr) {
-      throw new Error(friendlyAuthNetworkError(proxyError || directErr));
+    if (!res.ok || !data.authUrl) {
+      throw new Error(data.error || `OAuth sign in failed (${res.status})`);
     }
+    // Never send the browser to *.insforge.app — that surfaces Safari's SSL interstitial.
+    const host = new URL(data.authUrl).hostname;
+    if (/\.insforge\.app$/i.test(host) || host === 'insforge.app') {
+      throw new Error('Google/GitHub sign-in is temporarily unavailable on this network. Please use email instead.');
+    }
+    window.location.href = data.authUrl;
+  } catch (err) {
+    throw new Error(friendlyAuthNetworkError(err));
   }
-
-  window.location.href = authUrl;
 }
 
 // Deduplicate React Strict Mode double-mounts during the OAuth callback exchange.
@@ -253,19 +215,6 @@ export async function completeOAuthCallback() {
   if (_oauthCompletion) return _oauthCompletion;
 
   _oauthCompletion = (async () => {
-    const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
-    if (!baseUrl || !anonKey) {
-      throw new Error('Authentication is not configured. Contact the workspace administrator.');
-    }
-
-    // Disable auto-detection so we control the exchange and can capture accessToken.
-    const client = createClient({
-      baseUrl,
-      anonKey,
-      auth: { detectOAuthCallback: false },
-    });
-
     const params = new URLSearchParams(window.location.search);
     const oauthError = params.get('error');
     if (oauthError) {
@@ -273,7 +222,6 @@ export async function completeOAuthCallback() {
     }
 
     const code = params.get('insforge_code');
-    // Drop sensitive query params from the address bar as soon as we've read them.
     if (code || oauthError) {
       const clean = new URL(window.location.href);
       clean.searchParams.delete('insforge_code');
@@ -282,49 +230,25 @@ export async function completeOAuthCallback() {
       window.history.replaceState({}, document.title, clean.toString());
     }
 
-    let token = null;
-    let user = null;
-
-    if (code) {
-      const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
-      // Prefer same-origin exchange proxy (avoids browser → InsForge fetch failures).
-      try {
-        const res = await fetch('/api/auth/oauth/exchange', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, code_verifier: verifier }),
-        });
-        const text = await res.text();
-        let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
-        if (!res.ok) throw new Error(data.error || 'OAuth code exchange failed');
-        if (verifier) sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-        token = data?.accessToken || null;
-        user = data?.user || null;
-        if (token) client.setAccessToken(token);
-      } catch (proxyErr) {
-        const { data, error } = await client.auth.exchangeOAuthCode(code);
-        if (error) throw new Error(error.message || proxyErr.message || 'OAuth code exchange failed');
-        token = data?.accessToken || null;
-        user = data?.user || null;
-      }
-    } else {
-      const { data, error } = await client.auth.getCurrentUser();
-      if (error || !data?.user) {
-        throw new Error('Could not complete sign in. Please try again.');
-      }
-      user = data.user;
-      const refreshed = await client.auth.refreshSession();
-      if (refreshed.error) throw new Error(refreshed.error.message || 'Could not refresh session');
-      token = refreshed.data?.accessToken || null;
+    if (!code) {
+      throw new Error('Could not complete sign in. Please try email instead.');
     }
 
+    const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+    const res = await fetch('/api/auth/oauth/exchange', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, code_verifier: verifier }),
+    });
+    const data = await readJsonSafe(res);
+    if (!res.ok) throw new Error(data.error || 'OAuth code exchange failed');
+    if (verifier) sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+
+    const token = data?.accessToken || null;
+    const user = data?.user || null;
     if (!token) throw new Error('No session token found after OAuth.');
 
     setToken(token);
-    client.setAccessToken(token);
-    _client = client;
-
     const workspace = await ensureWorkspace(token);
     if (workspace) setWorkspace(workspace);
 
@@ -349,14 +273,8 @@ export async function verifyEmailCode({ email, otp }) {
   let data;
   try {
     data = await authProxy('/api/auth/password/verify', { email, otp });
-  } catch (proxyErr) {
-    try {
-      const result = await getClient().auth.verifyEmail({ email, otp });
-      if (result.error) throw new Error(result.error.message || 'Invalid or expired code');
-      data = result.data;
-    } catch (directErr) {
-      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
-    }
+  } catch (err) {
+    throw new Error(friendlyAuthNetworkError(err));
   }
   if (!data?.accessToken) throw new Error('Verification did not return a session token');
 
@@ -369,13 +287,8 @@ export async function verifyEmailCode({ email, otp }) {
 export async function resendCode(email) {
   try {
     await authProxy('/api/auth/password/resend', { email });
-  } catch (proxyErr) {
-    try {
-      const { error } = await getClient().auth.resendVerificationEmail({ email });
-      if (error) throw new Error(error.message || 'Could not resend code');
-    } catch (directErr) {
-      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
-    }
+  } catch (err) {
+    throw new Error(friendlyAuthNetworkError(err));
   }
 }
 
@@ -386,7 +299,7 @@ export async function isEmailVerified() {
 }
 
 export async function signOut() {
-  await getClient().auth.signOut().catch(() => {});
+  // Local sign-out only — avoid browser calls to InsForge.
   clearAuth();
 }
 
@@ -394,27 +307,27 @@ export async function getCurrentUser() {
   const token = getToken();
   if (!token) return null;
   try {
-    const { data, error } = await getClient().auth.getCurrentUser();
-    if (error || !data?.user) return null;
-    return data.user;
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await readJsonSafe(res);
+    return data?.user || data || null;
   } catch {
     return null;
   }
 }
 
-// Attempt to silently obtain a fresh access token using the Insforge SDK's
-// refresh mechanism (httpOnly refresh cookie). Returns the new token or null.
+// Best-effort session check via same-origin proxy. Returns the current token or null.
 export async function refreshAccessToken() {
+  const token = getToken();
+  if (!token) return null;
   try {
-    const client = getClient();
-    const { data, error } = await client.auth.getCurrentUser();
-    if (error || !data?.user) return null;
-    const token = client.auth.getAccessToken?.();
-    if (token) {
-      setToken(token);
-      return token;
-    }
-    return null;
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    return token;
   } catch {
     return null;
   }

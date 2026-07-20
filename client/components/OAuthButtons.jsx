@@ -15,8 +15,8 @@ export default function OAuthButtons({ mode = 'signin', from }) {
     } catch (err) {
       const msg = err.message || 'OAuth failed';
       setError(
-        /Failed to fetch|Network request failed|Could not reach/i.test(msg)
-          ? 'Could not start Google/GitHub sign-in. Try again, disable ad blockers for this site, or create an account with email.'
+        /Failed to fetch|Network request failed|Could not reach|unavailable|Not Private|insforge/i.test(msg)
+          ? 'Google/GitHub sign-in isn’t available on this network right now. Please use email instead.'
           : msg
       );
       setLoading(null);
@@ -32,6 +32,9 @@ export default function OAuthButtons({ mode = 'signin', from }) {
         <span className="text-[11px] uppercase tracking-wider text-slate-600">or</span>
         <div className="h-px flex-1 bg-ink-700" />
       </div>
+      <p className="text-center text-xs text-slate-500">
+        Prefer email if Google/GitHub shows a security warning on your phone.
+      </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <button
           type="button"
