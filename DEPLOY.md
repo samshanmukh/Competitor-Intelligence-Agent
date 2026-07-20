@@ -51,8 +51,15 @@ If you prefer Vercel for the frontend:
   detected"). Add `NEXT_PUBLIC_API_BASE`, both `NEXT_PUBLIC_INSFORGE_*` values, both
   server-side `INSFORGE_*` values, and a random 32+ character
   `FEATURE_REQUEST_SIGNING_SECRET`.
-- **Render** → deploy only the `cia-api` service (from `render.yaml` or manually:
-  root `.`, start `npm run start:server`).
+- **Render** → deploy only the API as a Web Service:
+  - **Root Directory:** (repo root)
+  - **Build Command:** `npm install`
+  - **Start Command:** `npm start` (runs `node server/index.js`)
+  - **Health Check Path:** `/api/health`
+  - Env vars: `INSFORGE_BASE_URL`, `INSFORGE_ANON_KEY`, `YOUCOM_API_KEY`, `XAI_API_KEY`,
+    plus optional `VAPID_*`, `RESEND_API_KEY`, `APP_URL=https://joinmira.ai`
+  - Then set Vercel `NEXT_PUBLIC_API_BASE` to the Render URL (e.g.
+    `https://competitor-intelligence-agent-rgxy.onrender.com`) and redeploy Vercel.
 
 ---
 

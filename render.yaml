@@ -14,7 +14,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: npm install
-    startCommand: node server/index.js
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: YOUCOM_API_KEY

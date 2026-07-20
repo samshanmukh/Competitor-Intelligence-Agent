@@ -9,12 +9,14 @@
     "dev:server": "node --watch server/index.js",
     "dev:client": "npm run dev --prefix client",
     "dev": "concurrently -n server,client -c blue,magenta \"npm run dev:server\" \"npm run dev:client\"",
-    "build": "npm run build --prefix client",
+    "build": "node scripts/render-safe-build.js",
+    "build:client": "npm run build --prefix client",
     "lint": "eslint . --max-warnings=0 && npm run lint --prefix client",
     "test": "node --test",
-    "check": "npm run test && npm run lint && npm run build",
+    "check": "npm run test && npm run lint && npm run build:client",
     "start:server": "node server/index.js",
-    "start": "concurrently -n server,client -c blue,magenta \"node server/index.js\" \"npm run start --prefix client\""
+    "start": "node server/index.js",
+    "start:all": "concurrently -n server,client -c blue,magenta \"node server/index.js\" \"npm run start --prefix client\""
   },
   "type": "module",
   "dependencies": {
