@@ -16,6 +16,17 @@ function signingSecret() {
   return secret;
 }
 
+/** All secrets ever used to derive OAuth bridge passwords (handles env drift). */
+function passwordSecrets() {
+  const list = [
+    process.env.OAUTH_STATE_SECRET,
+    process.env.FEATURE_REQUEST_SIGNING_SECRET,
+    process.env.INSFORGE_ANON_KEY,
+    process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY,
+  ].filter(Boolean);
+  return [...new Set(list.filter((s) => s.length >= 16))];
+}
+
 export function appOrigin(request) {
   const configured = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
   if (configured) return configured;
@@ -129,19 +140,22 @@ function insforgeConfig() {
   const baseUrl = (process.env.INSFORGE_BASE_URL || process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || '').replace(/\/$/, '');
   const anonKey = process.env.INSFORGE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
   if (!baseUrl || !anonKey) throw new Error('InsForge is not configured.');
-  return { baseUrl, anonKey };
+  // Admin API key (ik_…) can auto-confirm users; anon_… cannot.
+  const apiKey = process.env.INSFORGE_API_KEY || '';
+  return { baseUrl, anonKey, apiKey: apiKey.startsWith('ik_') ? apiKey : '' };
 }
 
-async function insforgeFetch(path, { method = 'POST', body } = {}) {
-  const { baseUrl, anonKey } = insforgeConfig();
+async function insforgeFetch(path, { method = 'POST', body, useApiKey = false } = {}) {
+  const { baseUrl, anonKey, apiKey } = insforgeConfig();
+  const bearer = useApiKey && apiKey ? apiKey : anonKey;
   const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
-      Authorization: `Bearer ${anonKey}`,
+      Authorization: `Bearer ${bearer}`,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
     cache: 'no-store',
   });
   const text = await res.text();
@@ -157,24 +171,42 @@ async function insforgeFetch(path, { method = 'POST', body } = {}) {
 }
 
 function oauthPasswords(provider, id) {
-  const secret = signingSecret();
-  const passwords = [
-    `Oa.${createHmac('sha256', secret).update(`${provider}:${id}`).digest('hex')}`,
-  ];
-  // Legacy GitHub bridge prefix from an earlier revision.
-  if (provider === 'github') {
-    passwords.push(`Gh.${createHmac('sha256', secret).update(`github:${id}`).digest('hex')}`);
+  const passwords = [];
+  for (const secret of passwordSecrets()) {
+    const digest = createHmac('sha256', secret).update(`${provider}:${id}`).digest('hex');
+    // Prefer policy-friendly prefix (upper + digit + special); keep legacy forms.
+    passwords.push(`Oa1.${digest}`);
+    passwords.push(`Oa.${digest}`);
+    if (provider === 'github') {
+      passwords.push(`Gh.${createHmac('sha256', secret).update(`github:${id}`).digest('hex')}`);
+    }
   }
-  return passwords;
+  return [...new Set(passwords)];
+}
+
+function isAlreadyExistsError(err) {
+  return err?.status === 409 || /already|exists|duplicate|registered/i.test(err?.message || '');
+}
+
+function isVerificationError(err) {
+  return err?.status === 403 || /verif/i.test(err?.message || '');
 }
 
 async function signInWithPasswords(email, passwords) {
   let lastErr;
   for (const password of passwords) {
     try {
-      return await insforgeFetch('/api/auth/sessions', { body: { email, password } });
+      return await insforgeFetch('/api/auth/sessions?client_type=server', {
+        body: { email, password },
+      });
     } catch (err) {
       lastErr = err;
+      // Wrong password — try next. Verification / other errors: keep trying passwords
+      // in case an older bridge hash works and this one doesn't.
+      if (isVerificationError(err) && !/invalid|credential|password|unauthorized/i.test(err.message || '')) {
+        // Definitely verification-gated; no point trying other passwords for login.
+        throw err;
+      }
     }
   }
   throw lastErr || new Error('Sign in failed');
@@ -182,76 +214,186 @@ async function signInWithPasswords(email, passwords) {
 
 async function signInWithGoogleIdToken(idToken) {
   try {
-    return await insforgeFetch('/api/auth/id-token?client_type=mobile', {
+    return await insforgeFetch('/api/auth/id-token?client_type=server', {
       body: { provider: 'google', token: idToken },
     });
   } catch {
-    return insforgeFetch('/api/auth/id-token', {
+    return insforgeFetch('/api/auth/id-token?client_type=mobile', {
       body: { provider: 'google', token: idToken },
     });
   }
 }
 
+async function findUserByEmail(email) {
+  const { apiKey } = insforgeConfig();
+  if (!apiKey) return null;
+  try {
+    const data = await insforgeFetch(
+      `/api/auth/users?search=${encodeURIComponent(email)}&limit=20`,
+      { method: 'GET', useApiKey: true }
+    );
+    const rows = data?.data || data?.users || [];
+    return rows.find((u) => String(u.email || '').toLowerCase() === email) || null;
+  } catch (err) {
+    console.error('[oauth] list users failed', err.message);
+    return null;
+  }
+}
+
+async function deleteUsers(userIds) {
+  if (!userIds?.length) return;
+  await insforgeFetch('/api/auth/users', {
+    method: 'DELETE',
+    useApiKey: true,
+    body: { userIds },
+  });
+}
+
+async function markEmailVerified(email) {
+  const { apiKey } = insforgeConfig();
+  if (!apiKey) return false;
+  try {
+    await insforgeFetch('/api/database/advance/rawsql/unrestricted', {
+      useApiKey: true,
+      body: {
+        query: 'UPDATE auth.users SET email_verified = true, updated_at = NOW() WHERE lower(email) = lower($1)',
+        params: [email],
+      },
+    });
+    return true;
+  } catch (err) {
+    console.error('[oauth] markEmailVerified failed', err.message);
+    return false;
+  }
+}
+
+async function createBridgeUser({ email, password, name }) {
+  const { apiKey } = insforgeConfig();
+  const body = {
+    email,
+    password,
+    name,
+    ...(apiKey ? { autoConfirm: true } : {}),
+  };
+  return insforgeFetch('/api/auth/users?client_type=server', {
+    body,
+    useApiKey: Boolean(apiKey),
+  });
+}
+
 /**
  * Bridge an external OAuth identity into InsForge via a deterministic server-only
- * password. Keeps the browser off *.insforge.app and works for Google + GitHub.
- * If the email already exists, sign in instead of showing an error.
+ * password. Keeps the browser off *.insforge.app.
+ *
+ * Requires INSFORGE_API_KEY (ik_…) so new users can be auto-confirmed when the
+ * project requires email verification. Without it, OAuth often creates an
+ * unverified user and then cannot sign them in.
  */
 export async function sessionFromOAuthProfile({ provider, id, email, name, idToken }) {
   if (!email) throw new Error(`${provider} account has no verified email.`);
   email = String(email).trim().toLowerCase();
   const passwords = oauthPasswords(provider, id);
+  const primaryPassword = passwords[0];
   const displayName = name || email.split('@')[0];
+  const { apiKey } = insforgeConfig();
+  let lastDetail = '';
 
-  // Returning OAuth user.
+  // 1) Returning OAuth bridge user.
   try {
     return await signInWithPasswords(email, passwords);
-  } catch {
-    /* create or link below */
-  }
-
-  // Google can sign in existing users via ID token (email match / account link).
-  if (idToken) {
-    try {
-      return await signInWithGoogleIdToken(idToken);
-    } catch {
-      /* continue */
+  } catch (err) {
+    lastDetail = err.message || 'sign-in failed';
+    if (isVerificationError(err)) {
+      // User exists with bridge password but email never verified (anon-key create).
+      if (apiKey && await markEmailVerified(email)) {
+        try {
+          return await signInWithPasswords(email, passwords);
+        } catch (err2) {
+          lastDetail = err2.message || lastDetail;
+        }
+      }
     }
   }
 
+  // 2) Google ID token (needs Google configured on InsForge with the same client ID).
+  if (idToken) {
+    try {
+      return await signInWithGoogleIdToken(idToken);
+    } catch (err) {
+      lastDetail = err.message || lastDetail;
+      console.error('[oauth] id-token failed', err.message);
+    }
+  }
+
+  // 3) Create new bridge user (API key + autoConfirm when available).
   try {
-    const created = await insforgeFetch('/api/auth/users', {
-      body: {
-        email,
-        password: passwords[0],
-        name: displayName,
-        autoConfirm: true,
-      },
+    const created = await createBridgeUser({
+      email,
+      password: primaryPassword,
+      name: displayName,
     });
     if (created?.accessToken) return created;
+    // Admin autoConfirm path may return no token — sign in next.
+    try {
+      return await signInWithPasswords(email, [primaryPassword, ...passwords.slice(1)]);
+    } catch (err) {
+      lastDetail = err.message || lastDetail;
+      if (isVerificationError(err) && apiKey && await markEmailVerified(email)) {
+        return await signInWithPasswords(email, [primaryPassword, ...passwords.slice(1)]);
+      }
+    }
   } catch (err) {
-    if (!/already|exists|duplicate|registered/i.test(err.message || '')) {
+    lastDetail = err.message || lastDetail;
+    if (!isAlreadyExistsError(err)) {
+      console.error('[oauth] create user failed', err.message);
       throw err;
     }
-    // Email already registered — sign in directly instead of erroring.
   }
 
-  // Existing account: prefer a normal sign-in (OAuth bridge password or Google ID token).
+  // 4) Email already registered — recover orphaned unverified users, else ask for password login.
+  const existing = await findUserByEmail(email);
+  if (existing && existing.emailVerified === false && apiKey) {
+    try {
+      await deleteUsers([existing.id]);
+      const created = await createBridgeUser({
+        email,
+        password: primaryPassword,
+        name: displayName,
+      });
+      if (created?.accessToken) return created;
+      return await signInWithPasswords(email, [primaryPassword]);
+    } catch (err) {
+      lastDetail = err.message || lastDetail;
+      console.error('[oauth] recreate unverified user failed', err.message);
+    }
+  }
+
+  // Retry sign-in once more after possible verify fix.
   try {
     return await signInWithPasswords(email, passwords);
-  } catch {
-    /* continue */
+  } catch (err) {
+    lastDetail = err.message || lastDetail;
   }
 
   if (idToken) {
     try {
       return await signInWithGoogleIdToken(idToken);
-    } catch {
-      /* continue */
+    } catch (err) {
+      lastDetail = err.message || lastDetail;
     }
   }
 
-  throw new Error('Could not complete social sign-in for this account. Try again or use email and password.');
+  console.error('[oauth] bridge exhausted', { provider, email, lastDetail, hasApiKey: Boolean(apiKey) });
+
+  if (!apiKey) {
+    throw new Error(
+      'Social sign-in needs INSFORGE_API_KEY on the server (InsForge → API Keys → ik_…). Add it on Vercel and retry.'
+    );
+  }
+
+  throw new Error(
+    'An account with this email already exists. Sign in with email and password, or reset your password.'
+  );
 }
 
 /** Prefer InsForge Google ID-token auth; fall back to email bridge. */
@@ -262,20 +404,12 @@ export async function sessionFromGoogleTokens({ idToken, accessToken }) {
   const profile = await res.json();
   if (!res.ok) throw new Error(profile.error?.message || 'Could not load Google profile');
 
-  // ID token first — signs in existing Mira accounts that share this Google email.
   if (idToken) {
     try {
       return await signInWithGoogleIdToken(idToken);
-    } catch {
-      /* use profile bridge */
+    } catch (err) {
+      console.error('[oauth] google id-token first pass failed', err.message);
     }
-  }
-
-  // Some InsForge projects accept the Google access token on the id-token endpoint.
-  try {
-    return await signInWithGoogleIdToken(accessToken);
-  } catch {
-    /* use profile bridge */
   }
 
   return sessionFromOAuthProfile({
