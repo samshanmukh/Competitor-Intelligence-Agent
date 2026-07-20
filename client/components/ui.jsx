@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import { companyLogoUrl } from '../lib/companyLogo';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const PATHS = {
@@ -55,6 +56,49 @@ export function Icon({ name, className = 'w-4 h-4' }) {
 
 export function Spinner({ className = '' }) {
   return <span className={`spinner ${className}`} role="status" aria-label="Loading" />;
+}
+
+/** Company mark from website/pricing URL (Google favicon), with letter fallback. */
+export function CompanyLogo({
+  name = '?',
+  website,
+  pricing_url,
+  url,
+  domain,
+  className = 'h-9 w-9 rounded-lg',
+  textClassName = 'text-sm',
+}) {
+  const src = companyLogoUrl({ website, pricing_url, url, domain });
+  const [failed, setFailed] = useState(false);
+  const letter = (name || '?').trim().charAt(0).toUpperCase() || '?';
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center bg-ink-800 font-bold text-slate-400 ${textClassName} ${className}`}
+        aria-hidden="true"
+      >
+        {letter}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative shrink-0 overflow-hidden bg-ink-800 ${className}`} aria-hidden="true">
+      <img
+        src={src}
+        alt=""
+        className="h-full w-full object-contain p-1.5"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
-import { Icon, Skeleton, useToast } from './ui';
+import { CompanyLogo, Icon, Skeleton, useToast } from './ui';
 import ReportView from './ReportView';
 import { PageHeader, PageShell } from './PageShell';
 
@@ -112,9 +112,13 @@ function ProductStage({ product, onSaved }) {
       <StageCard step={1} title="Your product" done>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent-soft text-lg font-bold">
-              {product.name[0].toUpperCase()}
-            </div>
+            <CompanyLogo
+              name={product.name}
+              website={product.website}
+              pricing_url={product.pricing_url}
+              className="h-11 w-11 rounded-xl"
+              textClassName="text-lg text-accent-soft"
+            />
             <div className="min-w-0">
               <h3 className="text-base font-semibold text-white">{product.name}</h3>
               {product.pricing_url && (

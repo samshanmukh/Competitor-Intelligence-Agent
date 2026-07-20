@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Icon, ImpactBadge, StatusDot, Skeleton, EmptyState, ValueScore, timeAgo, useToast, ConfirmDialog } from './ui';
+import { CompanyLogo, Icon, ImpactBadge, StatusDot, Skeleton, EmptyState, ValueScore, timeAgo, useToast, ConfirmDialog } from './ui';
 
 export default function CompetitorsClient() {
   const [competitors, setCompetitors] = useState(null);
@@ -177,9 +177,7 @@ export default function CompetitorsClient() {
             <div key={c.id} className="card p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink-800 text-sm font-bold text-slate-400">
-                    {c.name[0].toUpperCase()}
-                  </div>
+                  <CompanyLogo name={c.name} website={c.website} pricing_url={c.pricing_url} />
                   <div className="min-w-0">
                     <Link href={`/competitors/${c.id}`} className="block truncate text-sm font-semibold text-white hover:text-accent-soft transition">
                       {c.name}
@@ -244,6 +242,13 @@ export default function CompetitorsClient() {
                 <tr key={c.id} className="hover:bg-ink-850/50 transition">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
+                      <CompanyLogo
+                        name={c.name}
+                        website={c.website}
+                        pricing_url={c.pricing_url}
+                        className="h-7 w-7 rounded-md"
+                        textClassName="text-xs"
+                      />
                       <StatusDot competitor={c} />
                       <Link href={`/competitors/${c.id}`} className="font-medium text-white hover:text-accent-soft transition">{c.name}</Link>
                     </div>

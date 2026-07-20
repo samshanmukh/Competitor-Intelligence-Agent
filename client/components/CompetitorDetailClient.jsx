@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, ImpactBadge, Skeleton, TabBar, ValueScore, timeAgo, useToast, ConfirmDialog } from './ui';
+import { CompanyLogo, EmptyState, Icon, ImpactBadge, Skeleton, TabBar, ValueScore, timeAgo, useToast, ConfirmDialog } from './ui';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function CompetitorDetailClient({ id }) {
@@ -136,15 +136,24 @@ export default function CompetitorDetailClient({ id }) {
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">{competitor.name}</h1>
-          <a href={competitor.pricing_url} target="_blank" rel="noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-sm text-accent-soft hover:underline">
-            {competitor.pricing_url} <Icon name="external" className="h-3.5 w-3.5" />
-          </a>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <span>Checked {timeAgo(competitor.last_checked_at)}</span>
-            {competitor.last_changed_at && <span>Changed {timeAgo(competitor.last_changed_at)}</span>}
+        <div className="flex items-start gap-3 min-w-0">
+          <CompanyLogo
+            name={competitor.name}
+            website={competitor.website}
+            pricing_url={competitor.pricing_url}
+            className="h-12 w-12 rounded-xl"
+            textClassName="text-lg"
+          />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-white">{competitor.name}</h1>
+            <a href={competitor.pricing_url} target="_blank" rel="noreferrer"
+              className="mt-1 inline-flex items-center gap-1 text-sm text-accent-soft hover:underline">
+              {competitor.pricing_url} <Icon name="external" className="h-3.5 w-3.5" />
+            </a>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <span>Checked {timeAgo(competitor.last_checked_at)}</span>
+              {competitor.last_changed_at && <span>Changed {timeAgo(competitor.last_changed_at)}</span>}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">

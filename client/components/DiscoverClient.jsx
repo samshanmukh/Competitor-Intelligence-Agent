@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, Skeleton, useToast } from './ui';
+import { CompanyLogo, EmptyState, Icon, Skeleton, useToast } from './ui';
 import { PageHeader, PageShell } from './PageShell';
 
 const MODES = [
@@ -217,9 +217,7 @@ export default function DiscoverClient() {
                       onChange={(e) => setSelected((s) => ({ ...s, [c.pricing_url]: e.target.checked }))}
                       className="mt-1 h-4 w-4 accent-indigo-500"
                     />
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink-800 text-sm font-bold text-slate-400">
-                      {c.name[0].toUpperCase()}
-                    </div>
+                    <CompanyLogo name={c.name} website={c.website} pricing_url={c.pricing_url} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-white">{c.name}</span>

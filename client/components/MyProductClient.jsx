@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { Icon, Skeleton, useToast } from './ui';
+import { CompanyLogo, Icon, Skeleton, useToast } from './ui';
 
 export default function MyProductClient() {
   const [competitors, setCompetitors] = useState(null);
@@ -163,9 +163,13 @@ export default function MyProductClient() {
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {competitors.map((c) => (
                 <div key={c.id} className="card p-3 flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded bg-ink-800 text-xs font-bold text-slate-400">
-                    {c.name[0].toUpperCase()}
-                  </div>
+                  <CompanyLogo
+                    name={c.name}
+                    website={c.website}
+                    pricing_url={c.pricing_url}
+                    className="h-7 w-7 rounded"
+                    textClassName="text-xs"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{c.name}</p>
                     {c.value_score != null && (
