@@ -60,22 +60,70 @@ async function readJsonSafe(res) {
 }
 
 async function ensureWorkspace(token) {
-  const res = await fetch(`${API_BASE}/api/auth/ensure-workspace`, {
+  // Same-origin Next proxy first (phone never needs to reach Render/InsForge directly).
+  const paths = ['/api/auth/ensure-workspace'];
+  if (API_BASE) paths.push(`${API_BASE}/api/auth/ensure-workspace`);
+  for (const url of paths) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) continue;
+      const { workspace } = await readJsonSafe(res);
+      if (workspace) return workspace;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+async function authProxy(path, body) {
+  const res = await fetch(path, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
-  if (!res.ok) return null;
-  const { workspace } = await readJsonSafe(res);
-  return workspace || null;
+  const data = await readJsonSafe(res);
+  if (!res.ok) {
+    const message = data.message || data.error || `Request failed (${res.status})`;
+    const err = new Error(message);
+    err.status = res.status;
+    err.code = data.error;
+    throw err;
+  }
+  return data;
+}
+
+function applySession(data) {
+  if (!data?.accessToken) return null;
+  setToken(data.accessToken);
+  try {
+    getClient().setAccessToken?.(data.accessToken);
+  } catch {
+    /* client may be unconfigured in edge cases */
+  }
+  return data.accessToken;
 }
 
 export async function signUp({ email, password, name }) {
-  const { data, error } = await getClient().auth.signUp({ email, password, name });
-  if (error) throw new Error(error.message || 'Sign up failed');
-  // If verification is disabled, Insforge returns a session immediately — store it
-  // and bootstrap the workspace so the user can go straight into the app.
+  let data;
+  try {
+    data = await authProxy('/api/auth/password/sign-up', { email, password, name });
+  } catch (proxyErr) {
+    // Fallback for local/dev if the Next proxy isn't available.
+    try {
+      const result = await getClient().auth.signUp({ email, password, name });
+      if (result.error) throw new Error(result.error.message || 'Sign up failed');
+      data = result.data;
+    } catch (directErr) {
+      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
+    }
+  }
+
   if (data?.accessToken) {
-    setToken(data.accessToken);
+    applySession(data);
     const ws = await ensureWorkspace(data.accessToken);
     if (ws) setWorkspace(ws);
   }
@@ -83,11 +131,21 @@ export async function signUp({ email, password, name }) {
 }
 
 export async function signIn({ email, password }) {
-  const { data, error } = await getClient().auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message || 'Sign in failed');
-  if (!data?.accessToken) throw new Error('No access token received');
+  let data;
+  try {
+    data = await authProxy('/api/auth/password/sign-in', { email, password });
+  } catch (proxyErr) {
+    try {
+      const result = await getClient().auth.signInWithPassword({ email, password });
+      if (result.error) throw new Error(result.error.message || 'Sign in failed');
+      data = result.data;
+    } catch (directErr) {
+      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
+    }
+  }
 
-  setToken(data.accessToken);
+  if (!data?.accessToken) throw new Error('No access token received');
+  applySession(data);
   const ws = await ensureWorkspace(data.accessToken);
   if (ws) setWorkspace(ws);
 
@@ -139,9 +197,9 @@ async function createPkcePair() {
 function friendlyAuthNetworkError(err) {
   const msg = err?.message || '';
   if (/Failed to fetch|NetworkError|Network request failed|Load failed/i.test(msg)) {
-    return 'Could not reach the sign-in service. Check your connection, disable ad blockers for this site, then try again — or use email signup.';
+    return 'Could not reach the sign-in service. Check your connection and try again in a moment.';
   }
-  return msg || 'OAuth sign in failed';
+  return msg || 'Sign in failed';
 }
 
 export async function signInWithOAuth(provider, { from } = {}) {
@@ -288,19 +346,37 @@ export async function completeOAuthCallback() {
 
 // Verify a 6-digit email code, store the resulting session, and bootstrap the workspace.
 export async function verifyEmailCode({ email, otp }) {
-  const { data, error } = await getClient().auth.verifyEmail({ email, otp });
-  if (error) throw new Error(error.message || 'Invalid or expired code');
+  let data;
+  try {
+    data = await authProxy('/api/auth/password/verify', { email, otp });
+  } catch (proxyErr) {
+    try {
+      const result = await getClient().auth.verifyEmail({ email, otp });
+      if (result.error) throw new Error(result.error.message || 'Invalid or expired code');
+      data = result.data;
+    } catch (directErr) {
+      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
+    }
+  }
   if (!data?.accessToken) throw new Error('Verification did not return a session token');
 
-  setToken(data.accessToken);
+  applySession(data);
   const ws = await ensureWorkspace(data.accessToken);
   if (ws) setWorkspace(ws);
   return { user: data.user, token: data.accessToken, workspace: ws };
 }
 
 export async function resendCode(email) {
-  const { error } = await getClient().auth.resendVerificationEmail({ email });
-  if (error) throw new Error(error.message || 'Could not resend code');
+  try {
+    await authProxy('/api/auth/password/resend', { email });
+  } catch (proxyErr) {
+    try {
+      const { error } = await getClient().auth.resendVerificationEmail({ email });
+      if (error) throw new Error(error.message || 'Could not resend code');
+    } catch (directErr) {
+      throw new Error(friendlyAuthNetworkError(proxyErr.message ? proxyErr : directErr));
+    }
+  }
 }
 
 // True if the signed-in user's email is verified (best-effort).
