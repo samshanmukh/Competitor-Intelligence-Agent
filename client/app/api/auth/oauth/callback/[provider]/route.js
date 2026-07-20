@@ -12,6 +12,8 @@ import {
   sessionFromOAuthProfile,
 } from '../../../../../../lib/oauthServer';
 
+export const runtime = 'nodejs';
+
 const PROVIDERS = new Set(['google', 'github']);
 
 export async function GET(request, context) {

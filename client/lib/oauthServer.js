@@ -142,8 +142,12 @@ function insforgeConfig() {
   const anonKey = process.env.INSFORGE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
   if (!baseUrl || !anonKey) throw new Error('InsForge is not configured.');
   // Admin API key (ik_…) can auto-confirm users; anon_… cannot.
-  const apiKey = process.env.INSFORGE_API_KEY || '';
-  return { baseUrl, anonKey, apiKey: apiKey.startsWith('ik_') ? apiKey : '' };
+  let apiKey = (process.env.INSFORGE_API_KEY || '').trim();
+  if (apiKey.toLowerCase().startsWith('bearer ')) apiKey = apiKey.slice(7).trim();
+  if (apiKey && !apiKey.startsWith('ik_')) {
+    console.warn('[oauth] INSFORGE_API_KEY should start with ik_ — got a different shape');
+  }
+  return { baseUrl, anonKey, apiKey };
 }
 
 async function insforgeFetch(path, { method = 'POST', body, useApiKey = false } = {}) {
@@ -276,24 +280,54 @@ async function markEmailVerified(email) {
 async function linkExistingAccountWithBridgePassword(email, password) {
   const { apiKey } = insforgeConfig();
   if (!apiKey) return false;
-  try {
-    const hash = await bcrypt.hash(password, 10);
-    await insforgeFetch('/api/database/advance/rawsql/unrestricted', {
-      useApiKey: true,
-      body: {
-        query: `
-          UPDATE auth.users
-          SET password = $1, email_verified = true, updated_at = NOW()
-          WHERE lower(email) = lower($2)
-        `,
-        params: [hash, email],
-      },
-    });
-    return true;
-  } catch (err) {
-    console.error('[oauth] linkExistingAccount failed', err.message);
-    return false;
+
+  const hash = await bcrypt.hash(password, 10);
+  const attempts = [
+    {
+      query: `
+        UPDATE auth.users
+        SET password = $1, email_verified = true, updated_at = NOW()
+        WHERE lower(email) = lower($2)
+        RETURNING id
+      `,
+      params: [hash, email],
+    },
+    // Fallback if pgcrypto is available and bcryptjs hash is rejected.
+    {
+      query: `
+        UPDATE auth.users
+        SET password = crypt($1, gen_salt('bf')), email_verified = true, updated_at = NOW()
+        WHERE lower(email) = lower($2)
+        RETURNING id
+      `,
+      params: [password, email],
+    },
+  ];
+
+  for (const body of attempts) {
+    try {
+      const result = await insforgeFetch('/api/database/advance/rawsql/unrestricted', {
+        useApiKey: true,
+        body,
+      });
+      const rows = result?.rows || result?.data || [];
+      const count = result?.rowCount ?? rows.length;
+      if (count > 0 || rows.length > 0) return true;
+      console.error('[oauth] linkExistingAccount updated 0 rows', { email, result });
+    } catch (err) {
+      console.error('[oauth] linkExistingAccount failed', err.message, err.data);
+    }
   }
+  return false;
+}
+
+/** Existing email + verified social identity → set bridge password and sign in. */
+async function loginExistingEmail(email, passwords) {
+  const primaryPassword = passwords[0];
+  if (!(await linkExistingAccountWithBridgePassword(email, primaryPassword))) {
+    return null;
+  }
+  return signInWithPasswords(email, [primaryPassword, ...passwords.slice(1)]);
 }
 
 async function createBridgeUser({ email, password, name }) {
@@ -344,6 +378,17 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
     }
   }
 
+  // 1b) Email likely already registered with a different password — link + log in silently.
+  if (apiKey) {
+    try {
+      const linked = await loginExistingEmail(email, passwords);
+      if (linked?.accessToken) return linked;
+    } catch (err) {
+      lastDetail = err.message || lastDetail;
+      console.error('[oauth] early link+login failed', err.message);
+    }
+  }
+
   // 2) Google ID token (needs Google configured on InsForge with the same client ID).
   if (idToken) {
     try {
@@ -377,35 +422,34 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
       console.error('[oauth] create user failed', err.message);
       throw err;
     }
-  }
 
-  // 4) Email already registered — link social login onto that account.
-  // Provider already verified email ownership (Google/GitHub), so overwriting the
-  // bridge password is the intended "Continue with Google" account-link behavior.
-  if (apiKey) {
-    const existing = await findUserByEmail(email);
-    if (existing?.emailVerified === false) {
+    // 4) Email already exists → silently link + log in (no user-facing "already exists").
+    if (apiKey) {
       try {
-        await deleteUsers([existing.id]);
-        const created = await createBridgeUser({
-          email,
-          password: primaryPassword,
-          name: displayName,
-        });
-        if (created?.accessToken) return created;
-        return await signInWithPasswords(email, [primaryPassword]);
-      } catch (err) {
-        lastDetail = err.message || lastDetail;
-        console.error('[oauth] recreate unverified user failed', err.message);
+        const session = await loginExistingEmail(email, passwords);
+        if (session?.accessToken) return session;
+      } catch (linkErr) {
+        lastDetail = linkErr.message || lastDetail;
+        console.error('[oauth] loginExistingEmail failed', linkErr.message);
       }
-    }
 
-    if (await linkExistingAccountWithBridgePassword(email, primaryPassword)) {
-      try {
-        return await signInWithPasswords(email, [primaryPassword]);
-      } catch (err) {
-        lastDetail = err.message || lastDetail;
-        console.error('[oauth] sign-in after link failed', err.message);
+      // Last resort for stuck unverified orphans only.
+      const existing = await findUserByEmail(email);
+      const unverified = existing && (existing.emailVerified === false || existing.email_verified === false);
+      if (unverified) {
+        try {
+          await deleteUsers([existing.id]);
+          const created = await createBridgeUser({
+            email,
+            password: primaryPassword,
+            name: displayName,
+          });
+          if (created?.accessToken) return created;
+          return await signInWithPasswords(email, [primaryPassword]);
+        } catch (recreateErr) {
+          lastDetail = recreateErr.message || lastDetail;
+          console.error('[oauth] recreate unverified user failed', recreateErr.message);
+        }
       }
     }
   }
@@ -418,9 +462,7 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
     );
   }
 
-  throw new Error(
-    'Could not link social sign-in to this account. Try email and password, or reset your password.'
-  );
+  throw new Error('Social sign-in failed. Please try again in a moment.');
 }
 
 /** Prefer InsForge Google ID-token auth; fall back to email bridge. */
