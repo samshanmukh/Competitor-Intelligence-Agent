@@ -156,62 +156,134 @@ async function insforgeFetch(path, { method = 'POST', body } = {}) {
   return data;
 }
 
+function oauthPasswords(provider, id) {
+  const secret = signingSecret();
+  const passwords = [
+    `Oa.${createHmac('sha256', secret).update(`${provider}:${id}`).digest('hex')}`,
+  ];
+  // Legacy GitHub bridge prefix from an earlier revision.
+  if (provider === 'github') {
+    passwords.push(`Gh.${createHmac('sha256', secret).update(`github:${id}`).digest('hex')}`);
+  }
+  return passwords;
+}
+
+async function signInWithPasswords(email, passwords) {
+  let lastErr;
+  for (const password of passwords) {
+    try {
+      return await insforgeFetch('/api/auth/sessions', { body: { email, password } });
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Sign in failed');
+}
+
+async function signInWithGoogleIdToken(idToken) {
+  try {
+    return await insforgeFetch('/api/auth/id-token?client_type=mobile', {
+      body: { provider: 'google', token: idToken },
+    });
+  } catch {
+    return insforgeFetch('/api/auth/id-token', {
+      body: { provider: 'google', token: idToken },
+    });
+  }
+}
+
 /**
  * Bridge an external OAuth identity into InsForge via a deterministic server-only
  * password. Keeps the browser off *.insforge.app and works for Google + GitHub.
+ * If the email already exists, sign in instead of showing an error.
  */
-export async function sessionFromOAuthProfile({ provider, id, email, name }) {
+export async function sessionFromOAuthProfile({ provider, id, email, name, idToken }) {
   if (!email) throw new Error(`${provider} account has no verified email.`);
-  const secret = signingSecret();
-  const password = `Oa.${createHmac('sha256', secret).update(`${provider}:${id}`).digest('hex')}`;
+  email = String(email).trim().toLowerCase();
+  const passwords = oauthPasswords(provider, id);
+  const displayName = name || email.split('@')[0];
 
+  // Returning OAuth user.
   try {
-    return await insforgeFetch('/api/auth/sessions', { body: { email, password } });
+    return await signInWithPasswords(email, passwords);
   } catch {
-    /* create below */
+    /* create or link below */
+  }
+
+  // Google can sign in existing users via ID token (email match / account link).
+  if (idToken) {
+    try {
+      return await signInWithGoogleIdToken(idToken);
+    } catch {
+      /* continue */
+    }
   }
 
   try {
     const created = await insforgeFetch('/api/auth/users', {
       body: {
         email,
-        password,
-        name: name || email.split('@')[0],
+        password: passwords[0],
+        name: displayName,
+        autoConfirm: true,
       },
     });
     if (created?.accessToken) return created;
   } catch (err) {
-    if (/already|exists|duplicate|registered/i.test(err.message || '')) {
-      throw new Error('An account with this email already exists. Sign in with email and password instead.');
+    if (!/already|exists|duplicate|registered/i.test(err.message || '')) {
+      throw err;
     }
-    throw err;
+    // Email already registered — sign in directly instead of erroring.
   }
 
-  return insforgeFetch('/api/auth/sessions', { body: { email, password } });
+  // Existing account: prefer a normal sign-in (OAuth bridge password or Google ID token).
+  try {
+    return await signInWithPasswords(email, passwords);
+  } catch {
+    /* continue */
+  }
+
+  if (idToken) {
+    try {
+      return await signInWithGoogleIdToken(idToken);
+    } catch {
+      /* continue */
+    }
+  }
+
+  throw new Error('Could not complete social sign-in for this account. Try again or use email and password.');
 }
 
 /** Prefer InsForge Google ID-token auth; fall back to email bridge. */
 export async function sessionFromGoogleTokens({ idToken, accessToken }) {
-  if (idToken) {
-    try {
-      return await insforgeFetch('/api/auth/id-token?client_type=mobile', {
-        body: { provider: 'google', token: idToken },
-      });
-    } catch {
-      /* audience mismatch or unsupported — use profile bridge */
-    }
-  }
-
   const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const profile = await res.json();
   if (!res.ok) throw new Error(profile.error?.message || 'Could not load Google profile');
+
+  // ID token first — signs in existing Mira accounts that share this Google email.
+  if (idToken) {
+    try {
+      return await signInWithGoogleIdToken(idToken);
+    } catch {
+      /* use profile bridge */
+    }
+  }
+
+  // Some InsForge projects accept the Google access token on the id-token endpoint.
+  try {
+    return await signInWithGoogleIdToken(accessToken);
+  } catch {
+    /* use profile bridge */
+  }
+
   return sessionFromOAuthProfile({
     provider: 'google',
     id: profile.id,
     email: profile.email,
     name: profile.name,
+    idToken,
   });
 }
 
