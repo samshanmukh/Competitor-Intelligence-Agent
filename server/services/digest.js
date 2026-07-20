@@ -46,7 +46,7 @@ function formatPulseSection(distribution, pulse = null, syndicated = null) {
       ${shiftBlock}
       ${synBlock}
       <table style="width:100%;border-collapse:collapse;margin-top:12px;">${rows}</table>
-      <div style="color:#6b7280;font-size:11px;margin-top:8px;">Directional estimates — view full distribution on Mira Vue.</div>
+      <div style="color:#6b7280;font-size:11px;margin-top:8px;">Directional estimates — view full distribution on Mira AI.</div>
     </div>`;
 }
 
@@ -148,7 +148,7 @@ export async function sendWeeklyDigests() {
       const html = buildDigestHtml(ws, recent, pulseSection, actionsSection);
       const res = await sendEmail({
         to: ws.digest_email,
-        subject: `Mira Vue — weekly competitor digest — ${recent.length} change${recent.length !== 1 ? 's' : ''}`,
+        subject: `Mira AI — weekly competitor digest — ${recent.length} change${recent.length !== 1 ? 's' : ''}`,
         html,
       });
       if (res.sent) sent++;

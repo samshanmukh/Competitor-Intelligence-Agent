@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'Create account',
-  description: 'Create a Mira Vue account and workspace.',
+  description: 'Create a Mira AI account and workspace.',
 };
 
 export default function SignupLayout({ children }) {

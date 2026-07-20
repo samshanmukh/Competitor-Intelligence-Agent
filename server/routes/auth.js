@@ -99,7 +99,7 @@ router.post('/workspaces/:id/digest-test', requireAuth, wrap(async (req, res) =>
   if (!to) return res.status(400).json({ error: 'No digest email set' });
   const result = await sendEmail({
     to,
-    subject: 'Test — Mira Vue weekly digest',
+    subject: 'Test — Mira AI weekly digest',
     html: `<div style="font-family:sans-serif;padding:24px;"><h2>It works ✅</h2><p>Weekly digests will arrive here every Sunday with the past week's competitor changes.</p></div>`,
   });
   res.json(result);
@@ -138,10 +138,10 @@ router.post('/workspaces/:id/members', requireAuth, wrap(async (req, res) => {
   if (emailConfigured()) {
     const result = await sendEmail({
       to: normalized,
-      subject: `You're invited to ${ws.name} on Mira Vue`,
+      subject: `You're invited to ${ws.name} on Mira AI`,
       html: `<div style="font-family:sans-serif;padding:24px;max-width:480px;">
         <h2 style="margin:0 0 12px;">Join ${ws.name}</h2>
-        <p style="color:#475569;line-height:1.5;">${req.user?.email || 'A teammate'} invited you to collaborate on Mira Vue as <strong>${role}</strong>.</p>
+        <p style="color:#475569;line-height:1.5;">${req.user?.email || 'A teammate'} invited you to collaborate on Mira AI as <strong>${role}</strong>.</p>
         <p style="margin:24px 0;"><a href="${inviteUrl}" style="background:#3b82f6;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;">Accept invite</a></p>
         <p style="color:#94a3b8;font-size:12px;">Or sign up / sign in with <strong>${normalized}</strong> and open this link.</p>
       </div>`,

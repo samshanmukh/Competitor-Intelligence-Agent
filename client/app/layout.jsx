@@ -4,11 +4,11 @@ import { ToastProvider } from '../components/ui';
 import AppShell from '../components/AppShell';
 
 const inter = Inter({ subsets: ['latin'] });
-// Brand wordmark font, exposed as --font-brand for the "Mira Vue" logo only.
+// Brand wordmark font, exposed as --font-brand for the "Mira AI" logo only.
 const brand = Unbounded({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-brand' });
 
 export const metadata = {
-  title: { default: 'Mira Vue', template: '%s · Mira Vue' },
+  title: { default: 'Mira AI', template: '%s · Mira AI' },
   description: 'Competitive and market intelligence for founders, with decision support for what to do next.',
 };
 

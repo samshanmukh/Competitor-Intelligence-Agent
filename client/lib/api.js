@@ -29,7 +29,7 @@ async function request(path, { method = 'GET', body, headers: extraHeaders } = {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    const err = new Error('Could not reach Mira Vue. Check your connection and try again.');
+    const err = new Error('Could not reach Mira AI. Check your connection and try again.');
     err.code = 'NETWORK_ERROR';
     throw err;
   }

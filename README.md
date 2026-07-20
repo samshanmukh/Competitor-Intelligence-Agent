@@ -1,4 +1,4 @@
-# Mira Vue
+# Mira AI
 
 AI-powered competitive and market intelligence for founders. Discover competitors, track pricing, size TAM/SAM/SOM, estimate market distribution, and get prioritized next moves.
 
@@ -53,4 +53,4 @@ See [DEPLOY.md](./DEPLOY.md) (Render blueprint: `cia-api` + `cia-web`).
 
 ## Product note
 
-Repo folder name is historical (`Competitor-Intelligence-Agent`). The product is **Mira Vue**.
+Repo folder name is historical (`Competitor-Intelligence-Agent`). The product is **Mira AI**.

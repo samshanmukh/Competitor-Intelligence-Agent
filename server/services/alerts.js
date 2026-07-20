@@ -17,7 +17,7 @@ function isAllowedWebhookUrl(value) {
   }
 }
 
-function slackBlocks({ title, lines = [], url = null, footer = 'Mira Vue' }) {
+function slackBlocks({ title, lines = [], url = null, footer = 'Mira AI' }) {
   const blocks = [
     {
       type: 'header',
@@ -31,7 +31,7 @@ function slackBlocks({ title, lines = [], url = null, footer = 'Mira Vue' }) {
   if (url) {
     blocks.push({
       type: 'actions',
-      elements: [{ type: 'button', text: { type: 'plain_text', text: 'Open in Mira Vue' }, url }],
+      elements: [{ type: 'button', text: { type: 'plain_text', text: 'Open in Mira AI' }, url }],
     });
   }
   blocks.push({

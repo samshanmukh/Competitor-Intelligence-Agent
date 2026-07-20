@@ -19,3 +19,4 @@ client/.next/
 
 # MCP config contains secrets
 .mcp.json
+.vercel

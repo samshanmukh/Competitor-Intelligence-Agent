@@ -142,7 +142,7 @@ export default function Sidebar() {
           )}
           {!collapsed && (
             <div className="flex-1 leading-tight">
-              <div style={{ fontFamily: 'var(--font-brand)' }} className="text-sm font-semibold leading-tight text-white">Mira Vue</div>
+              <div style={{ fontFamily: 'var(--font-brand)' }} className="text-sm font-semibold leading-tight text-white">Mira AI</div>
             </div>
           )}
           <button
@@ -187,7 +187,7 @@ export default function Sidebar() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent-soft">
             <Icon name="radar" className="h-3.5 w-3.5" />
           </div>
-          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-sm font-semibold text-white">Mira Vue</span>
+          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-sm font-semibold text-white">Mira AI</span>
         </div>
         <button
           type="button"

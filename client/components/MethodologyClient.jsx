@@ -28,7 +28,7 @@ export default function MethodologyClient() {
         <>
           <h1 className="text-2xl font-semibold text-white">{doc?.title || 'Methodology'}</h1>
           <p className="mt-2 text-sm text-slate-400">
-            How Mira Vue estimates competitor market presence — and what it is not.
+            How Mira AI estimates competitor market presence — and what it is not.
           </p>
 
           <div className="mt-8 space-y-6">
