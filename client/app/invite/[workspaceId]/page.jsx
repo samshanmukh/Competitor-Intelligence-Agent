@@ -5,7 +5,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { getToken, switchWorkspace } from '../../../lib/auth';
-import { Icon, Skeleton } from '../../../components/ui';
+import { Skeleton } from '../../../components/ui';
+import BrandLogo from '../../../components/BrandLogo';
 
 function InviteInner() {
   const { workspaceId } = useParams();
@@ -53,9 +54,7 @@ function InviteInner() {
   return (
     <div className="mx-auto max-w-md px-5 py-24">
       <div className="mb-8 flex justify-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-accent-soft">
-          <Icon name="radar" className="h-6 w-6" />
-        </div>
+        <BrandLogo href="/" height={40} />
       </div>
       <div className="card space-y-4 p-6 text-center">
         <h1 className="text-xl font-semibold text-white">

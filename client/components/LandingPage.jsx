@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from './ui';
+import BrandLogo from './BrandLogo';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
@@ -91,9 +92,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <Link href="/" style={{ fontFamily: 'var(--font-brand)' }} className="text-xl font-semibold tracking-tight text-white">
-            Mira <span className="text-accent-soft">AI</span>
-          </Link>
+          <BrandLogo href="/" height={32} priority />
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
             <a href="#how" className="transition hover:text-white">How it works</a>
@@ -237,7 +236,10 @@ export default function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-                <span className="ml-3 text-xs text-slate-500">Mira AI · Business report · Acme Analytics</span>
+                <span className="ml-3 flex items-center gap-2 text-xs text-slate-500">
+                  <BrandLogo href={false} height={16} />
+                  Business report · Acme Analytics
+                </span>
               </div>
               <div className="grid gap-4 p-5 md:grid-cols-3">
                 {/* Market growth tile */}
@@ -423,7 +425,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
-          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-base font-semibold tracking-tight text-slate-200">Mira <span className="text-accent-soft">AI</span></span>
+          <BrandLogo href="/" height={28} />
           <div className="flex items-center gap-6">
             <a href="#features" className="transition hover:text-slate-300">Features</a>
             <a href="#how" className="transition hover:text-slate-300">How it works</a>
@@ -432,7 +434,7 @@ export default function LandingPage() {
             {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
             {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}
           </div>
-          <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira AI</span>
+          <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira</span>
         </div>
       </footer>
     </div>

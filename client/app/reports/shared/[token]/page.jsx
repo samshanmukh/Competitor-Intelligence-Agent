@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '../../../../lib/api';
-import { Icon, Skeleton, EmptyState, timeAgo } from '../../../../components/ui';
+import { Skeleton, EmptyState, timeAgo } from '../../../../components/ui';
 import ReportView from '../../../../components/ReportView';
+import BrandLogo from '../../../../components/BrandLogo';
 
 export default function SharedReportPage() {
   const { token } = useParams();
@@ -43,7 +44,7 @@ export default function SharedReportPage() {
           {error || 'This shared link is invalid or the report was deleted.'}
         </EmptyState>
         <p className="mt-6 text-center text-sm text-slate-500">
-          <Link href="/" className="text-accent-soft hover:text-white transition">Back to Mira AI</Link>
+          <Link href="/" className="text-accent-soft hover:text-white transition">Back to Mira</Link>
         </p>
       </div>
     );
@@ -55,12 +56,7 @@ export default function SharedReportPage() {
     <div className="min-h-screen bg-ink-950">
       <header className="border-b border-ink-800 bg-ink-900/80 px-5 py-4 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent/15 text-accent-soft">
-              <Icon name="radar" className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-semibold text-white">Mira AI</span>
-          </Link>
+          <BrandLogo href="/" height={28} />
           <span className="chip text-[10px] text-slate-400">Shared report · read-only</span>
         </div>
       </header>

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { getWorkspace, fetchWorkspaces, signOut, switchWorkspace } from '../lib/auth';
 import { Icon, WorkspaceSwitcher, Modal } from './ui';
+import BrandLogo from './BrandLogo';
 
 function NavItem({ href, icon, label, badge, exact = false, collapsed = false, onNavigate }) {
   const pathname = usePathname();
@@ -134,22 +135,19 @@ export default function Sidebar() {
       {/* Desktop sidebar */}
       <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-ink-800 bg-ink-900/60 p-3 transition-all duration-200 md:flex ${collapsed ? 'w-16' : 'w-56'}`}>
         {/* Logo + collapse */}
-        <div className={`mb-6 flex items-center ${collapsed ? 'justify-center' : 'gap-2.5 px-1'}`}>
-          {!collapsed && (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent-soft">
-              <Icon name="radar" className="h-4 w-4" />
-            </div>
-          )}
-          {!collapsed && (
-            <div className="flex-1 leading-tight">
-              <div style={{ fontFamily: 'var(--font-brand)' }} className="text-sm font-semibold leading-tight text-white">Mira AI</div>
+        <div className={`mb-6 flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center gap-2 px-1'}`}>
+          {collapsed ? (
+            <BrandLogo href="/app" variant="mark" height={28} />
+          ) : (
+            <div className="min-w-0 flex-1">
+              <BrandLogo href="/app" height={26} />
             </div>
           )}
           <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-ink-800 hover:text-slate-300 transition ml-auto"
+            className={`flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-ink-800 hover:text-slate-300 ${collapsed ? '' : 'ml-auto'}`}
           >
             <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} className="h-3.5 w-3.5" />
           </button>
@@ -183,12 +181,7 @@ export default function Sidebar() {
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-ink-800 bg-ink-900/90 px-4 py-3 backdrop-blur md:hidden">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent-soft">
-            <Icon name="radar" className="h-3.5 w-3.5" />
-          </div>
-          <span style={{ fontFamily: 'var(--font-brand)' }} className="text-sm font-semibold text-white">Mira AI</span>
-        </div>
+        <BrandLogo href="/app" height={24} />
         <button
           type="button"
           onClick={() => setMobileOpen(true)}

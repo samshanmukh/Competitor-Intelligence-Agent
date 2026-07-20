@@ -4,10 +4,10 @@ self.addEventListener('push', (event) => {
   try { payload = event.data.json(); } catch { payload = { title: 'Pricing change', body: event.data.text() }; }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Mira AI', {
+    self.registration.showNotification(payload.title || 'Mira', {
       body: payload.body || 'A competitor pricing change was detected.',
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: '/mira-icon.png',
+      badge: '/favicon.png',
       data: { url: payload.url || '/' },
       tag: payload.tag || 'pricing-change',
       renotify: true,

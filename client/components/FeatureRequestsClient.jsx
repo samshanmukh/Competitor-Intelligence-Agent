@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Icon, Modal } from './ui';
+import BrandLogo from './BrandLogo';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
@@ -93,9 +94,7 @@ export default function FeatureRequestsClient() {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
-          <Link href="/" style={{ fontFamily: 'var(--font-brand)' }} className="text-lg font-semibold tracking-tight text-white">
-            Mira <span className="text-accent-soft">AI</span>
-          </Link>
+          <BrandLogo href="/" height={28} />
           <Link href="/" className="text-sm text-slate-400 transition hover:text-white">← Home</Link>
         </div>
       </header>
