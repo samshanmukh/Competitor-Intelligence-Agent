@@ -115,12 +115,72 @@ export function consumeReturnPath() {
   return path;
 }
 
+const PKCE_VERIFIER_KEY = 'insforge_pkce_verifier';
+
+function base64UrlEncode(buffer) {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function createPkcePair() {
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj?.getRandomValues || !cryptoObj.subtle) {
+    throw new Error('This browser cannot start secure sign-in. Try Chrome, Safari, or Edge.');
+  }
+  const array = new Uint8Array(32);
+  cryptoObj.getRandomValues(array);
+  const verifier = base64UrlEncode(array);
+  const hash = await cryptoObj.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: base64UrlEncode(hash) };
+}
+
+function friendlyAuthNetworkError(err) {
+  const msg = err?.message || '';
+  if (/Failed to fetch|NetworkError|Network request failed|Load failed/i.test(msg)) {
+    return 'Could not reach the sign-in service. Check your connection, disable ad blockers for this site, then try again — or use email signup.';
+  }
+  return msg || 'OAuth sign in failed';
+}
+
 export async function signInWithOAuth(provider, { from } = {}) {
   // Keep redirectTo path-stable for InsForge allowlists; return path lives in sessionStorage.
   rememberReturnPath(from);
   const redirectTo = new URL('/auth/callback', window.location.origin).toString();
-  const { error } = await getClient().auth.signInWithOAuth(provider, { redirectTo });
-  if (error) throw new Error(error.message || 'OAuth sign in failed');
+
+  // Prefer same-origin proxy so browsers that block *.insforge.app still work.
+  let authUrl = null;
+  let proxyError = null;
+  try {
+    const { verifier, challenge } = await createPkcePair();
+    sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
+    const qs = new URLSearchParams({
+      redirect_uri: redirectTo,
+      code_challenge: challenge,
+    });
+    const res = await fetch(`/api/auth/oauth/${encodeURIComponent(provider)}?${qs}`);
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+    if (res.ok && data.authUrl) authUrl = data.authUrl;
+    else proxyError = new Error(data.error || `OAuth sign in failed (${res.status})`);
+  } catch (err) {
+    proxyError = err;
+  }
+
+  if (!authUrl) {
+    // Fall back to direct InsForge SDK call when the proxy path fails.
+    try {
+      const { error } = await getClient().auth.signInWithOAuth(provider, { redirectTo });
+      if (error) throw new Error(error.message || 'OAuth sign in failed');
+      return;
+    } catch (directErr) {
+      throw new Error(friendlyAuthNetworkError(proxyError || directErr));
+    }
+  }
+
+  window.location.href = authUrl;
 }
 
 // Deduplicate React Strict Mode double-mounts during the OAuth callback exchange.
@@ -168,10 +228,28 @@ export async function completeOAuthCallback() {
     let user = null;
 
     if (code) {
-      const { data, error } = await client.auth.exchangeOAuthCode(code);
-      if (error) throw new Error(error.message || 'OAuth code exchange failed');
-      token = data?.accessToken || null;
-      user = data?.user || null;
+      const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+      // Prefer same-origin exchange proxy (avoids browser → InsForge fetch failures).
+      try {
+        const res = await fetch('/api/auth/oauth/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, code_verifier: verifier }),
+        });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
+        if (!res.ok) throw new Error(data.error || 'OAuth code exchange failed');
+        if (verifier) sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+        token = data?.accessToken || null;
+        user = data?.user || null;
+        if (token) client.setAccessToken(token);
+      } catch (proxyErr) {
+        const { data, error } = await client.auth.exchangeOAuthCode(code);
+        if (error) throw new Error(error.message || proxyErr.message || 'OAuth code exchange failed');
+        token = data?.accessToken || null;
+        user = data?.user || null;
+      }
     } else {
       const { data, error } = await client.auth.getCurrentUser();
       if (error || !data?.user) {

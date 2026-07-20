@@ -13,7 +13,12 @@ export default function OAuthButtons({ mode = 'signin', from }) {
     try {
       await signInWithOAuth(provider, { from });
     } catch (err) {
-      setError(err.message || 'OAuth failed');
+      const msg = err.message || 'OAuth failed';
+      setError(
+        /Failed to fetch|Network request failed|Could not reach/i.test(msg)
+          ? 'Could not start Google/GitHub sign-in. Try again, disable ad blockers for this site, or create an account with email.'
+          : msg
+      );
       setLoading(null);
     }
   };
