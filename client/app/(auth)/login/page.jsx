@@ -14,7 +14,7 @@ function LoginForm() {
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(params.get('oauth_error') || '');
 
   // Inline verification state (shown only if the account needs verifying).
   const [needsVerify, setNeedsVerify] = useState(false);

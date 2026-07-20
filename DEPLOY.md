@@ -49,8 +49,14 @@ If you prefer Vercel for the frontend:
 
 - **Vercel** → import repo → **Root Directory: `client`** (this fixes "No Next.js version
   detected"). Add `NEXT_PUBLIC_API_BASE`, both `NEXT_PUBLIC_INSFORGE_*` values, both
-  server-side `INSFORGE_*` values, and a random 32+ character
-  `FEATURE_REQUEST_SIGNING_SECRET`.
+  server-side `INSFORGE_*` values, a random 32+ character
+  `FEATURE_REQUEST_SIGNING_SECRET`, and `APP_URL=https://www.joinmira.ai`.
+  For Google/GitHub sign-in (first-party, no InsForge browser hop), also add:
+  `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
+  `GITHUB_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_SECRET`.
+  Redirect URIs to register with Google/GitHub:
+  - `https://www.joinmira.ai/api/auth/oauth/callback/google`
+  - `https://www.joinmira.ai/api/auth/oauth/callback/github`
 - **Render** → deploy only the API as a Web Service:
   - **Root Directory:** (repo root)
   - **Build Command:** `npm install`

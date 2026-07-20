@@ -13,7 +13,7 @@ function SignupForm() {
   const loginHref = returnTo === '/app' ? '/login' : `/login?from=${encodeURIComponent(returnTo)}`;
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(params.get('oauth_error') || '');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 

@@ -142,27 +142,6 @@ export function consumeReturnPath() {
   return path;
 }
 
-const PKCE_VERIFIER_KEY = 'insforge_pkce_verifier';
-
-function base64UrlEncode(buffer) {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function createPkcePair() {
-  const cryptoObj = globalThis.crypto;
-  if (!cryptoObj?.getRandomValues || !cryptoObj.subtle) {
-    throw new Error('This browser cannot start secure sign-in. Try Chrome, Safari, or Edge.');
-  }
-  const array = new Uint8Array(32);
-  cryptoObj.getRandomValues(array);
-  const verifier = base64UrlEncode(array);
-  const hash = await cryptoObj.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return { verifier, challenge: base64UrlEncode(hash) };
-}
-
 function friendlyAuthNetworkError(err) {
   const msg = err?.message || '';
   if (/Failed to fetch|NetworkError|Network request failed|Load failed/i.test(msg)) {
@@ -172,91 +151,54 @@ function friendlyAuthNetworkError(err) {
 }
 
 export async function signInWithOAuth(provider, { from } = {}) {
-  // OAuth still redirects through InsForge after Google/GitHub. On some mobile
-  // networks Safari rejects InsForge's TLS cert ("Connection Is Not Private"),
-  // so we keep this path proxy-only and never fall back to a direct InsForge call.
+  // First-party OAuth: browser only visits Google/GitHub + joinmira.ai (never InsForge).
   rememberReturnPath(from);
-  const redirectTo = new URL('/auth/callback', window.location.origin).toString();
-
-  try {
-    const { verifier, challenge } = await createPkcePair();
-    sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
-    const qs = new URLSearchParams({
-      redirect_uri: redirectTo,
-      code_challenge: challenge,
-    });
-    const res = await fetch(`/api/auth/oauth/${encodeURIComponent(provider)}?${qs}`);
-    const text = await res.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch { data = {}; }
-    if (!res.ok || !data.authUrl) {
-      throw new Error(data.error || `OAuth sign in failed (${res.status})`);
-    }
-    // Never send the browser to *.insforge.app — that surfaces Safari's SSL interstitial.
-    const host = new URL(data.authUrl).hostname;
-    if (/\.insforge\.app$/i.test(host) || host === 'insforge.app') {
-      throw new Error('Google/GitHub sign-in is temporarily unavailable on this network. Please use email instead.');
-    }
-    window.location.href = data.authUrl;
-  } catch (err) {
-    throw new Error(friendlyAuthNetworkError(err));
-  }
+  const qs = new URLSearchParams();
+  if (from) qs.set('from', safeReturnPath(from));
+  window.location.href = `/api/auth/oauth/start/${encodeURIComponent(provider)}${qs.size ? `?${qs}` : ''}`;
 }
 
 // Deduplicate React Strict Mode double-mounts during the OAuth callback exchange.
 let _oauthCompletion = null;
 
 /**
- * Finish the InsForge PKCE OAuth redirect on /auth/callback.
- * The SDK does not expose auth.getAccessToken(), so we exchange the code ourselves
- * and read the access token from the exchange response.
+ * Finish first-party OAuth on /auth/callback (session cookie set by our callback route).
  */
 export async function completeOAuthCallback() {
   if (_oauthCompletion) return _oauthCompletion;
 
   _oauthCompletion = (async () => {
     const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get('error');
+    const oauthError = params.get('error') || params.get('oauth_error');
     if (oauthError) {
       throw new Error(params.get('error_description') || oauthError);
     }
 
-    const code = params.get('insforge_code');
-    if (code || oauthError) {
+    // Clean sensitive query params from the address bar.
+    if (params.has('via') || params.has('insforge_code') || params.has('error')) {
       const clean = new URL(window.location.href);
+      clean.searchParams.delete('via');
       clean.searchParams.delete('insforge_code');
       clean.searchParams.delete('error');
       clean.searchParams.delete('error_description');
       window.history.replaceState({}, document.title, clean.toString());
     }
 
-    if (!code) {
-      throw new Error('Could not complete sign in. Please try email instead.');
+    const res = await fetch('/api/auth/oauth/session', { credentials: 'same-origin' });
+    const data = await readJsonSafe(res);
+    if (!res.ok || !data?.accessToken) {
+      throw new Error(data.error || 'Could not complete sign in. Please try email instead.');
     }
 
-    const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
-    const res = await fetch('/api/auth/oauth/exchange', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, code_verifier: verifier }),
-    });
-    const data = await readJsonSafe(res);
-    if (!res.ok) throw new Error(data.error || 'OAuth code exchange failed');
-    if (verifier) sessionStorage.removeItem(PKCE_VERIFIER_KEY);
-
-    const token = data?.accessToken || null;
-    const user = data?.user || null;
-    if (!token) throw new Error('No session token found after OAuth.');
-
-    setToken(token);
-    const workspace = await ensureWorkspace(token);
+    setToken(data.accessToken);
+    const workspace = await ensureWorkspace(data.accessToken);
     if (workspace) setWorkspace(workspace);
 
     return {
-      user,
-      token,
+      user: data.user || null,
+      token: data.accessToken,
       workspace,
-      returnTo: consumeReturnPath(),
+      returnTo: data.returnTo || consumeReturnPath(),
     };
   })();
 
