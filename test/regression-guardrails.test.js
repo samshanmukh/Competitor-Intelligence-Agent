@@ -66,7 +66,7 @@ test('auth and shared-report pages remain outside the private app shell', async 
     projectFile('client/middleware.js'),
   ]);
 
-  for (const prefix of ['/login', '/signup', '/auth', '/reports/shared', '/invite']) {
+  for (const prefix of ['/login', '/signup', '/oauth', '/auth', '/reports/shared', '/invite']) {
     assert.ok(shell.includes(`'${prefix}'`), `${prefix} must bypass the app shell`);
     assert.ok(middleware.includes(`'${prefix}'`), `${prefix} must remain publicly routable`);
   }

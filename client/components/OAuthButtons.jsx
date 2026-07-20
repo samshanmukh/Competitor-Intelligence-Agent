@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signInWithOAuth } from '../lib/auth';
 
+/** Standalone Google/GitHub buttons (used on /oauth test page only). */
 export default function OAuthButtons({ mode = 'signin', from }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
@@ -22,12 +23,7 @@ export default function OAuthButtons({ mode = 'signin', from }) {
 
   return (
     <div className="space-y-3">
-      <div className="relative flex items-center gap-3">
-        <div className="h-px flex-1 bg-ink-700" />
-        <span className="text-[11px] uppercase tracking-wider text-slate-600">or</span>
-        <div className="h-px flex-1 bg-ink-700" />
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2">
         <button
           type="button"
           onClick={() => go('google')}

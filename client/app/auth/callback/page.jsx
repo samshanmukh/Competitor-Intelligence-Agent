@@ -27,7 +27,7 @@ function CallbackHandler() {
         {error ? (
           <>
             <p className="text-sm text-rose-300">{error}</p>
-            <a href="/login" className="text-sm text-accent-soft hover:text-white">Back to login</a>
+            <a href="/oauth" className="text-sm text-accent-soft hover:text-white">Back to OAuth test</a>
           </>
         ) : (
           <>

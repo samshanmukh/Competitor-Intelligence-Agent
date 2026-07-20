@@ -4,7 +4,6 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signUp, signIn, safeReturnPath, rememberReturnPath } from '../../../lib/auth';
-import OAuthButtons from '../../../components/OAuthButtons';
 
 function SignupForm() {
   const router = useRouter();
@@ -13,7 +12,7 @@ function SignupForm() {
   const loginHref = returnTo === '/app' ? '/login' : `/login?from=${encodeURIComponent(returnTo)}`;
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(params.get('oauth_error') || '');
+  const [error, setError] = useState('');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -97,7 +96,6 @@ function SignupForm() {
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Creating account…' : 'Create account'}
         </button>
-        <OAuthButtons mode="signup" from={returnTo} />
       </form>
 
       <p className="text-center text-sm text-slate-500">

@@ -4,7 +4,6 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, verifyEmailCode, resendCode, safeReturnPath, rememberReturnPath } from '../../../lib/auth';
-import OAuthButtons from '../../../components/OAuthButtons';
 
 function LoginForm() {
   const router = useRouter();
@@ -14,7 +13,7 @@ function LoginForm() {
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(params.get('oauth_error') || '');
+  const [error, setError] = useState('');
 
   // Inline verification state (shown only if the account needs verifying).
   const [needsVerify, setNeedsVerify] = useState(false);
@@ -130,7 +129,6 @@ function LoginForm() {
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
-        <OAuthButtons mode="signin" from={returnTo} />
       </form>
 
       <p className="text-center text-sm text-slate-500">

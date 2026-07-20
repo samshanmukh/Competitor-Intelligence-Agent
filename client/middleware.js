@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 // Public pages anyone can see without a session.
 const PUBLIC_EXACT = ['/'];                                  // landing page
-const PUBLIC_PREFIX = ['/login', '/signup', '/verify', '/auth', '/requests', '/reports/shared', '/invite'];
+const PUBLIC_PREFIX = ['/login', '/signup', '/verify', '/oauth', '/auth', '/requests', '/reports/shared', '/invite'];
 
 function tokenLooksCurrent(token) {
   if (!token) return false;

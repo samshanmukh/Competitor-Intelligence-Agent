@@ -120,7 +120,7 @@ export function consumePendingSession(request, response) {
 }
 
 export function redirectWithError(origin, message) {
-  const url = new URL('/login', origin);
+  const url = new URL('/oauth', origin);
   url.searchParams.set('oauth_error', message);
   return NextResponse.redirect(url);
 }

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { consumeReturnPath } from '../lib/auth';
 import Sidebar from './Sidebar';
 
-const NO_SHELL_PREFIXES = ['/login', '/signup', '/verify', '/auth', '/requests', '/reports/shared', '/invite'];
+const NO_SHELL_PREFIXES = ['/login', '/signup', '/verify', '/oauth', '/auth', '/requests', '/reports/shared', '/invite'];
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
