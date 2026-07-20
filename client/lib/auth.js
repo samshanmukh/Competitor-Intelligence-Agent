@@ -106,13 +106,96 @@ export function consumeReturnPath() {
 }
 
 export async function signInWithOAuth(provider, { from } = {}) {
-  const callbackUrl = new URL('/auth/callback', window.location.origin);
-  const returnPath = safeReturnPath(from);
-  rememberReturnPath(returnPath);
-  if (returnPath !== '/app') callbackUrl.searchParams.set('from', returnPath);
-  const redirectTo = callbackUrl.toString();
+  // Keep redirectTo path-stable for InsForge allowlists; return path lives in sessionStorage.
+  rememberReturnPath(from);
+  const redirectTo = new URL('/auth/callback', window.location.origin).toString();
   const { error } = await getClient().auth.signInWithOAuth(provider, { redirectTo });
   if (error) throw new Error(error.message || 'OAuth sign in failed');
+}
+
+// Deduplicate React Strict Mode double-mounts during the OAuth callback exchange.
+let _oauthCompletion = null;
+
+/**
+ * Finish the InsForge PKCE OAuth redirect on /auth/callback.
+ * The SDK does not expose auth.getAccessToken(), so we exchange the code ourselves
+ * and read the access token from the exchange response.
+ */
+export async function completeOAuthCallback() {
+  if (_oauthCompletion) return _oauthCompletion;
+
+  _oauthCompletion = (async () => {
+    const baseUrl = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY;
+    if (!baseUrl || !anonKey) {
+      throw new Error('Authentication is not configured. Contact the workspace administrator.');
+    }
+
+    // Disable auto-detection so we control the exchange and can capture accessToken.
+    const client = createClient({
+      baseUrl,
+      anonKey,
+      auth: { detectOAuthCallback: false },
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get('error');
+    if (oauthError) {
+      throw new Error(params.get('error_description') || oauthError);
+    }
+
+    const code = params.get('insforge_code');
+    // Drop sensitive query params from the address bar as soon as we've read them.
+    if (code || oauthError) {
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('insforge_code');
+      clean.searchParams.delete('error');
+      clean.searchParams.delete('error_description');
+      window.history.replaceState({}, document.title, clean.toString());
+    }
+
+    let token = null;
+    let user = null;
+
+    if (code) {
+      const { data, error } = await client.auth.exchangeOAuthCode(code);
+      if (error) throw new Error(error.message || 'OAuth code exchange failed');
+      token = data?.accessToken || null;
+      user = data?.user || null;
+    } else {
+      const { data, error } = await client.auth.getCurrentUser();
+      if (error || !data?.user) {
+        throw new Error('Could not complete sign in. Please try again.');
+      }
+      user = data.user;
+      const refreshed = await client.auth.refreshSession();
+      if (refreshed.error) throw new Error(refreshed.error.message || 'Could not refresh session');
+      token = refreshed.data?.accessToken || null;
+    }
+
+    if (!token) throw new Error('No session token found after OAuth.');
+
+    setToken(token);
+    client.setAccessToken(token);
+    _client = client;
+
+    const workspace = await ensureWorkspace(token);
+    if (workspace) setWorkspace(workspace);
+
+    return {
+      user,
+      token,
+      workspace,
+      returnTo: consumeReturnPath(),
+    };
+  })();
+
+  try {
+    return await _oauthCompletion;
+  } catch (err) {
+    _oauthCompletion = null;
+    throw err;
+  }
 }
 
 // Verify a 6-digit email code, store the resulting session, and bootstrap the workspace.
