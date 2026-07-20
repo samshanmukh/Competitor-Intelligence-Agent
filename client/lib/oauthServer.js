@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
 
 const STATE_COOKIE = 'mira_oauth_state';
 const SESSION_COOKIE = 'mira_oauth_session';
@@ -267,6 +268,34 @@ async function markEmailVerified(email) {
   }
 }
 
+/**
+ * Link a verified Google/GitHub identity onto an existing InsForge email account
+ * by setting the deterministic bridge password and marking email verified.
+ * Safe only after the provider has proven email ownership.
+ */
+async function linkExistingAccountWithBridgePassword(email, password) {
+  const { apiKey } = insforgeConfig();
+  if (!apiKey) return false;
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    await insforgeFetch('/api/database/advance/rawsql/unrestricted', {
+      useApiKey: true,
+      body: {
+        query: `
+          UPDATE auth.users
+          SET password = $1, email_verified = true, updated_at = NOW()
+          WHERE lower(email) = lower($2)
+        `,
+        params: [hash, email],
+      },
+    });
+    return true;
+  } catch (err) {
+    console.error('[oauth] linkExistingAccount failed', err.message);
+    return false;
+  }
+}
+
 async function createBridgeUser({ email, password, name }) {
   const { apiKey } = insforgeConfig();
   const body = {
@@ -350,36 +379,34 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
     }
   }
 
-  // 4) Email already registered — recover orphaned unverified users, else ask for password login.
-  const existing = await findUserByEmail(email);
-  if (existing && existing.emailVerified === false && apiKey) {
-    try {
-      await deleteUsers([existing.id]);
-      const created = await createBridgeUser({
-        email,
-        password: primaryPassword,
-        name: displayName,
-      });
-      if (created?.accessToken) return created;
-      return await signInWithPasswords(email, [primaryPassword]);
-    } catch (err) {
-      lastDetail = err.message || lastDetail;
-      console.error('[oauth] recreate unverified user failed', err.message);
+  // 4) Email already registered — link social login onto that account.
+  // Provider already verified email ownership (Google/GitHub), so overwriting the
+  // bridge password is the intended "Continue with Google" account-link behavior.
+  if (apiKey) {
+    const existing = await findUserByEmail(email);
+    if (existing?.emailVerified === false) {
+      try {
+        await deleteUsers([existing.id]);
+        const created = await createBridgeUser({
+          email,
+          password: primaryPassword,
+          name: displayName,
+        });
+        if (created?.accessToken) return created;
+        return await signInWithPasswords(email, [primaryPassword]);
+      } catch (err) {
+        lastDetail = err.message || lastDetail;
+        console.error('[oauth] recreate unverified user failed', err.message);
+      }
     }
-  }
 
-  // Retry sign-in once more after possible verify fix.
-  try {
-    return await signInWithPasswords(email, passwords);
-  } catch (err) {
-    lastDetail = err.message || lastDetail;
-  }
-
-  if (idToken) {
-    try {
-      return await signInWithGoogleIdToken(idToken);
-    } catch (err) {
-      lastDetail = err.message || lastDetail;
+    if (await linkExistingAccountWithBridgePassword(email, primaryPassword)) {
+      try {
+        return await signInWithPasswords(email, [primaryPassword]);
+      } catch (err) {
+        lastDetail = err.message || lastDetail;
+        console.error('[oauth] sign-in after link failed', err.message);
+      }
     }
   }
 
@@ -392,7 +419,7 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
   }
 
   throw new Error(
-    'An account with this email already exists. Sign in with email and password, or reset your password.'
+    'Could not link social sign-in to this account. Try email and password, or reset your password.'
   );
 }
 
