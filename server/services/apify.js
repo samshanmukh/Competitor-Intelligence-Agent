@@ -113,7 +113,9 @@ async function apifyProxyPassword() {
   if (_proxyPwd) return _proxyPwd;
   const res = await fetch(`${BASE}/users/me?token=${encodeURIComponent(token())}`);
   if (!res.ok) throw new Error(`Apify account lookup failed (${res.status})`);
-  const j = await res.json();
+  const text = await res.text();
+  let j = {};
+  try { j = text ? JSON.parse(text) : {}; } catch { throw new Error('Apify account lookup returned invalid JSON'); }
   _proxyPwd = j?.data?.proxy?.password;
   if (!_proxyPwd) throw new Error('No Apify proxy password on this account');
   return _proxyPwd;

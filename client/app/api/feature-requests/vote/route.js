@@ -2,6 +2,12 @@
 import { NextResponse } from 'next/server';
 import { attachVisitorCookie, db, visitorIdentity } from '../../../../lib/serverInsforge';
 
+function jsonError(err, fallback) {
+  const message = err?.message || fallback;
+  const status = /FEATURE_REQUEST_SIGNING_SECRET|not configured/i.test(message) ? 503 : 500;
+  return NextResponse.json({ error: message }, { status });
+}
+
 export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid request.' }, { status: 400 }); }
@@ -11,11 +17,12 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Invalid request id.' }, { status: 400 });
   }
 
-  const insforge = db();
-  const identity = visitorIdentity(request);
-  const me = identity.key;
-  const respond = (responseBody, init) => attachVisitorCookie(NextResponse.json(responseBody, init), identity);
   try {
+    const insforge = db();
+    const identity = visitorIdentity(request);
+    const me = identity.key;
+    const respond = (responseBody, init) => attachVisitorCookie(NextResponse.json(responseBody, init), identity);
+
     const { data: existing } = await insforge.database
       .from('feature_votes')
       .select('id')
@@ -37,6 +44,6 @@ export async function POST(request) {
     }
     return respond({ ok: true, voted: true });
   } catch (err) {
-    return respond({ error: err.message || 'Could not vote.' }, { status: 500 });
+    return jsonError(err, 'Could not vote.');
   }
 }

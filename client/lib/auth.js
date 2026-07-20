@@ -49,14 +49,24 @@ function clearAuth() {
   document.cookie = 'cia_workspace_id=; path=/; max-age=0';
 }
 
+async function readJsonSafe(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
 async function ensureWorkspace(token) {
   const res = await fetch(`${API_BASE}/api/auth/ensure-workspace`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
-  const { workspace } = await res.json();
-  return workspace;
+  const { workspace } = await readJsonSafe(res);
+  return workspace || null;
 }
 
 export async function signUp({ email, password, name }) {
@@ -271,7 +281,7 @@ export async function fetchWorkspaces() {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return [];
-  const { workspaces } = await res.json();
+  const { workspaces } = await readJsonSafe(res);
   return workspaces || [];
 }
 

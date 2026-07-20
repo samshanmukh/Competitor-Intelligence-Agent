@@ -7,6 +7,16 @@ import { Icon, Modal } from './ui';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
+async function readJson(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: `Request failed (${res.status})` };
+  }
+}
+
 const PRIORITY = {
   high: { dot: 'text-rose-400', label: 'High' },
   medium: { dot: 'text-amber-400', label: 'Medium' },
@@ -30,10 +40,11 @@ export default function FeatureRequestsClient() {
   const [modal, setModal] = useState(null); // null | { mode: 'new' | 'edit', request }
 
   async function load() {
+    setLoading(true);
     setLoadError('');
     try {
       const res = await fetch('/api/feature-requests');
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok) throw new Error(data?.error || 'Could not load feature requests.');
       setRequests(data.requests || []);
     } catch (err) {
@@ -209,7 +220,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editing.id, title: title.trim(), priority }),
         });
-        const data = await res.json();
+        const data = await readJson(res);
         if (!res.ok) throw new Error(data?.error || 'Could not save.');
         onSaved(editing.id, { title: title.trim(), priority });
       } else {
@@ -217,7 +228,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: title.trim(), priority }),
         });
-        const data = await res.json();
+        const data = await readJson(res);
         if (!res.ok) throw new Error(data?.error || 'Could not submit.');
         onCreated(data.request);
       }
@@ -235,7 +246,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
       const res = await fetch('/api/feature-requests', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok) throw new Error(data?.error || 'Could not delete.');
       onDeleted(editing.id);
     } catch (err) {

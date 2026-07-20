@@ -26,7 +26,9 @@ export async function tavilySearch(query, { maxResults = 8, timeoutMs = 30000 } 
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`Tavily failed (${res.status})`);
-    const data = await res.json();
+    const text = await res.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
     return {
       answer: data.answer || '',
       results: (data.results || []).map((r) => ({ title: r.title, url: r.url, content: r.content })),
