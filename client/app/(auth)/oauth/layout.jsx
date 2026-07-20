@@ -1,6 +1,5 @@
 export const metadata = {
-  title: 'OAuth test',
-  description: 'Temporary Google/GitHub sign-in test page.',
+  title: 'Sign in',
   robots: { index: false, follow: false },
 };
 

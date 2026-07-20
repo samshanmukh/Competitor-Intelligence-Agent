@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { signInWithOAuth } from '../lib/auth';
 
-/** Standalone Google/GitHub buttons (used on /oauth test page only). */
-export default function OAuthButtons({ mode = 'signin', from }) {
+/** Google/GitHub — one button each for both sign-in and sign-up. */
+export default function OAuthButtons({ from }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
 
@@ -19,8 +19,6 @@ export default function OAuthButtons({ mode = 'signin', from }) {
     }
   };
 
-  const label = mode === 'signup' ? 'Sign up' : 'Continue';
-
   return (
     <div className="space-y-3">
       <div className="grid gap-2">
@@ -31,7 +29,7 @@ export default function OAuthButtons({ mode = 'signin', from }) {
           className="btn-ghost flex w-full items-center justify-center gap-2 py-2.5"
         >
           <GoogleIcon />
-          {loading === 'google' ? 'Redirecting…' : `${label} with Google`}
+          {loading === 'google' ? 'Redirecting…' : 'Continue with Google'}
         </button>
         <button
           type="button"
@@ -40,7 +38,7 @@ export default function OAuthButtons({ mode = 'signin', from }) {
           className="btn-ghost flex w-full items-center justify-center gap-2 py-2.5"
         >
           <GitHubIcon />
-          {loading === 'github' ? 'Redirecting…' : `${label} with GitHub`}
+          {loading === 'github' ? 'Redirecting…' : 'Continue with GitHub'}
         </button>
       </div>
       {error && (
