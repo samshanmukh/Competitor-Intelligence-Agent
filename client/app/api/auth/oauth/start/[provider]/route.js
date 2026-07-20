@@ -4,7 +4,7 @@ import {
   createStateCookie,
   providerConfig,
   redirectWithError,
-} from '../../../../../lib/oauthServer';
+} from '../../../../../../lib/oauthServer';
 
 const PROVIDERS = new Set(['google', 'github']);
 

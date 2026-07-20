@@ -10,7 +10,7 @@ import {
   redirectWithError,
   sessionFromGoogleTokens,
   sessionFromOAuthProfile,
-} from '../../../../../lib/oauthServer';
+} from '../../../../../../lib/oauthServer';
 
 const PROVIDERS = new Set(['google', 'github']);
 
