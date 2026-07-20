@@ -145,10 +145,11 @@ export default function CompetitorDetailClient({ id }) {
             textClassName="text-lg"
           />
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-white">{competitor.name}</h1>
+            <h1 className="truncate text-xl font-semibold text-white sm:text-2xl">{competitor.name}</h1>
             <a href={competitor.pricing_url} target="_blank" rel="noreferrer"
-              className="mt-1 inline-flex items-center gap-1 text-sm text-accent-soft hover:underline">
-              {competitor.pricing_url} <Icon name="external" className="h-3.5 w-3.5" />
+              className="mt-1 inline-flex max-w-full items-center gap-1 break-all text-sm text-accent-soft hover:underline">
+              <span className="min-w-0 truncate sm:whitespace-normal sm:break-all">{competitor.pricing_url}</span>
+              <Icon name="external" className="h-3.5 w-3.5 shrink-0" />
             </a>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span>Checked {timeAgo(competitor.last_checked_at)}</span>

@@ -254,21 +254,21 @@ export default function SettingsClient() {
       {/* GENERAL */}
       {tab === 'general' && (
         <div className="space-y-5">
-          <section className="card p-5 space-y-3">
+          <section className="card space-y-3 p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-white">Workspace</h2>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-accent-soft text-sm font-bold uppercase">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-sm font-bold uppercase text-accent-soft">
                 {(workspace?.name || 'W')[0]}
               </div>
-              <div>
-                <p className="text-sm font-medium text-white">{workspace?.name || 'My Workspace'}</p>
-                <p className="text-xs text-slate-500 capitalize">{workspace?.plan || 'free'} plan</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">{workspace?.name || 'My Workspace'}</p>
+                <p className="text-xs capitalize text-slate-500">{workspace?.plan || 'free'} plan</p>
               </div>
             </div>
           </section>
 
-          <section className="card p-5 space-y-4">
-            <div className="flex items-center justify-between">
+          <section className="card space-y-4 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-white">Email verification</h2>
               {user?.emailVerified ? (
                 <span className="chip border-emerald-800/60 bg-emerald-950/40 text-emerald-300">
@@ -281,17 +281,17 @@ export default function SettingsClient() {
               )}
             </div>
             {user?.emailVerified ? (
-              <p className="text-xs text-slate-500">
+              <p className="break-words text-xs text-slate-500">
                 <span className="text-slate-300">{user.email}</span> is verified.
               </p>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-slate-500">
+                <p className="break-words text-xs text-slate-500">
                   Enter the 6-digit code sent to <span className="text-slate-300">{user?.email || 'your email'}</span> to verify your account.
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
-                    className="input text-center font-mono tracking-[0.3em] flex-1"
+                    className="input flex-1 text-center font-mono tracking-[0.3em]"
                     aria-label="Verification code"
                     value={verifyOtp}
                     onChange={(e) => setVerifyOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
@@ -312,8 +312,8 @@ export default function SettingsClient() {
           </section>
 
           {settings.auto_refresh_enabled !== undefined && (
-            <section className="card p-5">
-              <div className="flex items-center justify-between text-sm">
+            <section className="card p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span className="text-slate-400">Auto-refresh (every 24h)</span>
                 <span className={`chip ${settings.auto_refresh_enabled
                   ? 'border-emerald-800/60 bg-emerald-950/40 text-emerald-300'
@@ -495,11 +495,11 @@ export default function SettingsClient() {
                 />
               </label>
             </div>
-            <div className="flex items-center justify-between">
-              <button onClick={sendTestDigest} disabled={!digest.email} className="btn-ghost py-1.5 px-3 text-xs">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <button onClick={sendTestDigest} disabled={!digest.email} className="btn-ghost px-3 py-1.5 text-xs">
                 Send test
               </button>
-              <button onClick={saveDigest} disabled={savingDigest} className="btn-primary">
+              <button onClick={saveDigest} disabled={savingDigest} className="btn-primary w-full sm:w-auto">
                 {savingDigest ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="check" className="h-4 w-4" />} Save digest
               </button>
             </div>
@@ -512,29 +512,31 @@ export default function SettingsClient() {
         <div className="space-y-5">
           <section className="card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-white">Invite team member</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <label htmlFor="invite-email" className="sr-only">Email address</label>
               <input
                 id="invite-email"
-                className="input flex-1"
+                className="input min-w-0 flex-1"
                 type="email"
                 placeholder="colleague@company.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
               />
-              <label htmlFor="invite-role" className="sr-only">Workspace role</label>
-              <select
-                id="invite-role"
-                className="input w-32"
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-              >
-                <option value="admin">Admin</option>
-                <option value="analyst">Analyst</option>
-              </select>
-              <button onClick={invite} className="btn-primary shrink-0">
-                <Icon name="plus" className="h-4 w-4" /> Invite
-              </button>
+              <div className="flex gap-2">
+                <label htmlFor="invite-role" className="sr-only">Workspace role</label>
+                <select
+                  id="invite-role"
+                  className="input w-full sm:w-32"
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                >
+                  <option value="admin">Admin</option>
+                  <option value="analyst">Analyst</option>
+                </select>
+                <button onClick={invite} className="btn-primary shrink-0">
+                  <Icon name="plus" className="h-4 w-4" /> Invite
+                </button>
+              </div>
             </div>
             <div className="text-xs text-slate-500 space-y-1">
               <p><strong className="text-slate-400">Admin</strong> — full access including billing & team</p>

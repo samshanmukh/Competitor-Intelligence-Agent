@@ -5,10 +5,12 @@
 @layer base {
   html {
     color-scheme: dark;
+    overflow-x: hidden;
   }
   body {
     @apply bg-ink-950 text-slate-200 antialiased;
     font-feature-settings: 'cv11', 'ss01';
+    overflow-x: hidden;
   }
   * {
     scrollbar-width: thin;

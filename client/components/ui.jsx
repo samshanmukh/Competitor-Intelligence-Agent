@@ -210,36 +210,42 @@ export function TabBar({ tabs, active, onChange }) {
   };
 
   return (
-    <div role="tablist" aria-label="View options" className="flex w-fit items-center gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1">
-      {tabs.map((t, index) => (
-        <button
-          key={t.id}
-          ref={(node) => { buttonRefs.current[index] = node; }}
-          type="button"
-          role="tab"
-          aria-selected={active === t.id}
-          aria-controls={t.panelId}
-          id={t.tabId}
-          tabIndex={active === t.id ? 0 : -1}
-          onClick={() => onChange(t.id)}
-          onKeyDown={(event) => handleKeyDown(event, index)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-            active === t.id
-              ? 'bg-ink-700 text-white shadow-sm'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          {t.icon && <Icon name={t.icon} className="h-3.5 w-3.5" />}
-          {t.label}
-          {t.count != null && (
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-              active === t.id ? 'bg-ink-600 text-slate-200' : 'bg-ink-800 text-slate-500'
-            }`}>
-              {t.count}
-            </span>
-          )}
-        </button>
-      ))}
+    <div className="w-full max-w-full overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        role="tablist"
+        aria-label="View options"
+        className="inline-flex min-w-full items-center gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1 sm:min-w-0 sm:w-fit"
+      >
+        {tabs.map((t, index) => (
+          <button
+            key={t.id}
+            ref={(node) => { buttonRefs.current[index] = node; }}
+            type="button"
+            role="tab"
+            aria-selected={active === t.id}
+            aria-controls={t.panelId}
+            id={t.tabId}
+            tabIndex={active === t.id ? 0 : -1}
+            onClick={() => onChange(t.id)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+            className={`flex shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition sm:px-3 sm:py-1.5 ${
+              active === t.id
+                ? 'bg-ink-700 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t.icon && <Icon name={t.icon} className="h-3.5 w-3.5 shrink-0" />}
+            <span>{t.label}</span>
+            {t.count != null && (
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                active === t.id ? 'bg-ink-600 text-slate-200' : 'bg-ink-800 text-slate-500'
+              }`}>
+                {t.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
