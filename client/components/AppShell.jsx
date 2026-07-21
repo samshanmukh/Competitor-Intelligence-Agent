@@ -21,14 +21,8 @@ export default function AppShell({ children }) {
   // Landing page (root) and auth pages render full-width without the app sidebar.
   const noShell = pathname === '/' || NO_SHELL_PREFIXES.some((p) => pathname?.startsWith(p));
 
-  if (noShell) {
-    return (
-      <>
-        {children}
-        <SupportButton />
-      </>
-    );
-  }
+  // Marketing + auth pages stay clean; help FAB lives in the signed-in app chrome.
+  if (noShell) return children;
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden md:flex-row">

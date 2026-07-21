@@ -1,11 +1,27 @@
-const SUPPORT_TO = 'support@joinmira.ai';
-
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function parseEmailList(value) {
+  return String(value || '')
+    .split(/[,;\s]+/)
+    .map((part) => part.trim().toLowerCase())
+    .filter((part) => part && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(part));
+}
+
+/** Where support form mail is delivered (Resend Sending + your real inbox). */
+function supportRecipients() {
+  const primary = parseEmailList(process.env.SUPPORT_TO_EMAIL);
+  const notify = parseEmailList(process.env.SUPPORT_NOTIFY_EMAIL);
+  const recipients = [...new Set([
+    ...(primary.length ? primary : ['sam@joinmira.ai']),
+    ...notify,
+  ])];
+  return recipients;
 }
 
 export async function POST(request) {
@@ -39,6 +55,7 @@ export async function POST(request) {
   }
 
   const from = process.env.DIGEST_FROM_EMAIL || 'Mira <noreply@joinmira.ai>';
+  const to = supportRecipients();
   const text = [
     `From: ${email}`,
     `Subject: ${subject}`,
@@ -64,7 +81,7 @@ export async function POST(request) {
       },
       body: JSON.stringify({
         from,
-        to: [SUPPORT_TO],
+        to,
         reply_to: email,
         subject: `[Mira Support] ${subject}`,
         text,
