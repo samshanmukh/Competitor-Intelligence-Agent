@@ -75,6 +75,9 @@ If you prefer Vercel for the frontend:
    fallback Help form (used only if the widget key is unset) opens Zendesk tickets.
 4. Test: open a signed-in app page — the Zendesk launcher appears bottom-right.
    Or email `support@miraai.zendesk.com` from an external address.
+5. **Styling:** Mira applies a teal theme via `messenger:set` → `customization` in
+   `client/components/ZendeskWidget.jsx`. Title/logo still come from Zendesk Admin
+   → Messaging → Web Widget → Style (set display name to **Mira AI**).
 
 ### Resend (digest email)
 
