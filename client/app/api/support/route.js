@@ -18,7 +18,8 @@ function supportRecipients() {
   const primary = parseEmailList(process.env.SUPPORT_TO_EMAIL);
   const notify = parseEmailList(process.env.SUPPORT_NOTIFY_EMAIL);
   const recipients = [...new Set([
-    ...(primary.length ? primary : ['sam@joinmira.ai']),
+    // Zendesk support address creates tickets; sam@ is still fine via SUPPORT_NOTIFY_EMAIL.
+    ...(primary.length ? primary : ['support@miraai.zendesk.com']),
     ...notify,
   ])];
   return recipients;

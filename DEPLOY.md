@@ -67,6 +67,15 @@ If you prefer Vercel for the frontend:
     `RESEND_API_KEY`, `DIGEST_FROM_EMAIL=Mira <noreply@joinmira.ai>`,
     `APP_URL=https://www.joinmira.ai`
 
+### Zendesk (in-app help / AI agent)
+
+1. In Zendesk Admin → **Channels → Messaging → Web Widget**, copy the snippet **key**.
+2. On **Vercel**, set `NEXT_PUBLIC_ZENDESK_KEY` (Production + Preview) and redeploy.
+3. Optional email channel: set `SUPPORT_TO_EMAIL=support@miraai.zendesk.com` so the
+   fallback Help form (used only if the widget key is unset) opens Zendesk tickets.
+4. Test: open a signed-in app page — the Zendesk launcher appears bottom-right.
+   Or email `support@miraai.zendesk.com` from an external address.
+
 ### Resend (digest email)
 
 1. In [Resend Domains](https://resend.com/domains), add **`joinmira.ai`**.
