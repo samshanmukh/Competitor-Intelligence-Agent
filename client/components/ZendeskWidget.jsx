@@ -5,26 +5,26 @@ import { useEffect } from 'react';
 const KEY = process.env.NEXT_PUBLIC_ZENDESK_KEY || '';
 const SCRIPT_ID = 'ze-snippet';
 
-/** Matches Zendesk Admin “Mira AI” teal + Mira ink/slate chat surfaces. */
+/** Dark Mira surfaces (ink + indigo). Zendesk only allows colors/layout knobs — not custom composer structure. */
 const MIRA_THEME = {
   theme: {
-    primary: '#164a4a',
+    primary: '#6366f1',
     onPrimary: '#ffffff',
-    message: '#e8eef2',
-    onMessage: '#0f172a',
-    businessMessage: '#f1f5f9',
-    onBusinessMessage: '#0f172a',
-    action: '#164a4a',
+    message: '#212632',
+    onMessage: '#e2e8f0',
+    businessMessage: '#181c24',
+    onBusinessMessage: '#e2e8f0',
+    action: '#6366f1',
     onAction: '#ffffff',
-    background: '#ffffff',
-    onBackground: '#334155',
-    conversationListBackground: '#f8fafc',
-    onConversationListBackground: '#0f172a',
+    background: '#0e1014',
+    onBackground: '#cbd5e1',
+    conversationListBackground: '#0a0b0e',
+    onConversationListBackground: '#e2e8f0',
     error: '#e11d48',
     onError: '#ffffff',
-    notify: '#164a4a',
-    onNotify: '#ffffff',
-    onSecondaryAction: '#164a4a',
+    notify: '#818cf8',
+    onNotify: '#0a0b0e',
+    onSecondaryAction: '#818cf8',
   },
   common: {
     stylingPreset: 'minimalistic',
