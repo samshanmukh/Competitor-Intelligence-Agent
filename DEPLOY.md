@@ -63,7 +63,23 @@ If you prefer Vercel for the frontend:
   - **Start Command:** `npm start` (runs `node server/index.js`)
   - **Health Check Path:** `/api/health`
   - Env vars: `INSFORGE_BASE_URL`, `INSFORGE_ANON_KEY`, `YOUCOM_API_KEY`, `XAI_API_KEY`,
-    plus optional `VAPID_*`, `RESEND_API_KEY`, `APP_URL=https://joinmira.ai`
+    plus optional `VAPID_*`, and for digests:
+    `RESEND_API_KEY`, `DIGEST_FROM_EMAIL=Mira <noreply@joinmira.ai>`,
+    `APP_URL=https://www.joinmira.ai`
+
+### Resend (digest email)
+
+1. In [Resend Domains](https://resend.com/domains), add **`joinmira.ai`**.
+2. Copy the DNS records Resend shows (DKIM TXT, SPF/MX as listed) into GoDaddy DNS.
+3. Click **Verify** in Resend until status is **Verified**.
+4. On **Render → cia-api** (not only Vercel), set:
+   - `RESEND_API_KEY` = your Resend API key
+   - `DIGEST_FROM_EMAIL` = `Mira <noreply@joinmira.ai>`
+   - `APP_URL` = `https://www.joinmira.ai`
+5. Redeploy the API. In Mira Settings → Notifications, use **Send test**.
+
+Note: signup/login verification codes are sent by **InsForge**, not Resend.
+To brand those, configure InsForge SMTP to Resend (`smtp.resend.com`, user `resend`, password = API key, from `noreply@joinmira.ai`).
   - Then set Vercel `NEXT_PUBLIC_API_BASE` to the Render URL (e.g.
     `https://competitor-intelligence-agent-rgxy.onrender.com`) and redeploy Vercel.
 

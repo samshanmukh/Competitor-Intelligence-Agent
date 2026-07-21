@@ -35,6 +35,12 @@ services:
         value: "true"
       - key: SHARED_REPORT_TTL_DAYS
         value: "30"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DIGEST_FROM_EMAIL
+        value: Mira <noreply@joinmira.ai>
+      - key: APP_URL
+        value: https://www.joinmira.ai
 
   # ── Next.js frontend ──
   - type: web
