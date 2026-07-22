@@ -10,9 +10,9 @@ const JOB_KEY = 'cia_marketmodel_job';
 const FACT_KEY = 'cia_factcheck_job';
 
 const VERDICT = {
-  supported: { cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300', icon: 'check', label: 'Supported' },
-  mixed: { cls: 'border-amber-500/30 bg-amber-500/10 text-amber-300', icon: 'alert', label: 'Mixed' },
-  unsupported: { cls: 'border-rose-500/30 bg-rose-500/10 text-rose-300', icon: 'x', label: 'Unsupported' },
+  supported: { cls: 'border-emerald-200 bg-emerald-50 text-emerald-700', icon: 'check', label: 'Supported' },
+  mixed: { cls: 'border-amber-200 bg-amber-50 text-amber-800', icon: 'alert', label: 'Mixed' },
+  unsupported: { cls: 'border-rose-200 bg-rose-50 text-rose-700', icon: 'x', label: 'Unsupported' },
 };
 const KIND_NOTE = {
   input: 'You set this — it is not a market statistic, so it will not appear in sources.',
@@ -22,7 +22,7 @@ const KIND_NOTE = {
 // assumptions get honest, non-alarming labels instead.
 function badgeFor(c) {
   if (c.kind === 'input') return { cls: 'border-sky-500/30 bg-sky-500/10 text-sky-300', icon: 'settings', label: 'Your input' };
-  if (c.kind === 'assumption' && c.verdict !== 'supported') return { cls: 'border-amber-500/30 bg-amber-500/10 text-amber-300', icon: 'alert', label: 'Assumption' };
+  if (c.kind === 'assumption' && c.verdict !== 'supported') return { cls: 'border-amber-200 bg-amber-50 text-amber-800', icon: 'alert', label: 'Assumption' };
   return VERDICT[c.verdict] || VERDICT.mixed;
 }
 
@@ -61,9 +61,9 @@ function derive(tam, inputs, baseAcv) {
 }
 
 const CONF = {
-  high: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-  medium: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-  low: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  high: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  medium: 'border-amber-200 bg-amber-50 text-amber-800',
+  low: 'border-rose-200 bg-rose-50 text-rose-700',
 };
 
 export default function MarketModelClient() {
@@ -217,15 +217,15 @@ export default function MarketModelClient() {
   }
 
   if (loading) {
-    return <div className="flex items-center gap-2 text-sm text-slate-400"><Spinner /> Loading market model…</div>;
+    return <div className="flex items-center gap-2 text-sm text-ink-soft"><Spinner /> Loading market model…</div>;
   }
 
   return (
     <div className="mx-auto max-w-4xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Market model</h1>
-          <p className="mt-1 text-sm text-slate-400">TAM → SAM → SOM for your business. Every number is sourced or an editable assumption.</p>
+          <h1 className="text-2xl font-semibold text-ink">Market model</h1>
+          <p className="mt-1 text-sm text-ink-soft">TAM → SAM → SOM for your business. Every number is sourced or an editable assumption.</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {model && (
@@ -239,17 +239,17 @@ export default function MarketModelClient() {
         </div>
       </div>
 
-      {error && <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-300">{error}</div>}
+      {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
 
       {building && !model && (
-        <div className="mt-6 rounded-xl border border-ink-700 bg-ink-900 p-6 text-sm text-slate-400">
+        <div className="mt-6 rounded-xl border border-ink-700 bg-ink-900 p-6 text-sm text-ink-soft">
           Researching your market and sizing TAM / SAM / SOM. This runs in the background (1–3 min) — you can leave and come back.
         </div>
       )}
 
       {!model && !building && (
         <div className="mt-6 rounded-xl border border-ink-700 bg-ink-900 p-8 text-center">
-          <p className="text-sm text-slate-400">No model yet. Build one to size your market and see your path from TAM to SOM.</p>
+          <p className="text-sm text-ink-soft">No model yet. Build one to size your market and see your path from TAM to SOM.</p>
         </div>
       )}
 
@@ -334,73 +334,73 @@ function FactDrawer({ factCheck, currentTam, busy, error, onRerun, onApplyTam, o
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="fact-drawer-title" tabIndex={-1} className="relative flex h-full w-full max-w-md flex-col border-l border-ink-700 bg-ink-900 shadow-2xl">
         <div className="flex items-center justify-between border-b border-ink-800 px-5 py-4">
           <div className="flex items-center gap-2">
-            <Icon name="shield" className="h-4 w-4 text-accent-soft" />
-            <h3 id="fact-drawer-title" className="text-sm font-semibold text-white">Fact-check</h3>
+            <Icon name="shield" className="h-4 w-4 text-accent" />
+            <h3 id="fact-drawer-title" className="text-sm font-semibold text-ink">Fact-check</h3>
           </div>
-          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-slate-200">
+          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-soft transition hover:bg-mist hover:text-ink">
             <Icon name="x" className="h-4 w-4" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <p className="text-xs leading-relaxed text-slate-500">
+          <p className="text-xs leading-relaxed text-ink-soft">
             An independent research pass re-checks each figure the model asserts, against fresh sources. Judge for yourself.
           </p>
           {factCheck?.engine && (
-            <p className="mt-1.5 text-[11px] text-slate-600">
+            <p className="mt-1.5 text-[11px] text-ink-faint">
               Verified via {factCheck.engine === 'tavily' ? 'Tavily (independent search)' : factCheck.engine === 'youcom-fallback' ? 'You.com (fallback — set TAVILY_API_KEY for an independent check)' : factCheck.engine}
             </p>
           )}
 
-          {error && <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-300">{error}</div>}
+          {error && <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
 
           {busy && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-slate-400"><Spinner /> Independently re-researching your claims… (1–2 min)</div>
+            <div className="mt-4 flex items-center gap-2 text-sm text-ink-soft"><Spinner /> Independently re-researching your claims… (1–2 min)</div>
           )}
 
           {!busy && !factCheck && !error && (
-            <div className="mt-6 text-center text-sm text-slate-400">No fact-check yet.</div>
+            <div className="mt-6 text-center text-sm text-ink-soft">No fact-check yet.</div>
           )}
 
           {factCheck && (
             <div className="mt-4 space-y-3">
               {factCheck.overall && (
-                <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-xs leading-relaxed text-slate-300">{factCheck.overall}</div>
+                <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-xs leading-relaxed text-ink-soft">{factCheck.overall}</div>
               )}
               {showApply && (
                 <div className="flex items-center justify-between gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3">
-                  <span className="text-xs text-slate-200">Sources point to TAM ≈ <b>{fmtUSD(suggestTam)}</b></span>
+                  <span className="text-xs text-ink">Sources point to TAM ≈ <b>{fmtUSD(suggestTam)}</b></span>
                   <button onClick={() => onApplyTam(suggestTam)} className="btn-primary py-1 px-2.5 text-xs">Apply</button>
                 </div>
               )}
               {(factCheck.checks || []).map((c, i) => {
                 const v = badgeFor(c);
                 return (
-                  <div key={i} className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5">
+                  <div key={i} className="rounded-xl border border-line bg-mist/60 p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium text-white">{c.claim}</p>
+                      <p className="text-sm font-medium text-ink">{c.claim}</p>
                       <span className={`chip shrink-0 ${v.cls}`}><Icon name={v.icon} className="h-3 w-3" /> {v.label}</span>
                     </div>
-                    {c.finding && <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{c.finding}</p>}
-                    {KIND_NOTE[c.kind] && <p className="mt-1 text-[11px] text-slate-600">{KIND_NOTE[c.kind]}</p>}
-                    {c.confidence && c.kind === 'market' && <p className="mt-1 text-[11px] text-slate-600">Checker confidence: {c.confidence}</p>}
+                    {c.finding && <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">{c.finding}</p>}
+                    {KIND_NOTE[c.kind] && <p className="mt-1 text-[11px] text-ink-faint">{KIND_NOTE[c.kind]}</p>}
+                    {c.confidence && c.kind === 'market' && <p className="mt-1 text-[11px] text-ink-faint">Checker confidence: {c.confidence}</p>}
                   </div>
                 );
               })}
 
               {(factCheck.sources || []).length > 0 && (
                 <div className="pt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Verification sources</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Verification sources</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {factCheck.sources.map((s, i) => (
-                      <a key={i} href={s.url} target="_blank" rel="noreferrer" className="chip border-ink-600 bg-ink-850 text-slate-300 hover:text-white">
+                      <a key={i} href={s.url} target="_blank" rel="noreferrer" className="chip border-ink-600 bg-ink-850 text-ink-soft hover:text-ink">
                         <Icon name="external" className="h-3 w-3" /> {(s.title || s.url || 'source').slice(0, 34)}
                       </a>
                     ))}
                   </div>
                 </div>
               )}
-              {factCheck.checkedAt && <p className="pt-1 text-[11px] text-slate-600">Checked {new Date(factCheck.checkedAt).toLocaleString()}</p>}
+              {factCheck.checkedAt && <p className="pt-1 text-[11px] text-ink-faint">Checked {new Date(factCheck.checkedAt).toLocaleString()}</p>}
             </div>
           )}
         </div>
@@ -424,10 +424,10 @@ function ChangeCard({ history }) {
   const any = rows.some(([, c, p]) => Number(c) !== Number(p));
   return (
     <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-      <h3 className="text-sm font-semibold text-white">What changed</h3>
-      <p className="mt-0.5 text-xs text-slate-500">Versus your previous model, built {when}.</p>
+      <h3 className="text-sm font-semibold text-ink">What changed</h3>
+      <p className="mt-0.5 text-xs text-ink-soft">Versus your previous model, built {when}.</p>
       {!any ? (
-        <p className="mt-3 text-sm text-slate-400">No change since your last build.</p>
+        <p className="mt-3 text-sm text-ink-soft">No change since your last build.</p>
       ) : (
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {rows.map(([label, c, p]) => {
@@ -435,10 +435,10 @@ function ChangeCard({ history }) {
             const pctChg = p ? (delta / p) * 100 : 0;
             const up = delta > 0, flat = delta === 0;
             return (
-              <div key={label} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                <p className="text-xs text-slate-500">{label}</p>
-                <p className="mt-1 text-base font-semibold text-white">{fmtUSD(c)}</p>
-                <p className={`text-[11px] ${flat ? 'text-slate-500' : up ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <div key={label} className="rounded-xl border border-line bg-mist/60 p-3">
+                <p className="text-xs text-ink-soft">{label}</p>
+                <p className="mt-1 text-base font-semibold text-ink">{fmtUSD(c)}</p>
+                <p className={`text-[11px] ${flat ? 'text-ink-soft' : up ? 'text-emerald-700' : 'text-rose-700'}`}>
                   {flat ? 'no change' : `${up ? '▲' : '▼'} ${fmtUSD(Math.abs(delta))} (${up ? '+' : ''}${pctChg.toFixed(0)}%)`}
                 </p>
               </div>
@@ -469,7 +469,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
 
   const rows = [
     { key: 'TAM', label: 'Total Addressable Market', value: tamValue, sub: tam.method, width: 100, tone: 'from-accent/30 to-accent/10' },
-    { key: 'SAM', label: 'Serviceable Addressable Market', value: model.sam?.value_usd, sub: model.sam?.method, width: 62, tone: 'from-indigo-400/30 to-indigo-400/10' },
+    { key: 'SAM', label: 'Serviceable Addressable Market', value: model.sam?.value_usd, sub: model.sam?.method, width: 62, tone: 'from-accent/20 to-accent/5' },
     { key: 'SOM', label: 'Serviceable Obtainable Market', value: currentSom, sub: model.som?.method, width: 32, tone: 'from-violet-400/40 to-violet-400/10' },
   ];
   const maxTimeline = Math.max(1, ...(model.som_timeline || []).map((p) => p.value_usd));
@@ -531,7 +531,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
     const maxP = Math.max(1, ...items.map((i) => i.presence_pct ?? i.share_pct ?? 0));
     const presenceRows = items.map((item, i) => {
       const pct = item.presence_pct ?? item.share_pct ?? 0;
-      return `<tr><td>${esc(item.name)}</td><td style="text-align:right;font-weight:700">${pct}%</td><td><div style="background:#e2e8f0;border-radius:4px;height:8px;"><div style="width:${Math.max(6, (pct / maxP) * 100)}%;height:8px;border-radius:4px;background:${['#6366f1','#818cf8','#a5b4fc','#c7d2fe'][i % 4]}"></div></div></td></tr>`;
+      return `<tr><td>${esc(item.name)}</td><td style="text-align:right;font-weight:700">${pct}%</td><td><div style="background:#e2e8f0;border-radius:4px;height:8px;"><div style="width:${Math.max(6, (pct / maxP) * 100)}%;height:8px;border-radius:4px;background:${['#5C6B52','#5C6B52','#7A8A6E','#A8B39E'][i % 4]}"></div></div></td></tr>`;
     }).join('');
     const insightList = insights.filter((x) => x.type !== 'missing').map((ins) => `<li><b>${esc(ins.title)}</b> — ${esc(ins.body)}</li>`).join('');
     const moves = (model.levers || []).slice(0, 3).map((l) => `<li><b>${esc(l.lever)}</b>${l.effect ? ` — ${esc(l.effect)}` : ''}</li>`).join('');
@@ -547,7 +547,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
   * { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Inter, sans-serif; color:#0f172a; max-width:720px; margin:40px auto; padding:0 28px; line-height:1.5; }
   .brand { font-weight:800; letter-spacing:-.02em; font-size:20px; }
-  .brand span { color:#6366f1; }
+  .brand span { color:#5C6B52; }
   h1 { font-size:26px; margin:18px 0 2px; }
   .muted { color:#64748b; font-size:13px; }
   table { width:100%; border-collapse:collapse; margin:14px 0; }
@@ -597,7 +597,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
   * { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Inter, sans-serif; color:#0f172a; max-width:720px; margin:40px auto; padding:0 28px; line-height:1.5; }
   .brand { font-weight:800; letter-spacing:-.02em; font-size:20px; }
-  .brand span { color:#6366f1; }
+  .brand span { color:#5C6B52; }
   h1 { font-size:26px; margin:18px 0 2px; }
   .muted { color:#64748b; font-size:13px; }
   table { width:100%; border-collapse:collapse; margin:14px 0; }
@@ -635,7 +635,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
     <div className="mt-6 space-y-5">
       {model.summary && (
         <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
-          <p className="text-sm leading-relaxed text-slate-200">{model.summary}</p>
+          <p className="text-sm leading-relaxed text-ink">{model.summary}</p>
         </div>
       )}
 
@@ -644,7 +644,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       {/* Funnel */}
       <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">TAM → SAM → SOM</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-ink-soft">TAM → SAM → SOM</span>
           <div className="flex items-center gap-2">
             <button onClick={copySummary} className="btn-ghost py-1 px-2.5 text-xs">
               <Icon name={copied ? 'check' : 'copy'} className="h-3.5 w-3.5" /> {copied ? 'Copied' : 'Copy summary'}
@@ -659,28 +659,28 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
         </div>
         <div className="space-y-3">
           {rows.map((r) => (
-            <div key={r.key} className={`relative overflow-hidden rounded-xl border border-white/5 bg-gradient-to-r ${r.tone} p-4`} style={{ width: `${r.width}%`, minWidth: 260 }}>
+            <div key={r.key} className={`relative overflow-hidden rounded-xl border border-line bg-gradient-to-r ${r.tone} p-4`} style={{ width: `${r.width}%`, minWidth: 260 }}>
               <div className="flex items-baseline justify-between gap-3">
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{r.key}</span>
-                  <span className="ml-2 text-[11px] text-slate-500">{r.label}</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">{r.key}</span>
+                  <span className="ml-2 text-[11px] text-ink-soft">{r.label}</span>
                 </div>
-                <span className="text-xl font-bold text-white">{fmtUSD(r.value)}</span>
+                <span className="text-xl font-bold text-ink">{fmtUSD(r.value)}</span>
               </div>
               {r.key === 'TAM' && (tam.low_usd || tam.high_usd) && (
-                <p className="mt-1 text-[11px] text-slate-500">Range {fmtUSD(tam.low_usd)} – {fmtUSD(tam.high_usd)}</p>
+                <p className="mt-1 text-[11px] text-ink-soft">Range {fmtUSD(tam.low_usd)} – {fmtUSD(tam.high_usd)}</p>
               )}
-              {r.sub && <p className="mt-0.5 text-[11px] text-slate-500">{r.sub}</p>}
+              {r.sub && <p className="mt-0.5 text-[11px] text-ink-soft">{r.sub}</p>}
             </div>
           ))}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {tam.confidence && <span className={`chip ${CONF[tam.confidence] || CONF.low}`}>Confidence: {tam.confidence}</span>}
-          {tam.sourced === true && <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300"><Icon name="check" className="h-3 w-3" /> Sourced</span>}
-          {tam.sourced === false && <span className="chip border-amber-500/30 bg-amber-500/10 text-amber-300"><Icon name="alert" className="h-3 w-3" /> Assumption</span>}
-          <span className="text-[11px] text-slate-500">SAM &amp; SOM recompute from your assumptions.</span>
+          {tam.sourced === true && <span className="chip border-emerald-200 bg-emerald-50 text-emerald-700"><Icon name="check" className="h-3 w-3" /> Sourced</span>}
+          {tam.sourced === false && <span className="chip border-amber-200 bg-amber-50 text-amber-800"><Icon name="alert" className="h-3 w-3" /> Assumption</span>}
+          <span className="text-[11px] text-ink-soft">SAM &amp; SOM recompute from your assumptions.</span>
         </div>
-        {tam.source_quote && <p className="mt-1.5 text-[11px] italic text-slate-500">“{tam.source_quote}”</p>}
+        {tam.source_quote && <p className="mt-1.5 text-[11px] italic text-ink-soft">“{tam.source_quote}”</p>}
       </div>
 
       <DistributionPanel
@@ -700,13 +700,13 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       />
 
       {!pulseData?.distribution?.items?.length && (
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5 text-sm text-slate-400">
+        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5 text-sm text-ink-soft">
           No distribution yet.{' '}
-          <button type="button" onClick={onRefreshDistribution} disabled={distResearching} className="text-accent-soft underline">
+          <button type="button" onClick={onRefreshDistribution} disabled={distResearching} className="text-accent underline">
             Run market research
           </button>{' '}
           or open the{' '}
-          <a href="/distribution" className="text-accent-soft underline">Distribution</a> page.
+          <a href="/distribution" className="text-accent underline">Distribution</a> page.
         </div>
       )}
 
@@ -714,8 +714,8 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-white">Scenarios</h3>
-            <p className="mt-0.5 text-xs text-slate-500">Compare obtainable market under different assumptions. Click to apply.</p>
+            <h3 className="text-sm font-semibold text-ink">Scenarios</h3>
+            <p className="mt-0.5 text-xs text-ink-soft">Compare obtainable market under different assumptions. Click to apply.</p>
           </div>
           <button onClick={runAiScenarios} disabled={scenarioBusy} className="btn-ghost py-1 px-2.5 text-xs shrink-0">
             {scenarioBusy ? <Spinner /> : <Icon name="sparkle" className="h-3.5 w-3.5" />}
@@ -726,23 +726,23 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
           {scenarios.map((s) => {
             const active = Math.round(s.som) === Math.round(currentSom);
             return (
-              <button key={s.key} onClick={() => onInputs(s.patch)} className={`rounded-xl border p-4 text-left transition ${active ? 'border-accent/50 bg-accent/10' : 'border-white/5 bg-white/[0.02] hover:border-white/15'}`}>
-                <p className="text-xs font-medium text-slate-400">{s.key}</p>
-                <p className="mt-1 text-lg font-bold text-white">{fmtUSD(s.som)}</p>
-                <p className="text-[11px] text-slate-500">SOM · {pct(s.patch.target_share)} of SAM</p>
+              <button key={s.key} onClick={() => onInputs(s.patch)} className={`rounded-xl border p-4 text-left transition ${active ? 'border-accent/50 bg-accent/10' : 'border-line bg-mist/60 hover:border-line-strong'}`}>
+                <p className="text-xs font-medium text-ink-soft">{s.key}</p>
+                <p className="mt-1 text-lg font-bold text-ink">{fmtUSD(s.som)}</p>
+                <p className="text-[11px] text-ink-soft">SOM · {pct(s.patch.target_share)} of SAM</p>
               </button>
             );
           })}
         </div>
         {aiScenarios?.scenarios?.length > 0 && (
           <div className="mt-4 space-y-2 border-t border-ink-800 pt-4">
-            <p className="text-xs text-slate-400">{aiScenarios.narrative}</p>
+            <p className="text-xs text-ink-soft">{aiScenarios.narrative}</p>
             <div className="grid gap-2 sm:grid-cols-3">
               {aiScenarios.scenarios.map((s) => (
                 <div key={s.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-500">{s.name} · {Math.round((s.probability || 0) * 100)}%</p>
-                  <p className="mt-1 text-sm font-semibold text-white">SOM {fmtUSD(s.somUsd)}</p>
-                  <p className="text-[11px] text-slate-500">TAM {fmtUSD(s.tamUsd)} · SAM {fmtUSD(s.samUsd)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-ink-soft">{s.name} · {Math.round((s.probability || 0) * 100)}%</p>
+                  <p className="mt-1 text-sm font-semibold text-ink">SOM {fmtUSD(s.somUsd)}</p>
+                  <p className="text-[11px] text-ink-soft">TAM {fmtUSD(s.tamUsd)} · SAM {fmtUSD(s.samUsd)}</p>
                 </div>
               ))}
             </div>
@@ -753,23 +753,23 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       {/* Editable assumptions */}
       <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Your assumptions</h3>
+          <h3 className="text-sm font-semibold text-ink">Your assumptions</h3>
           {edited && (
-            <button onClick={() => onInputs({ ...base })} className="chip border-ink-600 bg-ink-850 text-slate-300 hover:text-white">
+            <button onClick={() => onInputs({ ...base })} className="chip border-ink-600 bg-ink-850 text-ink-soft hover:text-ink">
               <Icon name="refresh" className="h-3 w-3" /> Reset to baseline
             </button>
           )}
         </div>
-        <p className="mt-0.5 text-xs text-slate-500">Edit these to make the model yours. SAM and SOM update instantly.</p>
+        <p className="mt-0.5 text-xs text-ink-soft">Edit these to make the model yours. SAM and SOM update instantly.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Geography">
             <input value={inputs.geography || ''} onChange={(e) => onInputs({ geography: e.target.value })} className="input" />
           </Field>
           <Field label={`Serviceable share of TAM — ${pct(inputs.serviceable_pct)}`}>
-            <input type="range" min="0" max="1" step="0.01" value={inputs.serviceable_pct} onChange={(e) => onInputs({ serviceable_pct: Number(e.target.value) })} className="w-full accent-indigo-500" />
+            <input type="range" min="0" max="1" step="0.01" value={inputs.serviceable_pct} onChange={(e) => onInputs({ serviceable_pct: Number(e.target.value) })} className="w-full accent-[#5C6B52]" />
           </Field>
           <Field label={`Obtainable share of SAM — ${pct(inputs.target_share)}`}>
-            <input type="range" min="0" max="0.5" step="0.005" value={inputs.target_share} onChange={(e) => onInputs({ target_share: Number(e.target.value) })} className="w-full accent-indigo-500" />
+            <input type="range" min="0" max="0.5" step="0.005" value={inputs.target_share} onChange={(e) => onInputs({ target_share: Number(e.target.value) })} className="w-full accent-[#5C6B52]" />
           </Field>
           <Field label="Annual value per customer (ACV)">
             <input type="number" value={inputs.acv_usd} onChange={(e) => onInputs({ acv_usd: Number(e.target.value) })} className="input" />
@@ -778,7 +778,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
             <input type="number" min="1" max="7" value={inputs.timeframe_years} onChange={(e) => onInputs({ timeframe_years: Number(e.target.value) })} className="input" />
           </Field>
           <Field label={`Market growth — ${pct(inputs.annual_growth_pct)} / yr`}>
-            <input type="range" min="0" max="1" step="0.01" value={inputs.annual_growth_pct} onChange={(e) => onInputs({ annual_growth_pct: Number(e.target.value) })} className="w-full accent-indigo-500" />
+            <input type="range" min="0" max="1" step="0.01" value={inputs.annual_growth_pct} onChange={(e) => onInputs({ annual_growth_pct: Number(e.target.value) })} className="w-full accent-[#5C6B52]" />
           </Field>
         </div>
       </div>
@@ -786,7 +786,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       {/* Bottom-up + reconciliation */}
       {(model.bottom_up || model.reconciliation) && (
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <h3 className="text-sm font-semibold text-white">Cross-check: bottom-up</h3>
+          <h3 className="text-sm font-semibold text-ink">Cross-check: bottom-up</h3>
           {model.bottom_up && (
             <>
               <div className="mt-2 flex flex-wrap gap-5 text-sm">
@@ -794,7 +794,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
                 <StatTag label="× ACV" value={fmtUSD(model.bottom_up.acv_usd)} tag="Your input" tone="slate" />
                 <StatTag label="= Bottom-up estimate" value={fmtUSD(model.bottom_up.value_usd)} tag="Your estimate" tone="slate" />
               </div>
-              <p className="mt-2.5 text-[11px] text-slate-500">This multiplies your own assumptions, so it's a sanity-check of your logic — not an independent source.</p>
+              <p className="mt-2.5 text-[11px] text-ink-soft">This multiplies your own assumptions, so it's a sanity-check of your logic — not an independent source.</p>
               {blowout && (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/25 bg-rose-950/25 p-3">
                   <span className="text-xs text-rose-200">
@@ -812,16 +812,16 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       {/* SOM timeline */}
       {(model.som_timeline || []).length > 0 && (
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <h3 className="text-sm font-semibold text-white">Path to SOM</h3>
-          <p className="mt-0.5 text-xs text-slate-500">Ramp toward your obtainable market over {inputs.timeframe_years} years.</p>
+          <h3 className="text-sm font-semibold text-ink">Path to SOM</h3>
+          <p className="mt-0.5 text-xs text-ink-soft">Ramp toward your obtainable market over {inputs.timeframe_years} years.</p>
           <div className="mt-4 flex items-end gap-4">
             {model.som_timeline.map((p) => (
               <div key={p.year} className="flex flex-1 flex-col items-center">
-                <span className="mb-1.5 text-[11px] font-medium text-slate-300">{fmtUSD(p.value_usd)}</span>
+                <span className="mb-1.5 text-[11px] font-medium text-ink-soft">{fmtUSD(p.value_usd)}</span>
                 <div className="flex w-full items-end justify-center" style={{ height: 120 }}>
                   <div className="w-full max-w-[72px] rounded-t-md bg-gradient-to-t from-accent/40 to-accent" style={{ height: `${Math.max(4, (p.value_usd / maxTimeline) * 100)}%` }} />
                 </div>
-                <span className="mt-2 text-[11px] text-slate-500">Yr {p.year}</span>
+                <span className="mt-2 text-[11px] text-ink-soft">Yr {p.year}</span>
               </div>
             ))}
           </div>
@@ -831,23 +831,23 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       {/* Growth levers — quantified + applyable */}
       {(model.levers || []).length > 0 && (
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <h3 className="text-sm font-semibold text-white">Levers to grow SOM</h3>
-          <p className="mt-0.5 text-xs text-slate-500">Each shows the projected SOM lift. Apply one to update your model.</p>
+          <h3 className="text-sm font-semibold text-ink">Levers to grow SOM</h3>
+          <p className="mt-0.5 text-xs text-ink-soft">Each shows the projected SOM lift. Apply one to update your model.</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {model.levers.map((l, i) => {
               const patch = leverPatch(l);
               const projected = derive(tamValue, normalizeClient({ ...inputs, ...patch }), base.acv_usd).som;
               const delta = projected - currentSom;
               return (
-                <div key={i} className="flex flex-col rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <div key={i} className="flex flex-col rounded-xl border border-line bg-mist/60 p-4">
                   <div className="flex items-center gap-2">
-                    <span className="chip border-accent/30 bg-accent/10 text-accent-soft">{l.target_layer || 'SOM'}</span>
-                    <span className="text-sm font-semibold text-white">{l.lever}</span>
+                    <span className="chip border-accent/30 bg-accent/10 text-accent">{l.target_layer || 'SOM'}</span>
+                    <span className="text-sm font-semibold text-ink">{l.lever}</span>
                   </div>
-                  {l.effect && <p className="mt-1.5 text-xs text-slate-400">{l.effect}</p>}
-                  {l.requires && <p className="mt-1 text-[11px] text-slate-500">Requires: {l.requires}</p>}
+                  {l.effect && <p className="mt-1.5 text-xs text-ink-soft">{l.effect}</p>}
+                  {l.requires && <p className="mt-1 text-[11px] text-ink-soft">Requires: {l.requires}</p>}
                   <div className="mt-3 flex items-center justify-between">
-                    <span className={`text-sm font-semibold ${delta > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    <span className={`text-sm font-semibold ${delta > 0 ? 'text-emerald-700' : 'text-ink-soft'}`}>
                       {delta > 0 ? `+${fmtUSD(delta)} SOM` : 'No change'}
                     </span>
                     <button onClick={() => onInputs(patch)} disabled={delta === 0} className="btn-ghost py-1 px-2.5 text-xs disabled:opacity-40">Apply</button>
@@ -862,10 +862,10 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       {/* Sources */}
       {(model.sources || []).length > 0 && (
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <h3 className="text-sm font-semibold text-white">Sources</h3>
+          <h3 className="text-sm font-semibold text-ink">Sources</h3>
           <div className="mt-3 flex flex-wrap gap-2">
             {model.sources.map((s, i) => (
-              <a key={i} href={s.url} target="_blank" rel="noreferrer" className="chip border-ink-600 bg-ink-850 text-slate-300 hover:text-white">
+              <a key={i} href={s.url} target="_blank" rel="noreferrer" className="chip border-ink-600 bg-ink-850 text-ink-soft hover:text-ink">
                 <Icon name="external" className="h-3 w-3" /> {(s.title || s.url || 'source').slice(0, 40)}
               </a>
             ))}
@@ -879,7 +879,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-slate-400">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium text-ink-soft">{label}</span>
       {children}
     </label>
   );
@@ -887,19 +887,19 @@ function Field({ label, children }) {
 function Stat({ label, value }) {
   return (
     <div>
-      <p className="text-base font-semibold text-white">{value}</p>
-      <p className="text-[11px] text-slate-500">{label}</p>
+      <p className="text-base font-semibold text-ink">{value}</p>
+      <p className="text-[11px] text-ink-soft">{label}</p>
     </div>
   );
 }
 function StatTag({ label, value, tag, tone }) {
-  const cls = tone === 'emerald' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-    : tone === 'amber' ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-    : 'border-ink-600 bg-ink-850 text-slate-400';
+  const cls = tone === 'emerald' ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : tone === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-800'
+    : 'border-ink-600 bg-ink-850 text-ink-soft';
   return (
     <div>
-      <p className="text-base font-semibold text-white">{value}</p>
-      <p className="text-[11px] text-slate-500">{label}</p>
+      <p className="text-base font-semibold text-ink">{value}</p>
+      <p className="text-[11px] text-ink-soft">{label}</p>
       {tag && <span className={`chip mt-1 ${cls}`}>{tag}</span>}
     </div>
   );

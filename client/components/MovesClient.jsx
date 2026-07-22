@@ -6,9 +6,9 @@ import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
 import { LabShell } from './labs/LabShell';
 
 const IMPACT = {
-  high: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
-  medium: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-  low: 'border-ink-700 bg-ink-850 text-slate-400',
+  high: 'border-rose-200 bg-rose-50 text-rose-700',
+  medium: 'border-amber-200 bg-amber-50 text-amber-800',
+  low: 'border-ink-700 bg-ink-850 text-ink-soft',
 };
 
 export default function MovesClient() {
@@ -67,25 +67,25 @@ export default function MovesClient() {
       ) : (
         <div className="space-y-4">
           <section className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brief</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{brief.summary}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Brief</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{brief.summary}</p>
           </section>
 
           <section className="space-y-2">
             {moves.map((move, i) => (
               <div key={`${move.title}-${i}`} className="card p-4">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-sm font-semibold text-accent-soft">
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-sm font-semibold text-accent">
                     P{move.priority || i + 1}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-sm font-semibold text-white">{move.title}</h2>
+                      <h2 className="text-sm font-semibold text-ink">{move.title}</h2>
                       <span className={`chip text-[10px] ${IMPACT[move.impact] || IMPACT.low}`}>{move.impact || 'low'} impact</span>
-                      <span className="chip border-ink-700 bg-ink-850 text-[10px] text-slate-400">{move.owner || 'founders'}</span>
-                      <span className="chip border-ink-700 bg-ink-850 text-[10px] text-slate-400">{move.effort || 'M'} effort</span>
+                      <span className="chip border-ink-700 bg-ink-850 text-[10px] text-ink-soft">{move.owner || 'founders'}</span>
+                      <span className="chip border-ink-700 bg-ink-850 text-[10px] text-ink-soft">{move.effort || 'M'} effort</span>
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-400">{move.why}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-ink-soft">{move.why}</p>
                   </div>
                 </div>
               </div>
@@ -94,8 +94,8 @@ export default function MovesClient() {
 
           {brief.watchouts?.length > 0 && (
             <section className="card p-5">
-              <h2 className="text-sm font-semibold text-white">Watchouts</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+              <h2 className="text-sm font-semibold text-ink">Watchouts</h2>
+              <ul className="mt-3 space-y-2 text-sm text-ink-soft">
                 {brief.watchouts.map((w, i) => <li key={i}>- {w}</li>)}
               </ul>
             </section>

@@ -63,11 +63,11 @@ export default function NotificationsClient() {
                 <div className="min-w-0 flex-1">
                   <span className="sr-only">{item.read ? 'Read' : 'Unread'} alert. </span>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-semibold text-white">{item.title || 'Notification'}</h2>
-                    {item.type && <span className="chip border-ink-700 bg-ink-850 text-[10px] text-slate-400">{item.type}</span>}
+                    <h2 className="text-sm font-semibold text-ink">{item.title || 'Notification'}</h2>
+                    {item.type && <span className="chip border-ink-700 bg-ink-850 text-[10px] text-ink-soft">{item.type}</span>}
                   </div>
-                  {item.body && <p className="mt-1 text-sm text-slate-400">{item.body}</p>}
-                  {item.at && <p className="mt-2 text-xs text-slate-600">{new Date(item.at).toLocaleString()}</p>}
+                  {item.body && <p className="mt-1 text-sm text-ink-soft">{item.body}</p>}
+                  {item.at && <p className="mt-2 text-xs text-ink-faint">{new Date(item.at).toLocaleString()}</p>}
                 </div>
               </div>
             </a>

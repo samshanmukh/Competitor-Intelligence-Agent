@@ -51,7 +51,7 @@ function SignupForm() {
       <div className="card space-y-4 p-6">
         <OAuthButtons from={returnTo} />
 
-        <div className="flex items-center gap-3 text-xs text-slate-600">
+        <div className="flex items-center gap-3 text-xs text-ink-faint">
           <div className="h-px flex-1 bg-ink-700" />
           <span>or</span>
           <div className="h-px flex-1 bg-ink-700" />
@@ -99,7 +99,7 @@ function SignupForm() {
           </div>
 
           {error && (
-            <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               {error}
             </p>
           )}
@@ -110,9 +110,9 @@ function SignupForm() {
         </form>
       </div>
 
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-ink-soft">
         Already have an account?{' '}
-        <Link href={loginHref} className="text-accent-soft hover:text-white transition">
+        <Link href={loginHref} className="text-accent hover:text-ink transition">
           Sign in
         </Link>
       </p>

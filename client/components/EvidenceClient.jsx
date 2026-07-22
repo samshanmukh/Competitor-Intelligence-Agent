@@ -89,15 +89,15 @@ export default function EvidenceClient() {
             <div key={item.id} className="card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm leading-relaxed text-slate-300">"{item.quote}"</p>
+                  <p className="text-sm leading-relaxed text-ink-soft">"{item.quote}"</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {item.sentiment && <span className="chip border-ink-700 bg-ink-850 text-slate-400">{item.sentiment}</span>}
-                    {item.theme && <span className="chip border-accent/30 bg-accent/10 text-accent-soft">{item.theme}</span>}
-                    {item.competitor && <span className="chip border-ink-700 bg-ink-850 text-slate-400">{item.competitor}</span>}
-                    {item.source && <span className="chip border-ink-700 bg-ink-850 text-slate-400">{item.source}</span>}
+                    {item.sentiment && <span className="chip border-ink-700 bg-ink-850 text-ink-soft">{item.sentiment}</span>}
+                    {item.theme && <span className="chip border-accent/30 bg-accent/10 text-accent">{item.theme}</span>}
+                    {item.competitor && <span className="chip border-ink-700 bg-ink-850 text-ink-soft">{item.competitor}</span>}
+                    {item.source && <span className="chip border-ink-700 bg-ink-850 text-ink-soft">{item.source}</span>}
                   </div>
                 </div>
-                <button type="button" aria-label="Delete evidence" onClick={() => remove(item.id)} disabled={deletingId === item.id} className="text-slate-600 transition hover:text-rose-400">
+                <button type="button" aria-label="Delete evidence" onClick={() => remove(item.id)} disabled={deletingId === item.id} className="text-ink-faint transition hover:text-rose-700">
                   <Icon name={deletingId === item.id ? 'refresh' : 'trash'} className={`h-4 w-4 ${deletingId === item.id ? 'animate-spin' : ''}`} />
                 </button>
               </div>

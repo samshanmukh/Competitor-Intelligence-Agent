@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Icon, timeAgo } from '../ui';
 
-export const CHART_COLORS = ['#818cf8', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f472b6', '#4ade80'];
+export const CHART_COLORS = ['#5C6B52', '#34d399', '#fbbf24', '#fb7185', '#7A8A6E', '#22d3ee', '#f472b6', '#4ade80'];
 
 export const METHOD_HINT = {
   triangulated: 'Blends estimated revenue, web traffic, and review activity — directional, not syndicated share.',
@@ -12,11 +12,11 @@ export const METHOD_HINT = {
 };
 
 export const INSIGHT_TONE = {
-  amber: 'border-amber-500/30 bg-amber-500/10 text-amber-200',
-  emerald: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-  indigo: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-200',
-  accent: 'border-accent/30 bg-accent/10 text-accent-soft',
-  slate: 'border-ink-700 bg-ink-850 text-slate-300',
+  amber: 'border-amber-200 bg-amber-50 text-amber-200',
+  emerald: 'border-emerald-200 bg-emerald-50 text-emerald-200',
+  indigo: 'border-accent/25 bg-accent-mist text-accent',
+  accent: 'border-accent/30 bg-accent/10 text-accent',
+  slate: 'border-ink-700 bg-ink-850 text-ink-soft',
 };
 
 export function fmtUsd(n) {
@@ -37,12 +37,12 @@ export function DistributionMetaChips({ distribution, trafficMeta, compact }) {
   if (!distribution) return null;
   const tm = trafficMeta || distribution.traffic_meta;
   return (
-    <div className={`flex flex-wrap items-center gap-2 text-xs text-slate-500 ${compact ? '' : 'mt-0'}`}>
+    <div className={`flex flex-wrap items-center gap-2 text-xs text-ink-soft ${compact ? '' : 'mt-0'}`}>
       {distribution.captured_at && (
         <span className="chip border-ink-700 bg-ink-850">Updated {timeAgo(distribution.captured_at)}</span>
       )}
       {distribution.method && distribution.method !== 'none' && (
-        <span className="chip border-indigo-500/30 bg-indigo-500/10 text-indigo-300 capitalize">
+        <span className="chip border-accent/25 bg-accent-mist text-accent capitalize">
           {distribution.method.replace(/_/g, ' ')}
         </span>
       )}
@@ -50,7 +50,7 @@ export function DistributionMetaChips({ distribution, trafficMeta, compact }) {
         <span className="chip border-ink-700 bg-ink-850">Top 4 ≈ {distribution.cr4_pct}%</span>
       )}
       {distribution.tam_source === 'market_model' && (
-        <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">TAM from market model</span>
+        <span className="chip border-emerald-200 bg-emerald-50 text-emerald-700">TAM from market model</span>
       )}
       {tm?.apify_fetched > 0 && (
         <span className="chip border-ink-700 bg-ink-850">SimilarWeb: {tm.apify_fetched}</span>
@@ -84,13 +84,13 @@ export function PulseBanner({ pulse, limit = 6, compact }) {
   if (!pulse?.shifts?.length) return null;
   return (
     <div className={`rounded-xl border border-accent/30 bg-accent/5 ${compact ? 'p-3' : 'p-4'}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-accent-soft">Market pulse</p>
-      <p className={`mt-1 text-slate-300 ${compact ? 'text-xs' : 'text-sm'}`}>{pulse.summary}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-accent">Market pulse</p>
+      <p className={`mt-1 text-ink-soft ${compact ? 'text-xs' : 'text-sm'}`}>{pulse.summary}</p>
       <ul className={`space-y-1.5 ${compact ? 'mt-2' : 'mt-3'}`}>
         {pulse.shifts.slice(0, limit).map((s) => (
           <li key={s.name} className="flex items-center justify-between text-xs">
-            <span className="text-slate-300">{s.name}</span>
-            <span className={s.delta_pct > 0 ? 'text-emerald-400' : 'text-amber-400'}>
+            <span className="text-ink-soft">{s.name}</span>
+            <span className={s.delta_pct > 0 ? 'text-emerald-700' : 'text-amber-700'}>
               {s.prev_pct}% → {s.next_pct}% ({s.delta_pct > 0 ? '+' : ''}{s.delta_pct}pp)
               {Math.abs(s.delta_pct) >= 5 && ' · significant'}
             </span>
@@ -114,7 +114,7 @@ export function PresenceChart({ distribution, limit = 10, barHeight = 'h-3', nam
         return (
           <div key={item.name}>
             <div className="flex items-center gap-3 text-xs">
-              <span className={`${nameWidth} shrink-0 truncate text-slate-300`}>{item.name}</span>
+              <span className={`${nameWidth} shrink-0 truncate text-ink-soft`}>{item.name}</span>
               <div className={`${barHeight} flex-1 rounded-full bg-ink-800 overflow-hidden`}>
                 <div
                   className="h-full rounded-full transition-all"
@@ -124,10 +124,10 @@ export function PresenceChart({ distribution, limit = 10, barHeight = 'h-3', nam
                   }}
                 />
               </div>
-              <span className="w-12 shrink-0 text-right tabular-nums font-medium text-slate-200">{pct}%</span>
+              <span className="w-12 shrink-0 text-right tabular-nums font-medium text-ink">{pct}%</span>
             </div>
             {isTriangulated && item.signals && (
-              <div className="mt-1 flex flex-wrap gap-2 pl-[8.5rem] text-[10px] text-slate-600">
+              <div className="mt-1 flex flex-wrap gap-2 pl-[8.5rem] text-[10px] text-ink-faint">
                 {item.signals.revenue != null && <span>Rev {item.signals.revenue}</span>}
                 {item.signals.traffic != null && (
                   <span>
@@ -145,10 +145,10 @@ export function PresenceChart({ distribution, limit = 10, barHeight = 'h-3', nam
         );
       })}
       {distribution.remainder_pct > 0 && distribution.method === 'revenue_implied' && (
-        <p className="text-[11px] text-slate-600">Untracked / remainder ≈ {distribution.remainder_pct}% of TAM</p>
+        <p className="text-[11px] text-ink-faint">Untracked / remainder ≈ {distribution.remainder_pct}% of TAM</p>
       )}
       {distribution.disclaimer && (
-        <p className="text-[11px] leading-relaxed text-slate-600">{distribution.disclaimer}</p>
+        <p className="text-[11px] leading-relaxed text-ink-faint">{distribution.disclaimer}</p>
       )}
     </div>
   );
@@ -161,7 +161,7 @@ export function EstimatedShareTable({ distribution }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-ink-800 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-ink-800 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
             <th className="px-4 py-3">Company</th>
             <th className="px-3 py-3 text-right">Presence</th>
             <th className="px-3 py-3 text-right">TAM share</th>
@@ -171,14 +171,14 @@ export function EstimatedShareTable({ distribution }) {
         <tbody className="divide-y divide-ink-800">
           {items.map((item) => (
             <tr key={item.name}>
-              <td className="px-4 py-2.5 font-medium text-white">{item.name}</td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">
+              <td className="px-4 py-2.5 font-medium text-ink">{item.name}</td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                 {item.presence_pct ?? item.share_pct ?? '—'}%
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
+              <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                 {item.share_pct_tam != null ? `${item.share_pct_tam}%` : '—'}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">{fmtUsd(item.revenue_usd)}</td>
+              <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">{fmtUsd(item.revenue_usd)}</td>
             </tr>
           ))}
         </tbody>
@@ -188,9 +188,9 @@ export function EstimatedShareTable({ distribution }) {
 }
 
 const CONF_BADGE = {
-  high: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-  medium: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-  low: 'border-ink-600 bg-ink-850 text-slate-400',
+  high: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  medium: 'border-amber-200 bg-amber-50 text-amber-800',
+  low: 'border-ink-600 bg-ink-850 text-ink-soft',
 };
 
 export function SyndicatedShareTable({ syndicated, compact }) {
@@ -198,7 +198,7 @@ export function SyndicatedShareTable({ syndicated, compact }) {
   const rows = table?.rows || [];
   if (!rows.length && !syndicated?.vendors?.length) {
     return (
-      <p className={`text-slate-500 ${compact ? 'text-xs' : 'text-sm'}`}>
+      <p className={`text-ink-soft ${compact ? 'text-xs' : 'text-sm'}`}>
         No published analyst market share found for this category yet. Estimated presence below is triangulated from your research run.
       </p>
     );
@@ -219,8 +219,8 @@ export function SyndicatedShareTable({ syndicated, compact }) {
   return (
     <div>
       {(table?.market_definition || syndicated?.market_definition) && (
-        <p className={`mb-3 text-slate-500 ${compact ? 'text-[11px]' : 'text-xs'}`}>
-          <span className="font-medium text-slate-400">Market definition: </span>
+        <p className={`mb-3 text-ink-soft ${compact ? 'text-[11px]' : 'text-xs'}`}>
+          <span className="font-medium text-ink-soft">Market definition: </span>
           {table?.market_definition || syndicated.market_definition}
           {syndicated?.year ? ` (${syndicated.year})` : ''}
         </p>
@@ -228,7 +228,7 @@ export function SyndicatedShareTable({ syndicated, compact }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ink-800 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-ink-800 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
               <th className="px-3 py-3 w-8">#</th>
               <th className="px-3 py-3">Vendor</th>
               <th className="px-3 py-3 text-right">Published</th>
@@ -240,24 +240,24 @@ export function SyndicatedShareTable({ syndicated, compact }) {
           <tbody className="divide-y divide-ink-800">
             {displayRows.slice(0, compact ? 6 : 12).map((row) => (
               <tr key={`${row.rank}-${row.name}`}>
-                <td className="px-3 py-2.5 tabular-nums text-slate-600">{row.rank}</td>
-                <td className="px-3 py-2.5 font-medium text-white">{row.name}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-indigo-300">
+                <td className="px-3 py-2.5 tabular-nums text-ink-faint">{row.rank}</td>
+                <td className="px-3 py-2.5 font-medium text-ink">{row.name}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-accent">
                   {row.published_share_pct != null ? `${row.published_share_pct}%` : '—'}
                 </td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
+                <td className="px-3 py-2.5 text-right tabular-nums text-ink-soft">
                   {row.estimated_presence_pct != null ? `${row.estimated_presence_pct}%` : '—'}
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums">
                   {row.delta_pp != null ? (
-                    <span className={row.delta_pp > 0 ? 'text-amber-400' : row.delta_pp < 0 ? 'text-emerald-400' : 'text-slate-500'}>
+                    <span className={row.delta_pp > 0 ? 'text-amber-700' : row.delta_pp < 0 ? 'text-emerald-700' : 'text-ink-soft'}>
                       {row.delta_pp > 0 ? '+' : ''}{row.delta_pp}pp
                     </span>
                   ) : '—'}
                 </td>
-                <td className="px-3 py-2.5 text-xs text-slate-500">
+                <td className="px-3 py-2.5 text-xs text-ink-soft">
                   {row.source_url ? (
-                    <a href={row.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-accent-soft">
+                    <a href={row.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-accent">
                       {row.publisher || 'Source'}
                       <Icon name="external" className="h-3 w-3" />
                     </a>
@@ -275,7 +275,7 @@ export function SyndicatedShareTable({ syndicated, compact }) {
           </tbody>
         </table>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
+      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-ink-soft">
         {table?.cr4_published_pct != null && table.matched_count >= 2 && (
           <span className="chip border-ink-700 bg-ink-850">Published CR4 ≈ {table.cr4_published_pct}%</span>
         )}
@@ -284,7 +284,7 @@ export function SyndicatedShareTable({ syndicated, compact }) {
         )}
       </div>
       {(syndicated?.disclaimer || table?.disclaimer) && (
-        <p className="mt-2 text-[11px] leading-relaxed text-slate-600">{syndicated?.disclaimer || table?.disclaimer}</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">{syndicated?.disclaimer || table?.disclaimer}</p>
       )}
     </div>
   );
@@ -294,20 +294,20 @@ export function PricingChangesCard({ recentChanges, count, compact }) {
   if (!recentChanges?.length) return null;
   return (
     <div className={compact ? '' : 'card p-5'}>
-      <h2 className={`font-semibold text-white ${compact ? 'text-xs' : 'text-sm'}`}>Pricing changes (7 days)</h2>
-      <p className="mt-0.5 text-xs text-slate-500">
+      <h2 className={`font-semibold text-ink ${compact ? 'text-xs' : 'text-sm'}`}>Pricing changes (7 days)</h2>
+      <p className="mt-0.5 text-xs text-ink-soft">
         {count} change{count !== 1 ? 's' : ''} among monitored competitors
       </p>
       <ul className="mt-3 space-y-2">
         {recentChanges.map((c, i) => (
           <li key={i} className="flex gap-3 text-xs">
-            <span className="shrink-0 text-slate-600">{timeAgo(c.detected_at)}</span>
-            <span className="font-medium text-slate-300">{c.competitor_name}</span>
-            <span className="text-slate-500 truncate">{c.summary || 'Pricing updated'}</span>
+            <span className="shrink-0 text-ink-faint">{timeAgo(c.detected_at)}</span>
+            <span className="font-medium text-ink-soft">{c.competitor_name}</span>
+            <span className="text-ink-soft truncate">{c.summary || 'Pricing updated'}</span>
           </li>
         ))}
       </ul>
-      <Link href="/changes" className="mt-3 inline-block text-xs text-accent-soft hover:underline">
+      <Link href="/changes" className="mt-3 inline-block text-xs text-accent hover:underline">
         View all changes
       </Link>
     </div>
@@ -317,18 +317,18 @@ export function PricingChangesCard({ recentChanges, count, compact }) {
 export function DistributionEmptyState({ competitorCount, onRunResearch, researching }) {
   if (competitorCount === 0) {
     return (
-      <div className="card p-5 text-sm text-slate-400">
+      <div className="card p-5 text-sm text-ink-soft">
         Add approved competitors on the{' '}
-        <Link href="/app" className="text-accent-soft hover:underline">Analysis</Link> page first.
+        <Link href="/app" className="text-accent hover:underline">Analysis</Link> page first.
       </div>
     );
   }
   return (
     <div className="card space-y-4 p-6 text-center">
-      <Icon name="bar" className="mx-auto h-10 w-10 text-slate-600" />
+      <Icon name="bar" className="mx-auto h-10 w-10 text-ink-faint" />
       <div>
-        <p className="font-medium text-white">No distribution snapshot yet</p>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="font-medium text-ink">No distribution snapshot yet</p>
+        <p className="mt-1 text-sm text-ink-soft">
           Run market intelligence to estimate how presence splits across {competitorCount} tracked competitor
           {competitorCount !== 1 ? 's' : ''}.
         </p>
@@ -336,8 +336,8 @@ export function DistributionEmptyState({ competitorCount, onRunResearch, researc
       <button type="button" onClick={onRunResearch} disabled={researching} className="btn-primary mx-auto">
         Run market research
       </button>
-      <p className="text-xs text-slate-600">
-        Tip: build your <Link href="/market" className="text-slate-400 underline">market model</Link> first for TAM-based share estimates.
+      <p className="text-xs text-ink-faint">
+        Tip: build your <Link href="/market" className="text-ink-soft underline">market model</Link> first for TAM-based share estimates.
       </p>
     </div>
   );
@@ -414,7 +414,7 @@ export function DistributionPanel({
   return (
     <div className={`space-y-4 ${className}`}>
       {tamContext && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-soft">
           TAM {fmtUsd(tamContext.tamValue)} → your SOM {fmtUsd(tamContext.somValue)}
           {tamContext.targetSharePct != null ? ` (${tamContext.targetSharePct} obtainable)` : ''}
         </p>
@@ -423,7 +423,7 @@ export function DistributionPanel({
       <DistributionMetaChips distribution={distribution} compact={compact} />
 
       {pulseData?.pulse?.significant?.length > 0 && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200">
+        <div className="rounded-lg border border-amber-200 bg-amber-500/5 p-3 text-xs text-amber-200">
           <span className="font-semibold">Notable shift: </span>
           {pulseData.pulse.significant
             .slice(0, 3)
@@ -439,10 +439,10 @@ export function DistributionPanel({
         <div className={`rounded-2xl border border-ink-700 bg-ink-900 ${compact ? 'p-4' : 'p-5'}`}>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className={`font-semibold text-white ${compact ? 'text-xs' : 'text-sm'}`}>Published market share</h3>
-              <p className="mt-0.5 text-[11px] text-slate-500">Analyst figures from public sources — separate from estimates</p>
+              <h3 className={`font-semibold text-ink ${compact ? 'text-xs' : 'text-sm'}`}>Published market share</h3>
+              <p className="mt-0.5 text-[11px] text-ink-soft">Analyst figures from public sources — separate from estimates</p>
             </div>
-            <Link href="/methodology" className="chip border-ink-600 bg-ink-850 text-slate-400 hover:text-white">
+            <Link href="/methodology" className="chip border-ink-600 bg-ink-850 text-ink-soft hover:text-ink">
               <Icon name="shield" className="h-3 w-3" /> Methodology
             </Link>
           </div>
@@ -455,10 +455,10 @@ export function DistributionPanel({
       <div className={`rounded-2xl border border-ink-700 bg-ink-900 ${compact ? 'p-4' : 'p-5'}`}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h3 className={`font-semibold text-white ${compact ? 'text-xs' : 'text-sm'}`}>
+            <h3 className={`font-semibold text-ink ${compact ? 'text-xs' : 'text-sm'}`}>
               {distribution.method === 'triangulated' ? 'Triangulated presence' : 'Estimated presence'}
             </h3>
-            <p className="mt-0.5 text-[11px] text-slate-500">
+            <p className="mt-0.5 text-[11px] text-ink-soft">
               {METHOD_HINT[distribution.method] || distribution.disclaimer}
             </p>
           </div>
@@ -467,13 +467,13 @@ export function DistributionPanel({
               <button
                 type="button"
                 onClick={() => exportDistributionPdf({ pulseData })}
-                className="chip border-ink-600 bg-ink-850 text-slate-400 hover:text-white"
+                className="chip border-ink-600 bg-ink-850 text-ink-soft hover:text-ink"
               >
                 <Icon name="download" className="h-3 w-3" /> Export PDF
               </button>
             )}
             {showFullLink && (
-              <Link href="/distribution" className="chip border-accent/30 bg-accent/10 text-accent-soft hover:text-white">
+              <Link href="/distribution" className="chip border-accent/30 bg-accent/10 text-accent hover:text-ink">
                 Full distribution →
               </Link>
             )}
@@ -482,7 +482,7 @@ export function DistributionPanel({
                 type="button"
                 onClick={onRefresh}
                 disabled={researching}
-                className="chip border-ink-600 bg-ink-850 text-slate-400 hover:text-white disabled:opacity-50"
+                className="chip border-ink-600 bg-ink-850 text-ink-soft hover:text-ink disabled:opacity-50"
               >
                 <Icon name={researching ? 'refresh' : 'trending'} className={`h-3 w-3 ${researching ? 'animate-spin' : ''}`} />
                 {researching ? 'Updating…' : 'Refresh'}

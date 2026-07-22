@@ -6,9 +6,9 @@ import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
 import { LabShell } from './labs/LabShell';
 
 const SEVERITY = {
-  high: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
-  medium: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-  low: 'border-ink-700 bg-ink-850 text-slate-400',
+  high: 'border-rose-200 bg-rose-50 text-rose-700',
+  medium: 'border-amber-200 bg-amber-50 text-amber-800',
+  low: 'border-ink-700 bg-ink-850 text-ink-soft',
 };
 
 export default function FeatureGapsClient() {
@@ -60,13 +60,13 @@ export default function FeatureGapsClient() {
         <div className="space-y-4">
           {result.summary && (
             <section className="card p-5">
-              <p className="text-sm leading-relaxed text-slate-300">{result.summary}</p>
+              <p className="text-sm leading-relaxed text-ink-soft">{result.summary}</p>
             </section>
           )}
           <section className="card overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-ink-700 text-xs uppercase tracking-wide text-slate-500">
+                <thead className="border-b border-ink-700 text-xs uppercase tracking-wide text-ink-soft">
                   <tr>
                     <th className="px-4 py-3">Feature</th>
                     <th className="px-4 py-3">Who has it</th>
@@ -78,11 +78,11 @@ export default function FeatureGapsClient() {
                 <tbody className="divide-y divide-ink-800">
                   {(result.gaps || []).map((gap, i) => (
                     <tr key={`${gap.feature}-${i}`}>
-                      <td className="px-4 py-3 font-medium text-white">{gap.feature}</td>
-                      <td className="px-4 py-3 text-slate-400">{(gap.whoHasIt || []).join(', ') || '-'}</td>
+                      <td className="px-4 py-3 font-medium text-ink">{gap.feature}</td>
+                      <td className="px-4 py-3 text-ink-soft">{(gap.whoHasIt || []).join(', ') || '-'}</td>
                       <td className="px-4 py-3"><span className={`chip text-[10px] ${SEVERITY[gap.severity] || SEVERITY.low}`}>{gap.severity || 'low'}</span></td>
-                      <td className="px-4 py-3 text-slate-400">{gap.effort || '-'}</td>
-                      <td className="px-4 py-3 text-slate-400">{gap.rationale}</td>
+                      <td className="px-4 py-3 text-ink-soft">{gap.effort || '-'}</td>
+                      <td className="px-4 py-3 text-ink-soft">{gap.rationale}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -91,8 +91,8 @@ export default function FeatureGapsClient() {
           </section>
           {result.quickWins?.length > 0 && (
             <section className="card p-5">
-              <h2 className="text-sm font-semibold text-white">Quick wins</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+              <h2 className="text-sm font-semibold text-ink">Quick wins</h2>
+              <ul className="mt-3 space-y-2 text-sm text-ink-soft">
                 {result.quickWins.map((item, i) => <li key={i}>- {item}</li>)}
               </ul>
             </section>

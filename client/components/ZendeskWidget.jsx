@@ -5,26 +5,26 @@ import { useEffect } from 'react';
 const KEY = process.env.NEXT_PUBLIC_ZENDESK_KEY || '';
 const SCRIPT_ID = 'ze-snippet';
 
-/** Dark Mira surfaces (ink + indigo). Zendesk only allows colors/layout knobs — not custom composer structure. */
+/** Calm light Mira surfaces for Zendesk messenger (colors only). */
 const MIRA_THEME = {
   theme: {
-    primary: '#6366f1',
+    primary: '#5C6B52',
     onPrimary: '#ffffff',
-    message: '#212632',
-    onMessage: '#e2e8f0',
-    businessMessage: '#181c24',
-    onBusinessMessage: '#e2e8f0',
-    action: '#6366f1',
+    message: '#EFEEEA',
+    onMessage: '#1C1917',
+    businessMessage: '#FFFFFF',
+    onBusinessMessage: '#1C1917',
+    action: '#5C6B52',
     onAction: '#ffffff',
-    background: '#0e1014',
-    onBackground: '#cbd5e1',
-    conversationListBackground: '#0a0b0e',
-    onConversationListBackground: '#e2e8f0',
+    background: '#F6F4F0',
+    onBackground: '#57534E',
+    conversationListBackground: '#FFFFFF',
+    onConversationListBackground: '#1C1917',
     error: '#e11d48',
     onError: '#ffffff',
-    notify: '#818cf8',
-    onNotify: '#0a0b0e',
-    onSecondaryAction: '#818cf8',
+    notify: '#5C6B52',
+    onNotify: '#ffffff',
+    onSecondaryAction: '#5C6B52',
   },
   common: {
     stylingPreset: 'minimalistic',
@@ -83,10 +83,8 @@ export default function ZendeskWidget() {
     script.async = true;
     script.src = `https://static.zdassets.com/ekr/snippet.js?key=${encodeURIComponent(KEY)}`;
     script.onload = () => {
-      // zE queues until ready; apply theme then show launcher.
       applyMiraStyle();
       messenger('show');
-      // Re-apply shortly after init — some builds ignore the first set.
       window.setTimeout(applyMiraStyle, 400);
     };
     document.body.appendChild(script);

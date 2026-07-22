@@ -76,24 +76,24 @@ export default function MarketEntryClient() {
         <div className="space-y-4">
           {result.summary && (
             <section className="card p-5">
-              <p className="text-sm leading-relaxed text-slate-300">{result.summary}</p>
-              {result.samSomHint && <p className="mt-3 text-xs text-slate-500">{result.samSomHint}</p>}
+              <p className="text-sm leading-relaxed text-ink-soft">{result.summary}</p>
+              {result.samSomHint && <p className="mt-3 text-xs text-ink-soft">{result.samSomHint}</p>}
             </section>
           )}
 
           <section className="card p-5">
-            <h2 className="text-sm font-semibold text-white">Checklist</h2>
+            <h2 className="text-sm font-semibold text-ink">Checklist</h2>
             <div className="mt-4 space-y-3">
               {(result.checklist || []).map((item, i) => (
                 <div key={`${item.item}-${i}`} className="flex items-start gap-3 rounded-xl border border-ink-800 bg-ink-850 p-3">
-                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-ink-600 text-slate-600">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-ink-600 text-ink-faint">
                     {item.done ? <Icon name="check" className="h-3 w-3" /> : null}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white">{item.item}</p>
+                    <p className="text-sm font-medium text-ink">{item.item}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="chip border-accent/30 bg-accent/10 text-accent-soft">{item.priority || 'P1'}</span>
-                      {item.owner && <span className="chip border-ink-700 bg-ink-850 text-slate-400">{item.owner}</span>}
+                      <span className="chip border-accent/30 bg-accent/10 text-accent">{item.priority || 'P1'}</span>
+                      {item.owner && <span className="chip border-ink-700 bg-ink-850 text-ink-soft">{item.owner}</span>}
                     </div>
                   </div>
                 </div>
@@ -103,8 +103,8 @@ export default function MarketEntryClient() {
 
           {result.risks?.length > 0 && (
             <section className="card p-5">
-              <h2 className="text-sm font-semibold text-white">Risks</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+              <h2 className="text-sm font-semibold text-ink">Risks</h2>
+              <ul className="mt-3 space-y-2 text-sm text-ink-soft">
                 {result.risks.map((risk, i) => <li key={i}>- {risk}</li>)}
               </ul>
             </section>

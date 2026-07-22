@@ -52,8 +52,8 @@ function VerifyForm() {
   return (
     <form onSubmit={verify} className="card space-y-4 p-6">
       <div className="text-center space-y-1">
-        <h2 className="text-lg font-semibold text-white">Verify your email</h2>
-        <p className="text-sm text-slate-400">Enter the 6-digit code we emailed you.</p>
+        <h2 className="text-lg font-semibold text-ink">Verify your email</h2>
+        <p className="text-sm text-ink-soft">Enter the 6-digit code we emailed you.</p>
       </div>
 
       <div>
@@ -85,10 +85,10 @@ function VerifyForm() {
       </div>
 
       {resentMsg && (
-        <p className="rounded-lg border border-emerald-800/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">{resentMsg}</p>
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{resentMsg}</p>
       )}
       {error && (
-        <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
+        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
       )}
 
       <button type="submit" disabled={loading || otp.length !== 6} className="btn-primary w-full">
@@ -99,8 +99,8 @@ function VerifyForm() {
         {resending ? 'Sending…' : 'Resend code to email'}
       </button>
 
-      <p className="text-center text-xs text-slate-500">
-        <Link href={loginHref} className="text-accent-soft hover:text-white transition">Back to sign in</Link>
+      <p className="text-center text-xs text-ink-soft">
+        <Link href={loginHref} className="text-accent hover:text-ink transition">Back to sign in</Link>
       </p>
     </form>
   );

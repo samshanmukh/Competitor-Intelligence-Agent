@@ -48,7 +48,7 @@ const PATHS = {
 
 export function Icon({ name, className = 'w-4 h-4' }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
       strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       {PATHS[name] ?? null}
     </svg>
@@ -80,7 +80,7 @@ export function CompanyLogo({
   if (!src || failed) {
     return (
       <div
-        className={`flex shrink-0 items-center justify-center bg-ink-800 font-bold text-slate-400 ${textClassName} ${className}`}
+        className={`flex shrink-0 items-center justify-center border border-line bg-mist font-bold text-ink-soft ${textClassName} ${className}`}
         aria-hidden="true"
       >
         {letter}
@@ -89,7 +89,7 @@ export function CompanyLogo({
   }
 
   return (
-    <div className={`relative shrink-0 overflow-hidden bg-ink-800 ${className}`} aria-hidden="true">
+    <div className={`relative shrink-0 overflow-hidden border border-line bg-paper ${className}`} aria-hidden="true">
       <img
         src={src}
         alt=""
@@ -110,15 +110,15 @@ export function Skeleton({ className = '' }) {
 // ─── Impact Badge ────────────────────────────────────────────────────────────
 export function ImpactBadge({ impact }) {
   const styles = {
-    high: 'border-rose-800/60 bg-rose-950/40 text-rose-300',
-    medium: 'border-amber-800/60 bg-amber-950/40 text-amber-300',
-    low: 'border-slate-700 bg-ink-800 text-slate-400',
+    high: 'border-rose-200 bg-rose-50 text-rose-700',
+    medium: 'border-amber-200 bg-amber-50 text-amber-800',
+    low: 'border-line bg-mist text-ink-soft',
   };
   return <span className={`chip ${styles[impact] || styles.low}`}>{impact || 'low'} impact</span>;
 }
 
 export function StatusDot({ competitor }) {
-  let color = 'bg-slate-600';
+  let color = 'bg-ink-faint';
   let title = 'Never checked';
   if (competitor.last_error) { color = 'bg-rose-500'; title = 'Last fetch failed'; }
   else if (competitor.last_changed_at) { color = 'bg-accent-soft'; title = 'Change detected'; }
@@ -133,8 +133,8 @@ export function StatusDot({ competitor }) {
 
 // ─── Value Score ─────────────────────────────────────────────────────────────
 export function ValueScore({ score }) {
-  if (score == null) return <span className="text-slate-600 text-xs">–</span>;
-  const color = score >= 7 ? 'text-emerald-400' : score >= 4 ? 'text-amber-400' : 'text-rose-400';
+  if (score == null) return <span className="text-ink-faint text-xs">–</span>;
+  const color = score >= 7 ? 'text-emerald-700' : score >= 4 ? 'text-amber-700' : 'text-rose-700';
   return <span className={`font-bold tabular-nums ${color}`}>{score.toFixed(1)}/10</span>;
 }
 
@@ -142,11 +142,11 @@ export function ValueScore({ score }) {
 export function EmptyState({ icon = 'radar', title, children, action }) {
   return (
     <div className="card flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-ink-700 bg-ink-850 text-accent-soft">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-ink-700 bg-ink-850 text-accent">
         <Icon name={icon} className="h-6 w-6" />
       </div>
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
-      <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">{children}</p>
+      <h3 className="text-lg font-semibold text-ink">{title}</h3>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-ink-soft">{children}</p>
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
@@ -155,18 +155,18 @@ export function EmptyState({ icon = 'radar', title, children, action }) {
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 export function KpiCard({ label, value, sub, icon, trend, color = 'accent' }) {
   const colors = {
-    accent: 'text-accent-soft bg-accent/10',
-    green: 'text-emerald-400 bg-emerald-950/40',
-    amber: 'text-amber-400 bg-amber-950/40',
-    rose: 'text-rose-400 bg-rose-950/40',
+    accent: 'text-accent bg-accent-mist',
+    green: 'text-emerald-700 bg-emerald-50',
+    amber: 'text-amber-800 bg-amber-50',
+    rose: 'text-rose-700 bg-rose-50',
   };
   return (
     <div className="card p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-          <p className="mt-1.5 text-2xl font-bold text-white tabular-nums">{value}</p>
-          {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
+          <p className="text-xs font-medium uppercase tracking-wide text-ink-soft">{label}</p>
+          <p className="mt-1.5 text-2xl font-bold text-ink tabular-nums">{value}</p>
+          {sub && <p className="mt-0.5 text-xs text-ink-soft">{sub}</p>}
         </div>
         {icon && (
           <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${colors[color]}`}>
@@ -175,7 +175,7 @@ export function KpiCard({ label, value, sub, icon, trend, color = 'accent' }) {
         )}
       </div>
       {trend != null && (
-        <div className={`mt-3 flex items-center gap-1 text-xs ${trend > 0 ? 'text-emerald-400' : trend < 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+        <div className={`mt-3 flex items-center gap-1 text-xs ${trend > 0 ? 'text-emerald-700' : trend < 0 ? 'text-rose-700' : 'text-ink-soft'}`}>
           <Icon name={trend > 0 ? 'trending' : trend < 0 ? 'trending' : 'activity'} className="h-3 w-3" />
           {trend > 0 ? `+${trend}` : trend} vs last week
         </div>
@@ -215,7 +215,7 @@ export function TabBar({ tabs, active, onChange }) {
       <div
         role="tablist"
         aria-label="View options"
-        className="inline-flex min-w-full items-center gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1 sm:min-w-0 sm:w-fit"
+        className="inline-flex min-w-full items-center gap-1 rounded-xl border border-line bg-paper p-1 shadow-soft sm:min-w-0 sm:w-fit"
       >
         {tabs.map((t, index) => (
           <button
@@ -231,15 +231,15 @@ export function TabBar({ tabs, active, onChange }) {
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={`flex shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition sm:px-3 sm:py-1.5 ${
               active === t.id
-                ? 'bg-ink-700 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-mist text-ink shadow-soft'
+                : 'text-ink-soft hover:text-ink'
             }`}
           >
             {t.icon && <Icon name={t.icon} className="h-3.5 w-3.5 shrink-0" />}
             <span>{t.label}</span>
             {t.count != null && (
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                active === t.id ? 'bg-ink-600 text-slate-200' : 'bg-ink-800 text-slate-500'
+                active === t.id ? 'bg-paper text-ink' : 'bg-mist text-ink-soft'
               }`}>
                 {t.count}
               </span>
@@ -311,7 +311,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-ink/25 p-4 backdrop-blur-[2px]"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div
@@ -320,11 +320,11 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`relative ${width} max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain card shadow-2xl`}
+        className={`relative ${width} max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain card p-0 shadow-lift`}
       >
-        <div className="flex items-center justify-between border-b border-ink-700 px-5 py-4">
-          <h2 id={titleId} className="text-base font-semibold text-white">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-1 text-slate-500 transition hover:bg-ink-800 hover:text-white">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 id={titleId} className="text-base font-semibold text-ink">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-xl p-1.5 text-ink-soft transition duration-calm hover:bg-mist hover:text-ink">
             <Icon name="x" className="h-4 w-4" />
           </button>
         </div>
@@ -338,7 +338,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
 export function ConfirmDialog({ open, onClose, onConfirm, title, message, danger }) {
   return (
     <Modal open={open} onClose={onClose} title={title} width="max-w-sm">
-      <p className="text-sm text-slate-400">{message}</p>
+      <p className="text-sm text-ink-soft">{message}</p>
       <div className="mt-4 flex gap-2 justify-end">
         <button onClick={onClose} className="btn-ghost">Cancel</button>
         <button
@@ -389,7 +389,7 @@ export function NotificationBell({ unseen = 0 }) {
     <button
       onClick={enable}
       title={permission === 'granted' ? 'Notifications on' : 'Enable notifications'}
-      className="relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-ink-800 hover:text-white transition"
+      className="relative flex h-10 w-10 items-center justify-center rounded-xl text-ink-soft transition duration-calm hover:bg-mist hover:text-ink"
     >
       <Icon name="bell" className="h-4 w-4" />
       {unseen > 0 && (
@@ -426,38 +426,38 @@ export function WorkspaceSwitcher({ workspace, workspaces, onSwitch, onCreate })
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-ink-800 transition"
+        className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-sm transition duration-calm hover:bg-mist"
       >
-        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded bg-accent/20 text-accent-soft text-[10px] font-bold uppercase">
+        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-accent-mist text-accent text-[10px] font-bold uppercase">
           {(workspace?.name || 'W')[0]}
         </div>
-        <span className="flex-1 truncate text-left font-medium text-slate-200 text-xs">
+        <span className="flex-1 truncate text-left font-medium text-ink text-xs">
           {workspace?.name || 'Workspace'}
         </span>
-        <Icon name="chevronDown" className="h-3 w-3 text-slate-500" />
+        <Icon name="chevronDown" className="h-3 w-3 text-ink-soft" />
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-52 rounded-xl border border-ink-700 bg-ink-900 p-1 shadow-xl z-50">
+        <div className="absolute bottom-full left-0 z-50 mb-1 w-52 rounded-2xl border border-line bg-paper p-1 shadow-lift">
           {workspaces.map((ws) => (
             <button
               key={ws.id}
               onClick={() => { onSwitch(ws); setOpen(false); }}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-                ws.id === workspace?.id ? 'bg-ink-800 text-white' : 'text-slate-400 hover:bg-ink-800 hover:text-white'
+              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm transition duration-calm ${
+                ws.id === workspace?.id ? 'bg-mist text-ink' : 'text-ink-soft hover:bg-mist hover:text-ink'
               }`}
             >
-              <div className="flex h-5 w-5 items-center justify-center rounded bg-accent/20 text-accent-soft text-[9px] font-bold uppercase">
+              <div className="flex h-5 w-5 items-center justify-center rounded-md bg-accent-mist text-accent text-[9px] font-bold uppercase">
                 {(ws.name || 'W')[0]}
               </div>
               <span className="truncate">{ws.name}</span>
-              {ws.id === workspace?.id && <Icon name="check" className="ml-auto h-3 w-3 text-accent-soft" />}
+              {ws.id === workspace?.id && <Icon name="check" className="ml-auto h-3 w-3 text-accent" />}
             </button>
           ))}
-          <div className="my-1 border-t border-ink-700" />
+          <div className="my-1 border-t border-line" />
           <button
             onClick={() => { onCreate(); setOpen(false); }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-ink-800 hover:text-slate-200 transition"
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-ink-soft transition duration-calm hover:bg-mist hover:text-ink"
           >
             <Icon name="plus" className="h-4 w-4" />
             New workspace
@@ -503,18 +503,18 @@ export function ToastProvider({ children }) {
             role={t.type === 'error' ? 'alert' : 'status'}
             aria-atomic="true"
             className={`pointer-events-auto card px-4 py-3 text-sm shadow-xl transition-all ${
-              t.type === 'error' ? 'border-rose-800/60' : t.type === 'success' ? 'border-emerald-800/60' : ''
+              t.type === 'error' ? 'border-rose-200' : t.type === 'success' ? 'border-emerald-200' : ''
             }`}>
             <div className="flex items-start gap-2">
               <Icon
                 name={t.type === 'error' ? 'alert' : t.type === 'success' ? 'check' : 'bell'}
                 className={`mt-0.5 h-4 w-4 shrink-0 ${
-                  t.type === 'error' ? 'text-rose-400' : t.type === 'success' ? 'text-emerald-400' : 'text-accent-soft'
+                  t.type === 'error' ? 'text-rose-700' : t.type === 'success' ? 'text-emerald-700' : 'text-accent'
                 }`}
               />
               <div>
-                {t.title && <div className="font-medium text-white">{t.title}</div>}
-                {t.message && <div className="text-slate-400">{t.message}</div>}
+                {t.title && <div className="font-medium text-ink">{t.title}</div>}
+                {t.message && <div className="text-ink-soft">{t.message}</div>}
               </div>
             </div>
           </div>

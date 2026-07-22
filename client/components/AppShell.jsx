@@ -29,7 +29,7 @@ export default function AppShell({ children }) {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden md:flex-row">
       <Sidebar />
-      <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <main className="min-w-0 flex-1 bg-canvas px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10">
         {children}
       </main>
       {zendesk ? <ZendeskWidget /> : <SupportButton />}

@@ -99,21 +99,21 @@ export default function WarRoomClient() {
             <div key={deal.id} className="card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-white">{deal.title}</h2>
-                  {deal.competitor && <p className="mt-1 text-xs text-slate-500">vs {deal.competitor}</p>}
+                  <h2 className="text-sm font-semibold text-ink">{deal.title}</h2>
+                  {deal.competitor && <p className="mt-1 text-xs text-ink-soft">vs {deal.competitor}</p>}
                 </div>
-                <button onClick={() => remove(deal.id)} disabled={busyId === deal.id} className="text-slate-600 transition hover:text-rose-400">
+                <button onClick={() => remove(deal.id)} disabled={busyId === deal.id} className="text-ink-faint transition hover:text-rose-700">
                   <Icon name={busyId === deal.id ? 'refresh' : 'trash'} className={`h-4 w-4 ${busyId === deal.id ? 'animate-spin' : ''}`} />
                 </button>
               </div>
               <select className="input mt-4" value={deal.stage || 'discovery'} onChange={(e) => updateStage(deal, e.target.value)} disabled={busyId === deal.id}>
                 {STAGES.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
               </select>
-              {deal.notes && <p className="mt-3 text-sm text-slate-400">{deal.notes}</p>}
+              {deal.notes && <p className="mt-3 text-sm text-ink-soft">{deal.notes}</p>}
               {deal.talkTrack && (
                 <div className="mt-3 rounded-xl border border-accent/20 bg-accent/5 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-accent-soft">Talk track</p>
-                  <p className="mt-1 text-sm text-slate-300">{deal.talkTrack}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">Talk track</p>
+                  <p className="mt-1 text-sm text-ink-soft">{deal.talkTrack}</p>
                 </div>
               )}
             </div>

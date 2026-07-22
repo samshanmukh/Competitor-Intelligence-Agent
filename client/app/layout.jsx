@@ -1,11 +1,20 @@
 import './globals.css';
-import { Inter, Unbounded } from 'next/font/google';
+import { Manrope, Newsreader } from 'next/font/google';
 import { ToastProvider } from '../components/ui';
 import AppShell from '../components/AppShell';
 
-const inter = Inter({ subsets: ['latin'] });
-// Brand wordmark font for BrandLogo text.
-const brand = Unbounded({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-brand' });
+const sans = Manrope({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  weight: ['400', '500', '600', '700'],
+});
+
+// Brand wordmark — restrained serif for calm premium feel.
+const brand = Newsreader({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  variable: '--font-brand',
+});
 
 export const metadata = {
   title: { default: 'Mira', template: '%s · Mira' },
@@ -14,8 +23,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.className} ${brand.variable}`}>
+    <html lang="en">
+      <body className={`${sans.className} ${sans.variable} ${brand.variable}`}>
         <ToastProvider>
           <AppShell>{children}</AppShell>
         </ToastProvider>

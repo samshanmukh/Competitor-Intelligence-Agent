@@ -42,7 +42,7 @@ export default function OAuthButtons({ from }) {
         </button>
       </div>
       {error && (
-        <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
+        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
       )}
     </div>
   );

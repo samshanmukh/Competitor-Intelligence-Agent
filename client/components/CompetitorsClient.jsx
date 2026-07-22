@@ -95,8 +95,8 @@ export default function CompetitorsClient() {
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Competitors</h1>
-          <p className="mt-1 text-sm text-slate-500">{loading ? '…' : `${list.length} ${filter || 'total'}`}</p>
+          <h1 className="text-2xl font-semibold text-ink">Competitors</h1>
+          <p className="mt-1 text-sm text-ink-soft">{loading ? '…' : `${list.length} ${filter || 'total'}`}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-lg border border-ink-700 bg-ink-900 p-0.5">
@@ -105,7 +105,7 @@ export default function CompetitorsClient() {
                 key={i}
                 onClick={() => setFilter(f)}
                 className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                  filter === f ? 'bg-ink-700 text-white' : 'text-slate-500 hover:text-slate-300'
+                  filter === f ? 'bg-ink-700 text-ink' : 'text-ink-soft hover:text-ink-soft'
                 }`}
               >
                 {f || 'All'}
@@ -118,7 +118,7 @@ export default function CompetitorsClient() {
                 key={t}
                 onClick={() => setTagFilter(t)}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize transition ${
-                  tagFilter === t ? 'bg-ink-700 text-white' : 'text-slate-500 hover:text-slate-300'
+                  tagFilter === t ? 'bg-ink-700 text-ink' : 'text-ink-soft hover:text-ink-soft'
                 }`}
               >
                 {t}
@@ -136,8 +136,8 @@ export default function CompetitorsClient() {
       </div>
 
       <div className="card p-4 flex flex-wrap items-center gap-3 text-sm">
-        <span className="text-slate-400">Watchlist alerts</span>
-        <label className="flex items-center gap-2 text-xs text-slate-400">
+        <span className="text-ink-soft">Watchlist alerts</span>
+        <label className="flex items-center gap-2 text-xs text-ink-soft">
           <input
             type="checkbox"
             checked={alertPrefs.enabled !== false}
@@ -149,7 +149,7 @@ export default function CompetitorsClient() {
           />
           Enable
         </label>
-        <label htmlFor="alert-threshold" className="text-xs text-slate-400">Notify on drops of at least</label>
+        <label htmlFor="alert-threshold" className="text-xs text-ink-soft">Notify on drops of at least</label>
         <input
           id="alert-threshold"
           type="number"
@@ -158,7 +158,7 @@ export default function CompetitorsClient() {
           onChange={(e) => setAlertPrefs((current) => ({ ...current, thresholdPct: Number(e.target.value) || 10 }))}
           onBlur={() => saveAlertPrefs(alertPrefs)}
         />
-        <span className="text-xs text-slate-500">%</span>
+        <span className="text-xs text-ink-soft">%</span>
       </div>
 
       {loading ? (
@@ -179,31 +179,31 @@ export default function CompetitorsClient() {
                 <div className="flex items-center gap-2 min-w-0">
                   <CompanyLogo name={c.name} website={c.website} pricing_url={c.pricing_url} />
                   <div className="min-w-0">
-                    <Link href={`/competitors/${c.id}`} className="block truncate text-sm font-semibold text-white hover:text-accent-soft transition">
+                    <Link href={`/competitors/${c.id}`} className="block truncate text-sm font-semibold text-ink hover:text-accent transition">
                       {c.name}
                     </Link>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <StatusDot competitor={c} />
-                      <span className="text-[10px] text-slate-600">{c.last_checked_at ? timeAgo(c.last_checked_at) : 'never'}</span>
+                      <span className="text-[10px] text-ink-faint">{c.last_checked_at ? timeAgo(c.last_checked_at) : 'never'}</span>
                     </div>
                   </div>
                 </div>
                 <ValueScore score={c.value_score} />
               </div>
 
-              {c.description && <p className="text-xs text-slate-500 line-clamp-2">{c.description}</p>}
+              {c.description && <p className="text-xs text-ink-soft line-clamp-2">{c.description}</p>}
 
               <button
                 type="button"
                 onClick={() => cycleTag(c.id)}
-                className="chip self-start text-[10px] capitalize border-ink-600 text-slate-400 hover:text-white"
+                className="chip self-start text-[10px] capitalize border-ink-600 text-ink-soft hover:text-ink"
                 title="Cycle tag: direct / adjacent / aspirational"
               >
                 {(tagsById[c.id]?.[0]) || 'tag'}
               </button>
 
               <div className="flex items-center justify-between mt-auto pt-2 border-t border-ink-800">
-                <span className="text-xs text-slate-600">{c.changeCount || 0} changes</span>
+                <span className="text-xs text-ink-faint">{c.changeCount || 0} changes</span>
                 <div className="flex items-center gap-1">
                   {c.status === 'pending' && (
                     <button onClick={() => approve(c.id)} className="btn-ghost py-1 px-2 text-xs">Approve</button>
@@ -216,7 +216,7 @@ export default function CompetitorsClient() {
                   >
                     <Icon name="refresh" className={`h-3.5 w-3.5 ${refreshingId === c.id ? 'animate-spin' : ''}`} />
                   </button>
-                  <button onClick={() => setConfirmDelete(c.id)} className="btn-ghost p-1.5 hover:text-rose-400" title="Delete">
+                  <button onClick={() => setConfirmDelete(c.id)} className="btn-ghost p-1.5 hover:text-rose-700" title="Delete">
                     <Icon name="trash" className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -229,11 +229,11 @@ export default function CompetitorsClient() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink-700">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Competitor</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 hidden md:table-cell">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 hidden lg:table-cell">Value</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Changes</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 hidden md:table-cell">Last Checked</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-ink-soft">Competitor</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-ink-soft hidden md:table-cell">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-ink-soft hidden lg:table-cell">Value</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-ink-soft">Changes</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-ink-soft hidden md:table-cell">Last Checked</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -250,25 +250,25 @@ export default function CompetitorsClient() {
                         textClassName="text-xs"
                       />
                       <StatusDot competitor={c} />
-                      <Link href={`/competitors/${c.id}`} className="font-medium text-white hover:text-accent-soft transition">{c.name}</Link>
+                      <Link href={`/competitors/${c.id}`} className="font-medium text-ink hover:text-accent transition">{c.name}</Link>
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className={`chip text-[10px] ${
-                      c.status === 'approved' ? 'border-emerald-800/50 bg-emerald-950/30 text-emerald-400' :
-                      c.status === 'pending' ? 'border-amber-800/50 bg-amber-950/30 text-amber-400' :
-                      'border-slate-700 bg-ink-800 text-slate-500'
+                      c.status === 'approved' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
+                      c.status === 'pending' ? 'border-amber-800/50 bg-amber-950/30 text-amber-700' :
+                      'border-slate-700 bg-ink-800 text-ink-soft'
                     }`}>{c.status}</span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell"><ValueScore score={c.value_score} /></td>
-                  <td className="px-4 py-3 text-slate-400">{c.changeCount || 0}</td>
-                  <td className="px-4 py-3 text-slate-500 hidden md:table-cell text-xs">{c.last_checked_at ? timeAgo(c.last_checked_at) : '—'}</td>
+                  <td className="px-4 py-3 text-ink-soft">{c.changeCount || 0}</td>
+                  <td className="px-4 py-3 text-ink-soft hidden md:table-cell text-xs">{c.last_checked_at ? timeAgo(c.last_checked_at) : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => refresh(c.id)} disabled={refreshingId === c.id} className="text-slate-500 hover:text-white transition p-1">
+                      <button onClick={() => refresh(c.id)} disabled={refreshingId === c.id} className="text-ink-soft hover:text-ink transition p-1">
                         <Icon name="refresh" className={`h-3.5 w-3.5 ${refreshingId === c.id ? 'animate-spin' : ''}`} />
                       </button>
-                      <button onClick={() => setConfirmDelete(c.id)} className="text-slate-600 hover:text-rose-400 transition p-1">
+                      <button onClick={() => setConfirmDelete(c.id)} className="text-ink-faint hover:text-rose-700 transition p-1">
                         <Icon name="trash" className="h-3.5 w-3.5" />
                       </button>
                     </div>

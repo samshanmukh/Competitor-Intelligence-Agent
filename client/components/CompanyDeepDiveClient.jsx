@@ -10,7 +10,7 @@ import { Icon, Skeleton, useToast } from './ui';
 
 const TIP = { background: '#0e1014', border: '1px solid #181c24', borderRadius: 8, fontSize: 12 };
 const AXIS = { fill: '#64748b', fontSize: 11 };
-const COLORS = ['#818cf8', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee'];
+const COLORS = ['#5C6B52', '#34d399', '#fbbf24', '#fb7185', '#7A8A6E', '#22d3ee'];
 
 function fmtVisits(n) {
   if (n == null) return '—';
@@ -93,8 +93,8 @@ export default function CompanyDeepDiveClient() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Deep dive</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold text-ink">Deep dive</h1>
+        <p className="mt-1 text-sm text-ink-soft">
           Enter any company — get a full dossier: overview, financials, market value, web traffic, and review analysis.
         </p>
       </div>
@@ -121,7 +121,7 @@ export default function CompanyDeepDiveClient() {
             </button>
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-600">
+        <p className="mt-2 text-xs text-ink-faint">
           Runs in the background (~2–5 min) — you can navigate away and we'll notify you when the dossier is ready.
         </p>
       </div>
@@ -129,12 +129,12 @@ export default function CompanyDeepDiveClient() {
       {/* In-progress */}
       {running && (
         <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-sm text-accent-soft">
+          <div className="flex items-center justify-center gap-2 text-sm text-accent">
             <Icon name="refresh" className="h-4 w-4 animate-spin" />
-            Building dossier for <strong className="text-white">{form.company}</strong>…
-            <span className="tabular-nums text-slate-400">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
+            Building dossier for <strong className="text-ink">{form.company}</strong>…
+            <span className="tabular-nums text-ink-soft">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-ink-soft">
             Overview, financials, market value, web traffic &amp; reviews. Deep research + traffic scraping take a few
             minutes — you can leave this page; we'll send a notification when it's done.
           </p>
@@ -186,28 +186,28 @@ export default function CompanyDeepDiveClient() {
 
           {implications && (
             <section className="card p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-white">Implications for us</h2>
-              <p className="text-sm text-slate-300">{implications.summary}</p>
+              <h2 className="text-sm font-semibold text-ink">Implications for us</h2>
+              <p className="text-sm text-ink-soft">{implications.summary}</p>
               {implications.threats?.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-rose-300">Threats</p>
-                  <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
+                  <p className="text-[10px] uppercase tracking-wide text-rose-700">Threats</p>
+                  <ul className="mt-1 space-y-1 text-sm text-ink-soft list-disc pl-4">
                     {implications.threats.map((t, i) => <li key={i}>{t}</li>)}
                   </ul>
                 </div>
               )}
               {implications.opportunities?.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-emerald-300">Opportunities</p>
-                  <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
+                  <p className="text-[10px] uppercase tracking-wide text-emerald-700">Opportunities</p>
+                  <ul className="mt-1 space-y-1 text-sm text-ink-soft list-disc pl-4">
                     {implications.opportunities.map((t, i) => <li key={i}>{t}</li>)}
                   </ul>
                 </div>
               )}
               {implications.actions?.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-accent-soft">Actions</p>
-                  <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
+                  <p className="text-[10px] uppercase tracking-wide text-accent">Actions</p>
+                  <ul className="mt-1 space-y-1 text-sm text-ink-soft list-disc pl-4">
                     {implications.actions.map((t, i) => <li key={i}>{t}</li>)}
                   </ul>
                 </div>
@@ -224,8 +224,8 @@ export default function CompanyDeepDiveClient() {
       )}
 
       <section className="card p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-white">Compare companies</h2>
-        <p className="text-xs text-slate-500">Enter 2–4 names separated by commas.</p>
+        <h2 className="text-sm font-semibold text-ink">Compare companies</h2>
+        <p className="text-xs text-ink-soft">Enter 2–4 names separated by commas.</p>
         <div className="flex gap-2">
           <input
             className="input flex-1"
@@ -258,10 +258,10 @@ export default function CompanyDeepDiveClient() {
         </div>
         {compareResult && (
           <div className="space-y-2 pt-2">
-            <p className="text-sm text-slate-300">{compareResult.summary}</p>
-            <p className="text-sm text-accent-soft">{compareResult.recommendation}</p>
+            <p className="text-sm text-ink-soft">{compareResult.summary}</p>
+            <p className="text-sm text-accent">{compareResult.recommendation}</p>
             {compareResult.implicationsForUs?.length > 0 && (
-              <ul className="list-disc pl-4 text-sm text-slate-400 space-y-1">
+              <ul className="list-disc pl-4 text-sm text-ink-soft space-y-1">
                 {compareResult.implicationsForUs.map((x, i) => <li key={i}>{x}</li>)}
               </ul>
             )}
@@ -276,13 +276,13 @@ function SectionCard({ icon, title, loading, empty, children, hint }) {
   return (
     <section className="card p-5">
       <div className="mb-3 flex items-center gap-2">
-        <Icon name={icon} className="h-4 w-4 text-accent-soft" />
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
-        {loading && <Icon name="refresh" className="h-3.5 w-3.5 animate-spin text-slate-500 ml-1" />}
-        {hint && <span className="ml-auto text-xs text-slate-600">{hint}</span>}
+        <Icon name={icon} className="h-4 w-4 text-accent" />
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+        {loading && <Icon name="refresh" className="h-3.5 w-3.5 animate-spin text-ink-soft ml-1" />}
+        {hint && <span className="ml-auto text-xs text-ink-faint">{hint}</span>}
       </div>
       {loading ? <div className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/2" /></div>
-        : empty ? <p className="text-sm text-slate-500">{empty}</p>
+        : empty ? <p className="text-sm text-ink-soft">{empty}</p>
         : children}
     </section>
   );
@@ -291,16 +291,16 @@ function SectionCard({ icon, title, loading, empty, children, hint }) {
 function Stat({ label, value, accent }) {
   return (
     <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${accent || 'text-white'}`}>{value ?? '—'}</p>
+      <p className="text-xs text-ink-soft">{label}</p>
+      <p className={`mt-0.5 text-lg font-bold ${accent || 'text-ink'}`}>{value ?? '—'}</p>
     </div>
   );
 }
 
 function Chips({ items, color = 'slate' }) {
   const tones = {
-    slate: 'border-ink-700 bg-ink-850 text-slate-300',
-    accent: 'border-accent/30 bg-accent/10 text-accent-soft',
+    slate: 'border-ink-700 bg-ink-850 text-ink-soft',
+    accent: 'border-accent/30 bg-accent/10 text-accent',
   };
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -317,7 +317,7 @@ function OverviewSection({ state, company }) {
     <SectionCard icon="radar" title="Company overview" loading={state.loading} empty={!o ? 'No overview found.' : null}>
       {o && (
         <div className="space-y-3">
-          {o.summary && <p className="text-sm text-slate-300 leading-relaxed">{o.summary}</p>}
+          {o.summary && <p className="text-sm text-ink-soft leading-relaxed">{o.summary}</p>}
           <div className="grid gap-3 sm:grid-cols-4">
             <Stat label="Founded" value={o.founded} />
             <Stat label="HQ" value={o.headquarters} />
@@ -325,12 +325,12 @@ function OverviewSection({ state, company }) {
             <Stat label="Model" value={o.business_model} />
           </div>
           {o.products?.length > 0 && (
-            <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Products</p><Chips items={o.products} /></div>
+            <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">Products</p><Chips items={o.products} /></div>
           )}
           {o.recent_news?.length > 0 && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Recent news</p>
-              <ul className="space-y-1">{o.recent_news.map((n, i) => <li key={i} className="text-xs text-slate-400">• {n}</li>)}</ul>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Recent news</p>
+              <ul className="space-y-1">{o.recent_news.map((n, i) => <li key={i} className="text-xs text-ink-soft">• {n}</li>)}</ul>
             </div>
           )}
         </div>
@@ -347,13 +347,13 @@ function FinancialsSection({ state }) {
       {f && (
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-4">
-            <Stat label="Total funding" value={f.total_funding} accent="text-emerald-400" />
-            <Stat label="Valuation" value={f.valuation} accent="text-accent-soft" />
+            <Stat label="Total funding" value={f.total_funding} accent="text-emerald-700" />
+            <Stat label="Valuation" value={f.valuation} accent="text-accent" />
             <Stat label="Revenue (est.)" value={f.revenue} />
             <Stat label="Employees" value={f.employees} />
           </div>
           {f.investors?.length > 0 && (
-            <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Key investors</p><Chips items={f.investors} color="accent" /></div>
+            <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">Key investors</p><Chips items={f.investors} color="accent" /></div>
           )}
         </div>
       )}
@@ -370,7 +370,7 @@ function MarketSection({ market, loading }) {
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <Stat label="Market size" value={market.size_current} />
-            <Stat label="Growth" value={market.cagr} accent="text-emerald-400" />
+            <Stat label="Growth" value={market.cagr} accent="text-emerald-700" />
           </div>
           {history.length >= 2 && (
             <ResponsiveContainer width="100%" height={220}>
@@ -379,11 +379,11 @@ function MarketSection({ market, loading }) {
                 <XAxis dataKey="year" tick={AXIS} />
                 <YAxis tick={AXIS} tickFormatter={(v) => `$${v}M`} />
                 <Tooltip contentStyle={TIP} formatter={(v) => [`$${v}M`, 'Market size']} />
-                <Line type="monotone" dataKey="size_usd_millions" stroke="#818cf8" strokeWidth={2} dot={{ r: 3, fill: '#818cf8' }} />
+                <Line type="monotone" dataKey="size_usd_millions" stroke="#5C6B52" strokeWidth={2} dot={{ r: 3, fill: '#5C6B52' }} />
               </LineChart>
             </ResponsiveContainer>
           )}
-          {market.summary && <p className="text-sm text-slate-400 leading-relaxed">{market.summary}</p>}
+          {market.summary && <p className="text-sm text-ink-soft leading-relaxed">{market.summary}</p>}
         </div>
       )}
     </SectionCard>
@@ -404,16 +404,16 @@ function TrafficSection({ state }) {
       <SectionCard icon="activity" title="Web traffic">
         {needsApproval ? (
           <>
-            <p className="text-sm text-amber-300">The SimilarWeb Actor needs a one-time permission approval in Apify.</p>
-            <p className="mt-1 text-xs text-slate-500">Open it in <a href="https://console.apify.com/actors" target="_blank" rel="noreferrer" className="text-accent-soft hover:underline">Apify Console</a>, run once / approve, then retry.</p>
+            <p className="text-sm text-amber-800">The SimilarWeb Actor needs a one-time permission approval in Apify.</p>
+            <p className="mt-1 text-xs text-ink-soft">Open it in <a href="https://console.apify.com/actors" target="_blank" rel="noreferrer" className="text-accent hover:underline">Apify Console</a>, run once / approve, then retry.</p>
           </>
         ) : (
           <>
-            <p className="text-sm text-amber-300">Traffic data unavailable — SimilarWeb blocks non-residential IPs.</p>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+            <p className="text-sm text-amber-800">Traffic data unavailable — SimilarWeb blocks non-residential IPs.</p>
+            <p className="mt-1 text-xs text-ink-soft leading-relaxed">
               Traffic routes through Apify <strong>residential proxies</strong>, which are only available on a{' '}
               <strong>paid Apify plan</strong> (the free tier returns 403). Upgrade at{' '}
-              <a href="https://console.apify.com/billing" target="_blank" rel="noreferrer" className="text-accent-soft hover:underline">Apify Billing</a>{' '}
+              <a href="https://console.apify.com/billing" target="_blank" rel="noreferrer" className="text-accent hover:underline">Apify Billing</a>{' '}
               to enable them — once active, traffic loads automatically (no code change). The rest of the dossier is
               unaffected.
             </p>
@@ -431,7 +431,7 @@ function TrafficSection({ state }) {
       {t && (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-4">
-            <Stat label="Monthly visits" value={fmtVisits(t.total_visits)} accent="text-accent-soft" />
+            <Stat label="Monthly visits" value={fmtVisits(t.total_visits)} accent="text-accent" />
             <Stat label="Bounce rate" value={t.bounce_rate != null ? `${Math.round(t.bounce_rate * 100)}%` : null} />
             <Stat label="Pages / visit" value={t.pages_per_visit != null ? t.pages_per_visit.toFixed(1) : null} />
             <Stat label="Avg. visit" value={t.avg_visit_duration} />
@@ -439,7 +439,7 @@ function TrafficSection({ state }) {
 
           {history.length >= 2 && (
             <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Monthly visits trend</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">Monthly visits trend</p>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={history} margin={{ left: 4, right: 16, top: 8 }}>
                   <CartesianGrid stroke="#181c24" />
@@ -455,15 +455,15 @@ function TrafficSection({ state }) {
           <div className="grid gap-4 sm:grid-cols-2">
             {sources.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Traffic sources</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Traffic sources</p>
                 <div className="space-y-1.5">
                   {sources.map((s) => (
                     <div key={s.channel} className="flex items-center gap-2 text-xs">
-                      <span className="w-24 shrink-0 capitalize text-slate-400">{s.channel}</span>
+                      <span className="w-24 shrink-0 capitalize text-ink-soft">{s.channel}</span>
                       <div className="h-2 flex-1 rounded-full bg-ink-800 overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${s.pct}%`, background: s.color }} />
                       </div>
-                      <span className="w-9 text-right tabular-nums text-slate-400">{s.pct}%</span>
+                      <span className="w-9 text-right tabular-nums text-ink-soft">{s.pct}%</span>
                     </div>
                   ))}
                 </div>
@@ -471,15 +471,15 @@ function TrafficSection({ state }) {
             )}
             {t.topCountries?.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Top countries</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">Top countries</p>
                 <div className="space-y-1.5">
                   {t.topCountries.map((c, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
-                      <span className="w-28 shrink-0 truncate text-slate-400">{c.country}</span>
+                      <span className="w-28 shrink-0 truncate text-ink-soft">{c.country}</span>
                       <div className="h-2 flex-1 rounded-full bg-ink-800 overflow-hidden">
                         <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round((c.share || 0) * 100)}%` }} />
                       </div>
-                      <span className="w-9 text-right tabular-nums text-slate-400">{Math.round((c.share || 0) * 100)}%</span>
+                      <span className="w-9 text-right tabular-nums text-ink-soft">{Math.round((c.share || 0) * 100)}%</span>
                     </div>
                   ))}
                 </div>
@@ -495,9 +495,9 @@ function TrafficSection({ state }) {
 function ReviewsSection({ state }) {
   const r = state.data;
   const tone = {
-    positive: 'border-emerald-800/50 bg-emerald-950/30 text-emerald-400',
-    mixed: 'border-amber-800/50 bg-amber-950/30 text-amber-400',
-    negative: 'border-rose-800/50 bg-rose-950/30 text-rose-400',
+    positive: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    mixed: 'border-amber-800/50 bg-amber-950/30 text-amber-700',
+    negative: 'border-rose-200 bg-rose-50 text-rose-700',
   };
   return (
     <SectionCard icon="users" title="User reviews & AI analysis" loading={state.loading}
@@ -508,32 +508,32 @@ function ReviewsSection({ state }) {
             {r.rating != null && (
               <span className="inline-flex items-center gap-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <span key={i} className={i < Math.round(r.rating) ? 'text-amber-400' : 'text-ink-600'}>★</span>
+                  <span key={i} className={i < Math.round(r.rating) ? 'text-amber-700' : 'text-ink-600'}>★</span>
                 ))}
-                <span className="ml-1 text-sm text-slate-400">{r.rating}/5</span>
+                <span className="ml-1 text-sm text-ink-soft">{r.rating}/5</span>
               </span>
             )}
             <span className={`chip text-[10px] ${tone[r.sentiment] || tone.mixed}`}>{r.sentiment}</span>
           </div>
-          {r.summary && <p className="text-sm text-slate-300">“{r.summary}”</p>}
+          {r.summary && <p className="text-sm text-ink-soft">“{r.summary}”</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             {r.pros?.length > 0 && (
-              <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-2.5">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">Loved</p>
-                <ul className="space-y-1">{r.pros.map((p, i) => <li key={i} className="text-xs text-slate-300">+ {p}</li>)}</ul>
+                <ul className="space-y-1">{r.pros.map((p, i) => <li key={i} className="text-xs text-ink-soft">+ {p}</li>)}</ul>
               </div>
             )}
             {r.cons?.length > 0 && (
-              <div className="rounded-lg border border-rose-900/30 bg-rose-950/10 p-2.5">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">Complaints</p>
-                <ul className="space-y-1">{r.cons.map((c, i) => <li key={i} className="text-xs text-slate-300">− {c}</li>)}</ul>
+                <ul className="space-y-1">{r.cons.map((c, i) => <li key={i} className="text-xs text-ink-soft">− {c}</li>)}</ul>
               </div>
             )}
           </div>
           {r.ai_analysis && (
             <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-accent-soft">AI analysis</p>
-              <p className="text-sm text-slate-300">{r.ai_analysis}</p>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-accent">AI analysis</p>
+              <p className="text-sm text-ink-soft">{r.ai_analysis}</p>
             </div>
           )}
         </div>

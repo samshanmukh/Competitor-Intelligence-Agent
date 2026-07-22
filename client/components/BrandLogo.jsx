@@ -10,12 +10,12 @@ export default function BrandLogo({
   variant = 'full',
 }) {
   const sizeClass =
-    height >= 40 ? 'text-2xl' : height >= 32 ? 'text-xl' : height >= 26 ? 'text-base' : height <= 18 ? 'text-xs' : 'text-sm';
+    height >= 40 ? 'text-2xl' : height >= 32 ? 'text-xl' : height >= 26 ? 'text-lg' : height <= 18 ? 'text-xs' : 'text-sm';
 
   const mark = (
     <span
       style={{ fontFamily: 'var(--font-brand)' }}
-      className={`font-semibold leading-none tracking-tight text-white ${sizeClass} ${className}`}
+      className={`font-medium leading-none tracking-tight text-ink ${sizeClass} ${className}`}
     >
       {variant === 'mark' ? 'M' : 'Mira'}
     </span>

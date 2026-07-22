@@ -8,7 +8,7 @@ export default function AuthLayout({ children }) {
           <div className="mb-4 flex justify-center">
             <BrandLogo href="/" height={40} priority />
           </div>
-          <p className="text-sm text-slate-500">Competitive and market intelligence for founders</p>
+          <p className="text-sm text-ink-soft">Competitive and market intelligence for founders</p>
         </div>
         {children}
       </div>

@@ -67,17 +67,17 @@ export default function SupportButton() {
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
-          className="pointer-events-auto w-[min(100vw-2.5rem,22rem)] rounded-2xl border border-ink-700 bg-ink-900 p-4 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)]"
+          className="pointer-events-auto w-[min(100vw-2.5rem,22rem)] rounded-2xl border border-line bg-paper p-5 shadow-lift"
         >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h2 id={titleId} className="text-sm font-semibold text-white">Help &amp; feedback</h2>
-              <p className="mt-0.5 text-xs text-slate-500">Ask a question or tell us what’s not working.</p>
+              <h2 id={titleId} className="text-sm font-semibold text-ink">Help &amp; feedback</h2>
+              <p className="mt-0.5 text-xs text-ink-soft">Ask a question or tell us what’s not working.</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1 text-slate-500 transition hover:bg-ink-800 hover:text-slate-200"
+              className="rounded-lg p-1 text-ink-soft transition hover:bg-ink-800 hover:text-ink"
               aria-label="Close help"
             >
               <Icon name="x" className="h-4 w-4" />
@@ -139,9 +139,9 @@ export default function SupportButton() {
         aria-controls={open ? panelId : undefined}
         aria-label={open ? 'Close help' : 'Help and feedback'}
         title="Help & feedback"
-        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-ink-600 bg-ink-900 text-white shadow-[0_10px_30px_-12px_rgba(0,0,0,0.85)] transition hover:border-accent/50 hover:bg-ink-850 sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-3"
+        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full border border-line bg-paper text-ink shadow-soft transition duration-calm hover:border-accent/40 hover:bg-mist sm:h-auto sm:w-auto sm:gap-2 sm:px-4 sm:py-3"
       >
-        <Icon name={open ? 'x' : 'mail'} className="h-4 w-4 text-accent-soft" />
+        <Icon name={open ? 'x' : 'mail'} className="h-4 w-4 text-accent" />
         <span className="hidden text-sm font-semibold sm:inline">{open ? 'Close' : 'Help'}</span>
       </button>
     </div>

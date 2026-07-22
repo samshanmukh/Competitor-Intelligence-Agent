@@ -4,52 +4,58 @@
 
 @layer base {
   html {
-    color-scheme: dark;
+    color-scheme: light;
     overflow-x: hidden;
   }
   body {
-    @apply bg-ink-950 text-slate-200 antialiased;
+    @apply bg-canvas text-ink antialiased;
     font-feature-settings: 'cv11', 'ss01';
     overflow-x: hidden;
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2c3340 transparent;
+    scrollbar-color: #D4CFC5 transparent;
+  }
+  ::selection {
+    background: rgba(92, 107, 82, 0.18);
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-ink-700 bg-ink-900/70 backdrop-blur;
+    @apply rounded-2xl border border-line bg-paper shadow-soft;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition
-      focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition-all duration-calm
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas
+      disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accent-dim;
+    @apply btn bg-accent text-white shadow-soft hover:bg-accent-dim;
   }
   .btn-ghost {
-    @apply btn border border-ink-700 bg-ink-850 text-slate-300 hover:border-ink-600 hover:text-white;
+    @apply btn border border-line bg-paper text-ink-soft hover:border-line-strong hover:bg-mist hover:text-ink;
   }
   .btn-danger {
-    @apply btn border border-rose-900/60 bg-rose-950/40 text-rose-300 hover:bg-rose-950/70;
+    @apply btn border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100;
   }
   .input {
-    @apply w-full rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 text-sm text-slate-100
-      placeholder:text-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40;
+    @apply w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-ink-faint transition duration-calm
+      focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/20;
+    min-height: 2.75rem;
   }
   .label {
-    @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400;
+    @apply mb-1.5 block text-xs font-medium tracking-wide text-ink-soft;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium;
   }
 }
 
 .spinner {
-  border: 2px solid rgba(148, 163, 184, 0.25);
-  border-top-color: #818cf8;
+  border: 2px solid rgba(168, 162, 158, 0.35);
+  border-top-color: #5C6B52;
   border-radius: 9999px;
   width: 1rem;
   height: 1rem;
