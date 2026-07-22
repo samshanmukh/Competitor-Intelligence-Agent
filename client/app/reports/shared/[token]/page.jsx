@@ -43,8 +43,8 @@ export default function SharedReportPage() {
         <EmptyState icon="alert" title="Report unavailable">
           {error || 'This shared link is invalid or the report was deleted.'}
         </EmptyState>
-        <p className="mt-6 text-center text-sm text-ink-soft">
-          <Link href="/" className="text-accent hover:text-ink transition">Back to Mira</Link>
+        <p className="mt-6 text-center text-sm text-slate-500">
+          <Link href="/" className="text-accent-soft hover:text-white transition">Back to Mira</Link>
         </p>
       </div>
     );
@@ -57,18 +57,18 @@ export default function SharedReportPage() {
       <header className="border-b border-ink-800 bg-ink-900/80 px-5 py-4 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <BrandLogo href="/" height={28} />
-          <span className="chip text-[10px] text-ink-soft">Shared report · read-only</span>
+          <span className="chip text-[10px] text-slate-400">Shared report · read-only</span>
         </div>
       </header>
 
       <div className="mx-auto max-w-3xl space-y-6 px-5 py-10 pb-24">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">{report.title}</h1>
-          <p className="mt-1 text-sm text-ink-soft">
+          <h1 className="text-2xl font-semibold text-white">{report.title}</h1>
+          <p className="mt-1 text-sm text-slate-500">
             Shared {timeAgo(report.created_at)} · {c.competitors?.length || 0} competitors
           </p>
           {report.expires_at && (
-            <p className="mt-1 text-xs text-ink-faint">
+            <p className="mt-1 text-xs text-slate-600">
               Link expires {new Date(report.expires_at).toLocaleDateString()}
             </p>
           )}
@@ -91,9 +91,9 @@ export default function SharedReportPage() {
           <EmptyState icon="alert" title="Report data unavailable" />
         )}
 
-        <p className="text-center text-sm text-ink-soft">
+        <p className="text-center text-sm text-slate-500">
           Want your own competitive intelligence?{' '}
-          <Link href="/signup" className="text-accent hover:text-ink transition">Get started free</Link>
+          <Link href="/signup" className="text-accent-soft hover:text-white transition">Get started free</Link>
         </p>
       </div>
     </div>

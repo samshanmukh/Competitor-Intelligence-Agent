@@ -71,8 +71,8 @@ export default function InvestorClient() {
       ) : (
         <div className="space-y-4">
           <section className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Headline</p>
-            <h2 className="mt-2 text-xl font-semibold text-ink">{result.headline}</h2>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Headline</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">{result.headline}</h2>
           </section>
           <div className="grid gap-3 sm:grid-cols-2">
             <MemoBlock title="Problem" body={result.problem} />
@@ -84,18 +84,18 @@ export default function InvestorClient() {
           </div>
           {result.risks?.length > 0 && (
             <section className="card p-5">
-              <h2 className="text-sm font-semibold text-ink">Risks</h2>
-              <ul className="mt-3 space-y-2 text-sm text-ink-soft">
+              <h2 className="text-sm font-semibold text-white">Risks</h2>
+              <ul className="mt-3 space-y-2 text-sm text-slate-400">
                 {result.risks.map((risk, i) => <li key={i}>- {risk}</li>)}
               </ul>
             </section>
           )}
           <section className="card p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-ink">Markdown</h2>
+              <h2 className="text-sm font-semibold text-white">Markdown</h2>
               <button onClick={copy} className="btn-ghost py-1.5 px-2 text-xs">{copied ? 'Copied' : 'Copy'}</button>
             </div>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-ink-700 bg-ink-950 p-4 text-xs leading-relaxed text-ink-soft">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-ink-700 bg-ink-950 p-4 text-xs leading-relaxed text-slate-300">
               {result.markdown || toMarkdown(result)}
             </pre>
           </section>
@@ -109,8 +109,8 @@ function MemoBlock({ title, body }) {
   if (!body) return null;
   return (
     <section className="card p-5">
-      <h2 className="text-sm font-semibold text-ink">{title}</h2>
-      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{body}</p>
+      <h2 className="text-sm font-semibold text-white">{title}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
     </section>
   );
 }

@@ -56,8 +56,8 @@ export default function DistributionClient() {
     <div className="mx-auto max-w-3xl space-y-6 pb-20">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Distribution</h1>
-          <p className="mt-1 text-sm text-ink-soft">
+          <h1 className="text-2xl font-semibold text-white">Distribution</h1>
+          <p className="mt-1 text-sm text-slate-500">
             Published analyst share and triangulated presence across your tracked competitors.
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function DistributionClient() {
       </header>
 
       {researching && (
-        <div className="card flex flex-col gap-1 p-4 text-sm text-ink-soft sm:flex-row sm:items-center sm:gap-3">
+        <div className="card flex flex-col gap-1 p-4 text-sm text-slate-400 sm:flex-row sm:items-center sm:gap-3">
           <div className="flex items-center gap-3">
             <Spinner />
             <span>{phase || 'Researching market distribution…'}</span>
@@ -102,16 +102,16 @@ export default function DistributionClient() {
             showExport
             showPricingChanges
           />
-          <p className="text-center text-xs text-ink-faint">
-            <Link href="/methodology" className="text-ink-soft hover:text-accent">How we calculate presence</Link>
+          <p className="text-center text-xs text-slate-600">
+            <Link href="/methodology" className="text-slate-400 hover:text-accent-soft">How we calculate presence</Link>
             {' · '}
-            <Link href="/app" className="text-ink-soft hover:text-accent">Full analysis report</Link>
+            <Link href="/app" className="text-slate-400 hover:text-accent-soft">Full analysis report</Link>
           </p>
         </>
       )}
 
       {distribution?.items?.length > 0 && !data?.syndicated?.table?.rows?.length && (
-        <p className="text-center text-[11px] text-ink-faint">
+        <p className="text-center text-[11px] text-slate-600">
           {METHOD_HINT[distribution.method]}
         </p>
       )}

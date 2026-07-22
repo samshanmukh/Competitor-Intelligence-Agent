@@ -57,16 +57,16 @@ function InviteInner() {
         <BrandLogo href="/" height={40} />
       </div>
       <div className="card space-y-4 p-6 text-center">
-        <h1 className="text-xl font-semibold text-ink">
+        <h1 className="text-xl font-semibold text-white">
           {info ? `Join ${info.name}` : 'Workspace invite'}
         </h1>
-        <p className="text-sm text-ink-soft">
+        <p className="text-sm text-slate-400">
           {emailHint
-            ? <>Sign in as <strong className="text-ink">{emailHint}</strong> to accept this invite.</>
+            ? <>Sign in as <strong className="text-slate-200">{emailHint}</strong> to accept this invite.</>
             : 'Sign in with the invited email to join this workspace.'}
         </p>
         {error && (
-          <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+          <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
         )}
         {loggedIn ? (
           <button onClick={accept} disabled={accepting} className="btn-primary w-full">

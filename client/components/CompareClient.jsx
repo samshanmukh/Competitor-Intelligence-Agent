@@ -43,17 +43,17 @@ export default function CompareClient() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-ink">Compare</h1>
-        <p className="mt-1 text-sm text-ink-soft">Select 2–4 competitors to generate an AI feature matrix</p>
+        <h1 className="text-2xl font-semibold text-white">Compare</h1>
+        <p className="mt-1 text-sm text-slate-500">Select 2–4 competitors to generate an AI feature matrix</p>
       </div>
 
       {/* Competitor picker */}
       <div className="card p-4 space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Select competitors</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Select competitors</h2>
         {competitors === null ? (
           <div className="flex gap-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-36" />)}</div>
         ) : competitors.length === 0 ? (
-          <p className="text-sm text-ink-soft">No approved competitors. <Link href="/discover" className="text-accent">Discover some first.</Link></p>
+          <p className="text-sm text-slate-500">No approved competitors. <Link href="/discover" className="text-accent-soft">Discover some first.</Link></p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {competitors.map((c) => (
@@ -62,18 +62,18 @@ export default function CompareClient() {
                 onClick={() => toggle(c.id)}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition ${
                   selected.includes(c.id)
-                    ? 'border-accent bg-accent/10 text-ink'
-                    : 'border-ink-700 bg-ink-850 text-ink-soft hover:border-ink-600 hover:text-ink'
+                    ? 'border-accent bg-accent/10 text-white'
+                    : 'border-ink-700 bg-ink-850 text-slate-400 hover:border-ink-600 hover:text-slate-200'
                 }`}
               >
-                {selected.includes(c.id) && <Icon name="check" className="h-3.5 w-3.5 text-accent" />}
+                {selected.includes(c.id) && <Icon name="check" className="h-3.5 w-3.5 text-accent-soft" />}
                 {c.name}
               </button>
             ))}
           </div>
         )}
         <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-ink-faint">{selected.length}/4 selected</span>
+          <span className="text-xs text-slate-600">{selected.length}/4 selected</span>
           <button
             onClick={compare}
             disabled={selected.length < 2 || loading}
@@ -102,12 +102,12 @@ export default function CompareClient() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink-700">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-ink-soft min-w-48">Feature</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500 min-w-48">Feature</th>
                 {matrix.competitors?.map((comp) => (
                   <th key={comp.name} className="px-4 py-3 text-center min-w-32">
-                    <div className="text-sm font-semibold text-ink">{comp.name}</div>
+                    <div className="text-sm font-semibold text-white">{comp.name}</div>
                     {comp.tiers?.[0]?.price_monthly != null && (
-                      <div className="text-xs text-ink-soft font-normal">from ${comp.tiers[0].price_monthly}/mo</div>
+                      <div className="text-xs text-slate-500 font-normal">from ${comp.tiers[0].price_monthly}/mo</div>
                     )}
                   </th>
                 ))}
@@ -116,22 +116,22 @@ export default function CompareClient() {
             <tbody className="divide-y divide-ink-800">
               {matrix.features?.map((feature, fi) => (
                 <tr key={fi} className="hover:bg-ink-850/30 transition">
-                  <td className="px-4 py-3 text-ink-soft text-xs">{feature}</td>
+                  <td className="px-4 py-3 text-slate-300 text-xs">{feature}</td>
                   {matrix.competitors?.map((comp) => {
                     const tier = comp.tiers?.[0];
                     const has = tier?.features?.[fi];
                     return (
                       <td key={comp.name} className="px-4 py-3 text-center">
                         {has === true ? (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-950/40 text-emerald-400">
                             <Icon name="check" className="h-3 w-3" />
                           </span>
                         ) : has === false ? (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink-800 text-ink-faint">
+                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink-800 text-slate-600">
                             <Icon name="x" className="h-3 w-3" />
                           </span>
                         ) : (
-                          <span className="text-ink-faint text-xs">–</span>
+                          <span className="text-slate-700 text-xs">–</span>
                         )}
                       </td>
                     );
@@ -148,13 +148,13 @@ export default function CompareClient() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {selectedCompetitors.map((c) => (
             <div key={c.id} className="card p-4 text-center space-y-2">
-              <div className="text-sm font-semibold text-ink">{c.name}</div>
+              <div className="text-sm font-semibold text-white">{c.name}</div>
               <div className="text-2xl font-bold">
                 <ValueScore score={c.value_score} />
               </div>
-              {c.value_analysis && <p className="text-xs text-ink-soft line-clamp-3">{c.value_analysis}</p>}
+              {c.value_analysis && <p className="text-xs text-slate-500 line-clamp-3">{c.value_analysis}</p>}
               {c.value_score == null && (
-                <Link href={`/competitors/${c.id}`} className="text-xs text-accent">Run analysis →</Link>
+                <Link href={`/competitors/${c.id}`} className="text-xs text-accent-soft">Run analysis →</Link>
               )}
             </div>
           ))}

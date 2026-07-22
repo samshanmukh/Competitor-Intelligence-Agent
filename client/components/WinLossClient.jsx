@@ -76,22 +76,22 @@ export default function WinLossClient() {
           {entries.map((entry) => (
             <div key={entry.id} className="card p-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="chip border-ink-700 bg-ink-850 text-ink-soft">{entry.outcome || 'unknown'}</span>
-                {entry.competitor && <span className="chip border-accent/30 bg-accent/10 text-accent">{entry.competitor}</span>}
+                <span className="chip border-ink-700 bg-ink-850 text-slate-400">{entry.outcome || 'unknown'}</span>
+                {entry.competitor && <span className="chip border-accent/30 bg-accent/10 text-accent-soft">{entry.competitor}</span>}
               </div>
-              <p className="mt-3 text-sm text-ink-soft">{entry.analysis?.summary || entry.notes}</p>
+              <p className="mt-3 text-sm text-slate-300">{entry.analysis?.summary || entry.notes}</p>
               {entry.analysis?.objections?.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Objections</p>
-                  <ul className="mt-2 space-y-1 text-sm text-ink-soft">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Objections</p>
+                  <ul className="mt-2 space-y-1 text-sm text-slate-400">
                     {entry.analysis.objections.map((item, i) => <li key={i}>- {item}</li>)}
                   </ul>
                 </div>
               )}
               {entry.analysis?.talkTracks?.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Talk tracks</p>
-                  <ul className="mt-2 space-y-1 text-sm text-ink-soft">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Talk tracks</p>
+                  <ul className="mt-2 space-y-1 text-sm text-slate-400">
                     {entry.analysis.talkTracks.map((item, i) => <li key={i}>- {item}</li>)}
                   </ul>
                 </div>

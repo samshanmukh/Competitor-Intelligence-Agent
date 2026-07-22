@@ -30,14 +30,14 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
           <div className="grid gap-3 sm:grid-cols-2">
             {(product?.icp || strategy?.icp) && (
               <div className="rounded-lg border border-ink-700 bg-ink-850 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">ICP</p>
-                <p className="mt-2 text-sm text-ink-soft whitespace-pre-wrap">{product?.icp || strategy?.icp}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">ICP</p>
+                <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{product?.icp || strategy?.icp}</p>
               </div>
             )}
             {(product?.business_model || strategy?.business_model) && (
               <div className="rounded-lg border border-ink-700 bg-ink-850 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-soft">Business model</p>
-                <p className="mt-2 text-sm text-ink-soft whitespace-pre-wrap">{product?.business_model || strategy?.business_model}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Business model</p>
+                <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{product?.business_model || strategy?.business_model}</p>
               </div>
             )}
           </div>
@@ -65,12 +65,12 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-700">
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-ink-soft">Feature</th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-slate-500">Feature</th>
                   {matrix.competitors.map((c) => {
                     const isYou = (c.name || '').toLowerCase() === youName;
                     return (
-                      <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium ${isYou ? 'text-accent' : 'text-ink-soft'}`}>
-                        {c.name}{isYou && <span className="block text-[9px] font-normal text-accent/70">you</span>}
+                      <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium ${isYou ? 'text-accent-soft' : 'text-slate-300'}`}>
+                        {c.name}{isYou && <span className="block text-[9px] font-normal text-accent-soft/70">you</span>}
                       </th>
                     );
                   })}
@@ -79,15 +79,15 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
               <tbody className="divide-y divide-ink-800">
                 {matrix.features.map((f, fi) => (
                   <tr key={fi}>
-                    <td className="py-2 pr-4 text-xs text-ink-soft">{f}</td>
+                    <td className="py-2 pr-4 text-xs text-slate-300">{f}</td>
                     {matrix.competitors.map((c) => {
                       const isYou = (c.name || '').toLowerCase() === youName;
                       const has = c.tiers?.[0]?.features?.[fi];
                       return (
                         <td key={c.name} className={`px-3 py-2 text-center ${isYou ? 'bg-accent/5' : ''}`}>
-                          {has === true ? <Icon name="check" className="mx-auto h-3.5 w-3.5 text-emerald-700" />
-                            : has === false ? <Icon name="x" className="mx-auto h-3.5 w-3.5 text-ink-faint" />
-                            : <span className="text-ink-faint">–</span>}
+                          {has === true ? <Icon name="check" className="mx-auto h-3.5 w-3.5 text-emerald-400" />
+                            : has === false ? <Icon name="x" className="mx-auto h-3.5 w-3.5 text-slate-700" />
+                            : <span className="text-slate-700">–</span>}
                         </td>
                       );
                     })}
@@ -104,19 +104,19 @@ export default function ReportView({ competitors = [], matrix, positioning, revi
           {product && (product.value_score != null || product.value_analysis) && (
             <div className="rounded-lg border border-accent/40 bg-accent/5 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-accent">{product.name} <span className="text-[10px] font-normal">(you)</span></span>
+                <span className="text-sm font-semibold text-accent-soft">{product.name} <span className="text-[10px] font-normal">(you)</span></span>
                 <ValueScore score={product.value_score} />
               </div>
-              {product.value_analysis && <p className="mt-1 text-xs text-ink-soft line-clamp-3">{product.value_analysis}</p>}
+              {product.value_analysis && <p className="mt-1 text-xs text-slate-400 line-clamp-3">{product.value_analysis}</p>}
             </div>
           )}
           {competitors.map((c) => (
             <div key={c.id ?? c.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-ink">{c.name}</span>
+                <span className="text-sm font-medium text-white">{c.name}</span>
                 <ValueScore score={c.value_score} />
               </div>
-              {c.value_analysis && <p className="mt-1 text-xs text-ink-soft line-clamp-3">{c.value_analysis}</p>}
+              {c.value_analysis && <p className="mt-1 text-xs text-slate-500 line-clamp-3">{c.value_analysis}</p>}
             </div>
           ))}
         </div>
@@ -146,8 +146,8 @@ const findByName = (arr, name) => arr?.find((x) => (x.name || '').toLowerCase() 
 function ChartCard({ title, hint, children }) {
   return (
     <div className="rounded-xl border border-ink-700 bg-ink-850 p-4">
-      <p className="text-sm font-semibold text-ink">{title}</p>
-      {hint && <p className="mb-2 text-xs text-ink-soft">{hint}</p>}
+      <p className="text-sm font-semibold text-white">{title}</p>
+      {hint && <p className="mb-2 text-xs text-slate-500">{hint}</p>}
       <div className="mt-3">{children}</div>
     </div>
   );
@@ -156,15 +156,15 @@ function ChartCard({ title, hint, children }) {
 function PricingCard({ name, tiers, you }) {
   return (
     <div className={`rounded-lg border p-3 ${you ? 'border-accent/40 bg-accent/5' : 'border-ink-700 bg-ink-850'}`}>
-      <p className={`text-sm font-semibold ${you ? 'text-accent' : 'text-ink'}`}>
+      <p className={`text-sm font-semibold ${you ? 'text-accent-soft' : 'text-white'}`}>
         {name}{you && <span className="text-[10px] font-normal"> (you)</span>}
       </p>
       <div className="mt-2 space-y-1.5">
-        {(tiers || []).length === 0 && <p className="text-xs text-ink-faint">No pricing extracted</p>}
+        {(tiers || []).length === 0 && <p className="text-xs text-slate-600">No pricing extracted</p>}
         {(tiers || []).map((t, i) => (
           <div key={i} className="flex items-center justify-between text-xs">
-            <span className="text-ink-soft">{t.name}</span>
-            <span className="font-medium text-ink">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
+            <span className="text-slate-400">{t.name}</span>
+            <span className="font-medium text-slate-200">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
           </div>
         ))}
       </div>
@@ -263,10 +263,10 @@ function MapTooltip({ active, payload }) {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div style={TIP_STYLE} className="px-3 py-2 text-xs text-ink">
-      <p className="font-semibold text-ink">{d.name}</p>
-      <p className="mt-1 text-ink-soft">Value: {d.value ?? '—'}/10</p>
-      <p className="text-ink-soft">
+    <div style={TIP_STYLE} className="px-3 py-2 text-xs text-slate-200">
+      <p className="font-semibold text-white">{d.name}</p>
+      <p className="mt-1 text-slate-400">Value: {d.value ?? '—'}/10</p>
+      <p className="text-slate-400">
         Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '—'}
         {d.priceEstimated ? ' (estimated)' : ''}
       </p>
@@ -369,7 +369,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
                         />
                       );
                     }
-                    return <circle cx={cx} cy={cy} r={6} fill={payload?.color || '#5C6B52'} stroke="#0e1014" strokeWidth={1.5} />;
+                    return <circle cx={cx} cy={cy} r={6} fill={payload?.color || '#818cf8'} stroke="#0e1014" strokeWidth={1.5} />;
                   }}
                 >
                   {mapData.map((d, i) => (
@@ -381,13 +381,13 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
             </ResponsiveContainer>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-ink-800 pt-3">
               {mapData.map((d) => (
-                <span key={d.name} className="inline-flex items-center gap-1.5 text-[11px] text-ink-soft">
+                <span key={d.name} className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
                   <span
                     className="inline-block h-2 w-2 shrink-0 rounded-full"
                     style={{ background: d.isYou ? YOU_COLOR : d.color }}
                   />
                   {truncateLabel(d.name, 22)}
-                  {d.priceEstimated && <span className="text-ink-faint">(est. price)</span>}
+                  {d.priceEstimated && <span className="text-slate-600">(est. price)</span>}
                 </span>
               ))}
             </div>
@@ -435,14 +435,14 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
 }
 
 function StarRating({ value }) {
-  if (value == null) return <span className="text-xs text-ink-faint">no rating</span>;
+  if (value == null) return <span className="text-xs text-slate-600">no rating</span>;
   const full = Math.round(value);
   return (
     <span className="inline-flex items-center gap-0.5" title={`${value}/5`}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className={i < full ? 'text-amber-700' : 'text-ink-600'}>★</span>
+        <span key={i} className={i < full ? 'text-amber-400' : 'text-ink-600'}>★</span>
       ))}
-      <span className="ml-1 text-xs text-ink-soft">{value}/5</span>
+      <span className="ml-1 text-xs text-slate-400">{value}/5</span>
     </span>
   );
 }
@@ -457,23 +457,23 @@ function ReviewsSection({ reviews }) {
   return (
     <ReportSection icon="users" title="Voice of the customer">
       {withData.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-ink-700 p-4 text-center text-sm text-ink-soft">
+        <p className="rounded-lg border border-dashed border-ink-700 p-4 text-center text-sm text-slate-500">
           No public review data was found for these competitors.
         </p>
       ) : (
         <>
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-              <p className="text-2xl font-bold text-amber-700">{avgRating != null ? avgRating.toFixed(1) : '—'}</p>
-              <p className="text-xs text-ink-soft">avg rating / 5</p>
+              <p className="text-2xl font-bold text-amber-400">{avgRating != null ? avgRating.toFixed(1) : '—'}</p>
+              <p className="text-xs text-slate-500">avg rating / 5</p>
             </div>
             <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-              <p className="text-2xl font-bold text-emerald-700">{counts.positive}</p>
-              <p className="text-xs text-ink-soft">positively reviewed</p>
+              <p className="text-2xl font-bold text-emerald-400">{counts.positive}</p>
+              <p className="text-xs text-slate-500">positively reviewed</p>
             </div>
             <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-              <p className="text-2xl font-bold text-rose-700">{counts.negative}</p>
-              <p className="text-xs text-ink-soft">negatively reviewed</p>
+              <p className="text-2xl font-bold text-rose-400">{counts.negative}</p>
+              <p className="text-xs text-slate-500">negatively reviewed</p>
             </div>
           </div>
 
@@ -500,34 +500,34 @@ function ReviewsSection({ reviews }) {
             {reviews.map((r) => (
               <div key={r.id ?? r.name} className="rounded-lg border border-ink-700 bg-ink-850 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-ink">{r.name}</span>
+                  <span className="text-sm font-semibold text-white">{r.name}</span>
                   <div className="flex items-center gap-3">
                     <StarRating value={r.rating} />
                     {r.sentiment && <SentimentChip sentiment={r.sentiment} />}
                   </div>
                 </div>
-                {r.summary && <p className="mt-2 text-sm text-ink-soft">“{r.summary}”</p>}
+                {r.summary && <p className="mt-2 text-sm text-slate-300">“{r.summary}”</p>}
                 {(r.pros?.length || r.cons?.length) ? (
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     {r.pros?.length > 0 && (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                      <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-2.5">
                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">What users love</p>
                         <ul className="space-y-1">{r.pros.map((p, i) => (
-                          <li key={i} className="flex gap-1.5 text-xs text-ink-soft"><span className="text-emerald-500">+</span>{p}</li>
+                          <li key={i} className="flex gap-1.5 text-xs text-slate-300"><span className="text-emerald-500">+</span>{p}</li>
                         ))}</ul>
                       </div>
                     )}
                     {r.cons?.length > 0 && (
-                      <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5">
+                      <div className="rounded-lg border border-rose-900/30 bg-rose-950/10 p-2.5">
                         <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">Common complaints</p>
                         <ul className="space-y-1">{r.cons.map((c, i) => (
-                          <li key={i} className="flex gap-1.5 text-xs text-ink-soft"><span className="text-rose-500">−</span>{c}</li>
+                          <li key={i} className="flex gap-1.5 text-xs text-slate-300"><span className="text-rose-500">−</span>{c}</li>
                         ))}</ul>
                       </div>
                     )}
                   </div>
                 ) : !r.sentiment ? (
-                  <p className="mt-1 text-xs text-ink-faint">No review data found.</p>
+                  <p className="mt-1 text-xs text-slate-600">No review data found.</p>
                 ) : null}
               </div>
             ))}
@@ -548,10 +548,10 @@ function StrategySection({ strategy, productName }) {
     { key: 'threats', label: 'Threats', color: 'amber', sign: '!' },
   ];
   const tone = {
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    rose: 'border-rose-200 bg-rose-50 text-rose-700',
-    accent: 'border-accent/30 bg-accent/5 text-accent',
-    amber: 'border-amber-900/40 bg-amber-950/10 text-amber-700',
+    emerald: 'border-emerald-900/40 bg-emerald-950/10 text-emerald-400',
+    rose: 'border-rose-900/40 bg-rose-950/10 text-rose-400',
+    accent: 'border-accent/30 bg-accent/5 text-accent-soft',
+    amber: 'border-amber-900/40 bg-amber-950/10 text-amber-400',
   };
   const hasSwot = quadrants.some((q) => (swot[q.key] || []).length);
 
@@ -559,8 +559,8 @@ function StrategySection({ strategy, productName }) {
     <ReportSection icon="shield" title="Strategy">
       {hasSwot && (
         <>
-          <p className="mb-3 text-xs text-ink-soft">
-            SWOT for <span className="text-ink-soft">{productName || 'your product'}</span> against this competitive set.
+          <p className="mb-3 text-xs text-slate-500">
+            SWOT for <span className="text-slate-300">{productName || 'your product'}</span> against this competitive set.
           </p>
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
             {quadrants.map((q) => (
@@ -568,11 +568,11 @@ function StrategySection({ strategy, productName }) {
                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide">{q.label}</p>
                 <ul className="space-y-1">
                   {(swot[q.key] || []).map((item, i) => (
-                    <li key={i} className="flex gap-1.5 text-xs text-ink-soft">
+                    <li key={i} className="flex gap-1.5 text-xs text-slate-300">
                       <span className="shrink-0">{q.sign}</span>{item}
                     </li>
                   ))}
-                  {(swot[q.key] || []).length === 0 && <li className="text-xs text-ink-faint">—</li>}
+                  {(swot[q.key] || []).length === 0 && <li className="text-xs text-slate-600">—</li>}
                 </ul>
               </div>
             ))}
@@ -582,24 +582,24 @@ function StrategySection({ strategy, productName }) {
 
       {positioning.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">How each competitor positions itself</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">How each competitor positions itself</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-700">
-                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-ink-soft">Competitor</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-ink-soft">Positioning</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-ink-soft">Targets</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-ink-soft">Messaging</th>
+                  <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-slate-500">Competitor</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-slate-500">Positioning</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-slate-500">Targets</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium uppercase text-slate-500">Messaging</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-800">
                 {positioning.map((p, i) => (
                   <tr key={i} className="align-top">
-                    <td className="py-2 pr-4 text-sm font-medium text-ink">{p.name}</td>
-                    <td className="px-3 py-2 text-xs text-ink-soft">{p.positioning || '—'}</td>
-                    <td className="px-3 py-2 text-xs text-ink-soft">{p.target_audience || '—'}</td>
-                    <td className="px-3 py-2 text-xs text-ink-soft">{p.messaging_angle || '—'}</td>
+                    <td className="py-2 pr-4 text-sm font-medium text-white">{p.name}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.positioning || '—'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.target_audience || '—'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.messaging_angle || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -630,7 +630,7 @@ function MarketSection({ market }) {
     <ReportSection icon="trending" title="Market intelligence">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <DistributionMetaChips distribution={distribution} trafficMeta={market.signals?.traffic_meta} compact />
-        <Link href="/distribution" className="text-xs text-accent hover:underline">Open distribution →</Link>
+        <Link href="/distribution" className="text-xs text-accent-soft hover:underline">Open distribution →</Link>
       </div>
 
       <PulseBanner pulse={pulse} limit={4} compact />
@@ -638,14 +638,14 @@ function MarketSection({ market }) {
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         {market.size_current && (
           <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-            <p className="text-xs text-ink-soft">Market size</p>
-            <p className="text-lg font-bold text-ink">{market.size_current}</p>
+            <p className="text-xs text-slate-500">Market size</p>
+            <p className="text-lg font-bold text-white">{market.size_current}</p>
           </div>
         )}
         {market.cagr && (
           <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-            <p className="text-xs text-ink-soft">Growth</p>
-            <p className="text-lg font-bold text-emerald-700">{market.cagr}</p>
+            <p className="text-xs text-slate-500">Growth</p>
+            <p className="text-lg font-bold text-emerald-400">{market.cagr}</p>
           </div>
         )}
       </div>
@@ -660,20 +660,20 @@ function MarketSection({ market }) {
                 <XAxis dataKey="year" tick={AXIS} />
                 <YAxis tick={AXIS} tickFormatter={(v) => `$${v}M`} />
                 <Tooltip contentStyle={TIP_STYLE} formatter={(v) => [`$${v}M`, 'Market size']} />
-                <Line type="monotone" dataKey="size_usd_millions" stroke="#5C6B52" strokeWidth={2}
-                  dot={{ r: 3, fill: '#5C6B52' }} />
+                <Line type="monotone" dataKey="size_usd_millions" stroke="#818cf8" strokeWidth={2}
+                  dot={{ r: 3, fill: '#818cf8' }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
         </div>
       )}
 
-      {market.summary && <p className="mb-4 text-sm text-ink-soft leading-relaxed">{market.summary}</p>}
+      {market.summary && <p className="mb-4 text-sm text-slate-400 leading-relaxed">{market.summary}</p>}
 
       {(syndicated?.table?.rows?.length || syndicated?.vendors?.length) > 0 && (
         <div className="mb-4 rounded-xl border border-ink-700 bg-ink-850 p-4">
-          <h3 className="text-sm font-semibold text-ink">Published market share</h3>
-          <p className="mt-0.5 text-[11px] text-ink-soft">From public analyst sources — not blended into estimates</p>
+          <h3 className="text-sm font-semibold text-white">Published market share</h3>
+          <p className="mt-0.5 text-[11px] text-slate-500">From public analyst sources — not blended into estimates</p>
           <div className="mt-3">
             <SyndicatedShareTable syndicated={syndicated} compact />
           </div>
@@ -687,9 +687,9 @@ function MarketSection({ market }) {
             hint={hintForMethod[distribution.method] || hintForMethod.relative_revenue}
           >
             <PresenceChart distribution={distribution} limit={10} barHeight="h-2.5" nameWidth="w-28" />
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-ink-soft">
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
               {isTriangulated && (
-                <span className="chip border-accent/25 bg-accent-mist text-accent">Triangulated</span>
+                <span className="chip border-indigo-500/30 bg-indigo-500/10 text-indigo-300">Triangulated</span>
               )}
               {distribution.cr4_pct != null && (
                 <span className="chip border-ink-700 bg-ink-850">Top 4 ≈ {distribution.cr4_pct}% presence</span>
@@ -698,7 +698,7 @@ function MarketSection({ market }) {
                 <span className="chip border-ink-700 bg-ink-850">Untracked / remainder ≈ {distribution.remainder_pct}%</span>
               )}
               {distribution.tam_source === 'market_model' && (
-                <span className="chip border-emerald-200 bg-emerald-50 text-emerald-700">TAM from market model</span>
+                <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">TAM from market model</span>
               )}
               {market.signals?.traffic_meta?.apify_fetched > 0 && (
                 <span className="chip border-ink-700 bg-ink-850">SimilarWeb: {market.signals.traffic_meta.apify_fetched}</span>
@@ -713,7 +713,7 @@ function MarketSection({ market }) {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {companies.map((c) => (
             <div key={c.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-              <p className="text-sm font-semibold text-ink">{c.name}</p>
+              <p className="text-sm font-semibold text-white">{c.name}</p>
               <div className="mt-2 space-y-1 text-xs">
                 {c.funding && c.funding !== 'null' && <Row label="Funding" value={c.funding} />}
                 {c.revenue && c.revenue !== 'null' && <Row label="Revenue" value={c.revenue} />}
@@ -725,7 +725,7 @@ function MarketSection({ market }) {
                   />
                 )}
               </div>
-              {c.note && <p className="mt-2 text-xs text-ink-soft">{c.note}</p>}
+              {c.note && <p className="mt-2 text-xs text-slate-500">{c.note}</p>}
             </div>
           ))}
         </div>
@@ -737,7 +737,7 @@ function MarketSection({ market }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {market.sources.map((s, i) => (
             <a key={i} href={s.url} target="_blank" rel="noreferrer"
-              className="chip border-ink-700 bg-ink-850 text-ink-soft hover:text-accent transition text-[10px]">
+              className="chip border-ink-700 bg-ink-850 text-slate-500 hover:text-accent-soft transition text-[10px]">
               <Icon name="external" className="h-2.5 w-2.5" /> {s.title?.slice(0, 32) || 'source'}
             </a>
           ))}
@@ -750,8 +750,8 @@ function MarketSection({ market }) {
 function Row({ label, value }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-ink-soft">{label}</span>
-      <span className="font-medium text-ink">{value}</span>
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium text-slate-200">{value}</span>
     </div>
   );
 }
@@ -760,8 +760,8 @@ function Row({ label, value }) {
 export function ReportSection({ icon, title, children }) {
   return (
     <div>
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
-        <Icon name={icon} className="h-4 w-4 text-accent" /> {title}
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+        <Icon name={icon} className="h-4 w-4 text-accent-soft" /> {title}
       </h3>
       {children}
     </div>
@@ -770,9 +770,9 @@ export function ReportSection({ icon, title, children }) {
 
 function SentimentChip({ sentiment }) {
   const styles = {
-    positive: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    mixed: 'border-amber-800/50 bg-amber-950/30 text-amber-700',
-    negative: 'border-rose-200 bg-rose-50 text-rose-700',
+    positive: 'border-emerald-800/50 bg-emerald-950/30 text-emerald-400',
+    mixed: 'border-amber-800/50 bg-amber-950/30 text-amber-400',
+    negative: 'border-rose-800/50 bg-rose-950/30 text-rose-400',
   };
   return <span className={`chip text-[10px] ${styles[sentiment] || styles.mixed}`}>{sentiment}</span>;
 }
@@ -782,12 +782,12 @@ function Prose({ text }) {
     <div className="space-y-1">
       {text.split('\n').map((line, i) => {
         if (/^\*\*(.+)\*\*$/.test(line.trim())) {
-          return <h4 key={i} className="mt-3 mb-1 text-sm font-semibold text-ink">{line.trim().replace(/\*\*/g, '')}</h4>;
+          return <h4 key={i} className="mt-3 mb-1 text-sm font-semibold text-slate-200">{line.trim().replace(/\*\*/g, '')}</h4>;
         }
         if (line.trim().startsWith('- ') || line.trim().startsWith('• ')) {
-          return <li key={i} className="ml-4 list-disc text-sm text-ink-soft">{line.trim().replace(/^[-•]\s/, '')}</li>;
+          return <li key={i} className="ml-4 list-disc text-sm text-slate-400">{line.trim().replace(/^[-•]\s/, '')}</li>;
         }
-        return line.trim() ? <p key={i} className="text-sm text-ink-soft leading-relaxed">{line}</p> : null;
+        return line.trim() ? <p key={i} className="text-sm text-slate-400 leading-relaxed">{line}</p> : null;
       })}
     </div>
   );

@@ -19,16 +19,16 @@ async function readJson(res) {
 }
 
 const PRIORITY = {
-  high: { dot: 'text-rose-700', label: 'High' },
-  medium: { dot: 'text-amber-700', label: 'Medium' },
+  high: { dot: 'text-rose-400', label: 'High' },
+  medium: { dot: 'text-amber-400', label: 'Medium' },
   low: { dot: 'text-sky-400', label: 'Low' },
 };
 
 // Status → display group. New submissions default to 'open' → Backlog.
 const GROUPS = [
-  { key: 'planned', label: 'Planned', icon: 'clock', tone: 'text-ink-soft', statuses: ['planned', 'in_progress'] },
-  { key: 'backlog', label: 'Backlog', icon: 'list', tone: 'text-amber-700', statuses: ['open', 'backlog', 'under_review'] },
-  { key: 'completed', label: 'Completed', icon: 'check', tone: 'text-accent', statuses: ['completed', 'done', 'shipped'] },
+  { key: 'planned', label: 'Planned', icon: 'clock', tone: 'text-slate-300', statuses: ['planned', 'in_progress'] },
+  { key: 'backlog', label: 'Backlog', icon: 'list', tone: 'text-amber-400', statuses: ['open', 'backlog', 'under_review'] },
+  { key: 'completed', label: 'Completed', icon: 'check', tone: 'text-accent-soft', statuses: ['completed', 'done', 'shipped'] },
 ];
 function groupOf(status) {
   return GROUPS.find((g) => g.statuses.includes(status))?.key || 'backlog';
@@ -90,32 +90,32 @@ export default function FeatureRequestsClient() {
   const hasAny = requests.length > 0;
 
   return (
-    <div className="min-h-screen bg-ink-950 text-ink">
+    <div className="min-h-screen bg-ink-950 text-slate-200">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-line bg-ink-950/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <BrandLogo href="/" height={28} />
-          <Link href="/" className="text-sm text-ink-soft transition hover:text-ink">← Home</Link>
+          <Link href="/" className="text-sm text-slate-400 transition hover:text-white">← Home</Link>
         </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-5 pb-28 pt-14">
-        <h1 className="text-4xl font-bold tracking-tight text-ink sm:text-5xl">Feature requests</h1>
-        <p className="mt-3 text-lg text-ink-soft">Discover our plans and suggest new improvements.</p>
+        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">Feature requests</h1>
+        <p className="mt-3 text-lg text-slate-500">Discover our plans and suggest new improvements.</p>
 
         <div className="mt-10 space-y-8">
-          {loading && <p className="text-sm text-ink-soft">Loading…</p>}
+          {loading && <p className="text-sm text-slate-500">Loading…</p>}
 
           {!loading && loadError && (
-            <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-950/20 p-6 text-sm text-rose-700">
+            <div role="alert" className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6 text-sm text-rose-300">
               <p>{loadError}</p>
-              <button type="button" onClick={load} className="mt-3 font-medium text-ink hover:underline">Try again</button>
+              <button type="button" onClick={load} className="mt-3 font-medium text-white hover:underline">Try again</button>
             </div>
           )}
 
           {!loading && !loadError && !hasAny && (
-            <div className="rounded-2xl border border-ink-700 bg-ink-900 p-8 text-center text-sm text-ink-soft">
-              No requests yet. Be the first — hit <span className="text-ink">New request</span>.
+            <div className="rounded-2xl border border-ink-700 bg-ink-900 p-8 text-center text-sm text-slate-400">
+              No requests yet. Be the first — hit <span className="text-white">New request</span>.
             </div>
           )}
 
@@ -126,8 +126,8 @@ export default function FeatureRequestsClient() {
               <section key={g.key}>
                 <div className="flex items-center gap-2.5 rounded-lg bg-white/[0.03] px-3 py-2.5">
                   <Icon name={g.icon} className={`h-4 w-4 ${g.tone}`} />
-                  <span className="text-sm font-semibold text-ink">{g.label}</span>
-                  <span className="text-xs text-ink-faint">{items.length}</span>
+                  <span className="text-sm font-semibold text-white">{g.label}</span>
+                  <span className="text-xs text-slate-600">{items.length}</span>
                 </div>
                 <div className="mt-1">
                   {items.map((r, i) => {
@@ -138,18 +138,18 @@ export default function FeatureRequestsClient() {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.35, delay: Math.min(i * 0.02, 0.2), ease: EASE }}
-                        className="group flex items-center gap-3 rounded-lg px-3 py-3.5 transition hover:bg-mist/60"
+                        className="group flex items-center gap-3 rounded-lg px-3 py-3.5 transition hover:bg-white/[0.02]"
                       >
                         <span className={`shrink-0 ${p.dot}`} title={`${p.label} priority`}>
                           <Icon name="zap" className="h-4 w-4" />
                         </span>
-                        <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">{r.title}</p>
+                        <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-white">{r.title}</p>
 
                         {r.mine && (
                           <button
                             onClick={() => setModal({ mode: 'edit', request: r })}
                             aria-label="Edit your request"
-                            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-faint transition hover:bg-mist hover:text-ink group-hover:flex"
+                            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-600 transition hover:bg-white/5 hover:text-white group-hover:flex"
                           >
                             <Icon name="settings" className="h-3.5 w-3.5" />
                           </button>
@@ -159,7 +159,7 @@ export default function FeatureRequestsClient() {
                           onClick={() => toggleVote(r.id)}
                           aria-pressed={r.voted}
                           aria-label={r.voted ? 'Remove your vote' : 'Vote'}
-                          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold tabular-nums transition ${r.voted ? 'border-accent/50 bg-accent/15 text-accent' : 'border-line bg-white/[0.03] text-ink-soft hover:border-white/25 hover:text-ink'}`}
+                          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-semibold tabular-nums transition ${r.voted ? 'border-accent/50 bg-accent/15 text-accent-soft' : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/25 hover:text-white'}`}
                         >
                           <Icon name="chevronUp" className="h-3.5 w-3.5" />
                           {r.votes}
@@ -177,7 +177,7 @@ export default function FeatureRequestsClient() {
       {/* Sticky New request button */}
       <button
         onClick={() => setModal({ mode: 'new' })}
-        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-lift transition hover:bg-accent-dim"
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_28px_-6px_rgba(99,102,241,0.7)] transition hover:bg-accent-dim"
       >
         <Icon name="plus" className="h-4 w-4" /> New request
       </button>
@@ -203,8 +203,8 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
   const [error, setError] = useState('');
 
   const PRIO_CLS = {
-    high: 'border-rose-200 bg-rose-50 text-rose-700',
-    medium: 'border-amber-200 bg-amber-50 text-amber-800',
+    high: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+    medium: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
     low: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
   };
 
@@ -256,7 +256,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
 
   return (
     <Modal open onClose={onClose} title={isEdit ? 'Edit request' : 'New request'} width="max-w-md">
-        <p className="mt-2 text-sm text-ink-soft">{isEdit ? 'Update your request or delete it.' : 'What should we build? Tell us and set a priority.'}</p>
+        <p className="mt-2 text-sm text-slate-400">{isEdit ? 'Update your request or delete it.' : 'What should we build? Tell us and set a priority.'}</p>
         <form onSubmit={submit} className="mt-5 space-y-4">
           <textarea
             value={title}
@@ -265,10 +265,10 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
             autoFocus
             aria-label="Your request"
             placeholder="e.g. Let me export the market model as a shareable link"
-            className="w-full resize-none rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-ink placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition focus-visible:ring-2 focus-visible:ring-accent/50"
           />
           <div>
-            <span className="mb-1.5 block text-xs font-medium text-ink-soft">Priority</span>
+            <span className="mb-1.5 block text-xs font-medium text-slate-400">Priority</span>
             <div className="flex gap-2">
               {['low', 'medium', 'high'].map((pk) => (
                 <button
@@ -276,18 +276,18 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
                   type="button"
                   onClick={() => setPriority(pk)}
                   aria-pressed={priority === pk}
-                  className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium capitalize transition ${priority === pk ? PRIO_CLS[pk] + ' ring-1 ring-inset ring-white/10' : 'border-line bg-mist text-ink-soft hover:text-ink'}`}
+                  className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium capitalize transition ${priority === pk ? PRIO_CLS[pk] + ' ring-1 ring-inset ring-white/10' : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'}`}
                 >
                   {pk}
                 </button>
               ))}
             </div>
           </div>
-          {error && <p className="text-xs text-rose-700">{error}</p>}
+          {error && <p className="text-xs text-rose-400">{error}</p>}
           <button
             type="submit"
             disabled={state === 'loading' || title.trim().length < 3}
-            className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-accent-dim disabled:opacity-50"
+            className="w-full rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:opacity-50"
           >
             {state === 'loading' ? 'Saving…' : isEdit ? 'Save changes' : 'Submit request'}
           </button>
@@ -296,7 +296,7 @@ function RequestModal({ editing, onClose, onCreated, onSaved, onDeleted }) {
               type="button"
               onClick={remove}
               disabled={state === 'loading'}
-              className="w-full rounded-full border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-950/50 disabled:opacity-50"
+              className="w-full rounded-full border border-rose-500/30 bg-rose-950/30 px-5 py-2.5 text-sm font-medium text-rose-300 transition hover:bg-rose-950/50 disabled:opacity-50"
             >
               Delete request
             </button>

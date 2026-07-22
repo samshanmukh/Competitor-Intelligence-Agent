@@ -62,23 +62,23 @@ export default function PositioningLabClient() {
             {(result.options || []).slice(0, 3).map((option, i) => (
               <section key={option.name || i} className="card p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-sm font-semibold text-ink">{option.name || `Option ${i + 1}`}</h2>
-                  <span className="chip border-accent/30 bg-accent/10 text-accent">{option.score || '-'} / 10</span>
+                  <h2 className="text-sm font-semibold text-white">{option.name || `Option ${i + 1}`}</h2>
+                  <span className="chip border-accent/30 bg-accent/10 text-accent-soft">{option.score || '-'} / 10</span>
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-ink-soft">{option.statement}</p>
-                <p className="mt-3 text-xs text-ink-soft">Audience</p>
-                <p className="text-sm text-ink-soft">{option.audience}</p>
-                <p className="mt-3 text-xs text-ink-soft">Differentiation</p>
-                <p className="text-sm text-ink-soft">{option.differentiation}</p>
-                {option.why && <p className="mt-3 text-sm text-ink-soft">{option.why}</p>}
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">{option.statement}</p>
+                <p className="mt-3 text-xs text-slate-500">Audience</p>
+                <p className="text-sm text-slate-400">{option.audience}</p>
+                <p className="mt-3 text-xs text-slate-500">Differentiation</p>
+                <p className="text-sm text-slate-400">{option.differentiation}</p>
+                {option.why && <p className="mt-3 text-sm text-slate-500">{option.why}</p>}
               </section>
             ))}
           </div>
 
           {result.recommendation && (
             <section className="card p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Recommendation</p>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{result.recommendation}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recommendation</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-300">{result.recommendation}</p>
             </section>
           )}
 
@@ -96,8 +96,8 @@ function ListCard({ title, items = [] }) {
   if (!items.length) return null;
   return (
     <section className="card p-5">
-      <h2 className="text-sm font-semibold text-ink">{title}</h2>
-      <ul className="mt-3 space-y-2 text-sm text-ink-soft">
+      <h2 className="text-sm font-semibold text-white">{title}</h2>
+      <ul className="mt-3 space-y-2 text-sm text-slate-400">
         {items.map((item, i) => <li key={i}>- {item}</li>)}
       </ul>
     </section>

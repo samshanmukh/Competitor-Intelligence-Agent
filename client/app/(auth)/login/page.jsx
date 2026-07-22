@@ -78,9 +78,9 @@ function LoginForm() {
     return (
       <form onSubmit={verify} className="card space-y-4 p-6">
         <div className="text-center space-y-1">
-          <h2 className="text-lg font-semibold text-ink">Verify your email</h2>
-          <p className="text-sm text-ink-soft">
-            Enter the 6-digit code sent to <strong className="text-ink">{form.email}</strong>
+          <h2 className="text-lg font-semibold text-white">Verify your email</h2>
+          <p className="text-sm text-slate-400">
+            Enter the 6-digit code sent to <strong className="text-slate-200">{form.email}</strong>
           </p>
         </div>
         <input
@@ -94,19 +94,19 @@ function LoginForm() {
           inputMode="numeric"
         />
         {resentMsg && (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{resentMsg}</p>
+          <p className="rounded-lg border border-emerald-800/40 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">{resentMsg}</p>
         )}
         {error && (
-          <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+          <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
         )}
         <button type="submit" disabled={loading || otp.length !== 6} className="btn-primary w-full">
           {loading ? 'Verifying…' : 'Verify & continue'}
         </button>
         <div className="flex items-center justify-between text-xs">
-          <button type="button" onClick={() => { setNeedsVerify(false); setOtp(''); setError(''); }} className="text-ink-soft hover:text-ink-soft transition">
+          <button type="button" onClick={() => { setNeedsVerify(false); setOtp(''); setError(''); }} className="text-slate-500 hover:text-slate-300 transition">
             ← Back
           </button>
-          <button type="button" onClick={resend} disabled={resending} className="text-ink-soft hover:text-ink-soft transition">
+          <button type="button" onClick={resend} disabled={resending} className="text-slate-500 hover:text-slate-300 transition">
             {resending ? 'Resending…' : 'Resend code'}
           </button>
         </div>
@@ -119,7 +119,7 @@ function LoginForm() {
       <div className="card space-y-4 p-6">
         <OAuthButtons from={returnTo} />
 
-        <div className="flex items-center gap-3 text-xs text-ink-faint">
+        <div className="flex items-center gap-3 text-xs text-slate-600">
           <div className="h-px flex-1 bg-ink-700" />
           <span>or</span>
           <div className="h-px flex-1 bg-ink-700" />
@@ -135,7 +135,7 @@ function LoginForm() {
             <input id="login-password" type="password" className="input" value={form.password} onChange={set('password')} placeholder="••••••••" required />
           </div>
           {error && (
-            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+            <p className="rounded-lg border border-rose-800/40 bg-rose-950/30 px-3 py-2 text-sm text-rose-300">{error}</p>
           )}
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? 'Signing in…' : 'Sign in'}
@@ -143,9 +143,9 @@ function LoginForm() {
         </form>
       </div>
 
-      <p className="text-center text-sm text-ink-soft">
+      <p className="text-center text-sm text-slate-500">
         No account?{' '}
-        <Link href={signupHref} className="text-accent hover:text-ink transition">Create one</Link>
+        <Link href={signupHref} className="text-accent-soft hover:text-white transition">Create one</Link>
       </p>
     </div>
   );

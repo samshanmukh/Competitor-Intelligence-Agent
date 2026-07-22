@@ -58,9 +58,9 @@ export default function PricingLabClient() {
       ) : (
         <section className="card p-5 space-y-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Scenario</p>
-            <h2 className="mt-1 text-lg font-semibold text-ink">{result.scenario}</h2>
-            <p className="mt-2 text-sm text-ink-soft">{result.competitivePosition}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Scenario</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">{result.scenario}</h2>
+            <p className="mt-2 text-sm text-slate-400">{result.competitivePosition}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Mini label="New price" value={result.yourNewPrice || 'Not specified'} />
@@ -71,8 +71,8 @@ export default function PricingLabClient() {
           <List title="Suggested packaging" items={result.suggestedPackaging} />
           {result.recommendation && (
             <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-accent">Recommendation</p>
-              <p className="mt-2 text-sm text-ink-soft">{result.recommendation}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-accent-soft">Recommendation</p>
+              <p className="mt-2 text-sm text-slate-300">{result.recommendation}</p>
             </div>
           )}
         </section>
@@ -84,8 +84,8 @@ export default function PricingLabClient() {
 function Mini({ label, value }) {
   return (
     <div className="rounded-xl border border-ink-700 bg-ink-850 p-4">
-      <p className="text-xs text-ink-soft">{label}</p>
-      <p className="mt-1 text-sm font-medium text-ink">{value}</p>
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-medium text-white">{value}</p>
     </div>
   );
 }
@@ -94,8 +94,8 @@ function List({ title, items = [] }) {
   if (!items.length) return null;
   return (
     <div>
-      <h3 className="text-sm font-semibold text-ink">{title}</h3>
-      <ul className="mt-2 space-y-1 text-sm text-ink-soft">
+      <h3 className="text-sm font-semibold text-white">{title}</h3>
+      <ul className="mt-2 space-y-1 text-sm text-slate-400">
         {items.map((item, i) => <li key={i}>- {item}</li>)}
       </ul>
     </div>

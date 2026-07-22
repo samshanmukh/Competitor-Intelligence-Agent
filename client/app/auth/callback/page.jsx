@@ -26,13 +26,13 @@ function CallbackHandler() {
       <div className="text-center space-y-3">
         {error ? (
           <>
-            <p className="text-sm text-rose-700">{error}</p>
-            <a href="/oauth" className="text-sm text-accent hover:text-ink">Back to OAuth test</a>
+            <p className="text-sm text-rose-300">{error}</p>
+            <a href="/oauth" className="text-sm text-accent-soft hover:text-white">Back to OAuth test</a>
           </>
         ) : (
           <>
             <div className="mx-auto spinner h-8 w-8" />
-            <p className="text-sm text-ink-soft">Completing sign in…</p>
+            <p className="text-sm text-slate-400">Completing sign in…</p>
           </>
         )}
       </div>

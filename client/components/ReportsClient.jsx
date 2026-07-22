@@ -82,17 +82,17 @@ export default function ReportsClient() {
     const c = active.content || {};
     return (
       <div className="mx-auto w-full max-w-3xl space-y-6 pb-20">
-        <button onClick={() => setActive(null)} className="inline-flex items-center gap-1 text-sm text-ink-soft hover:text-ink transition">
+        <button onClick={() => setActive(null)} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white transition">
           <Icon name="chevronLeft" className="h-4 w-4" /> Back to history
         </button>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-ink">{active.title}</h1>
-            <p className="mt-1 text-sm text-ink-soft">
+            <h1 className="text-2xl font-semibold text-white">{active.title}</h1>
+            <p className="mt-1 text-sm text-slate-500">
               Saved {timeAgo(active.created_at)} · {c.competitors?.length || 0} competitors · cached (no re-run)
             </p>
             {active.expires_at && (
-              <p className="mt-1 text-xs text-ink-faint">
+              <p className="mt-1 text-xs text-slate-600">
                 Share link expires {new Date(active.expires_at).toLocaleDateString()}
               </p>
             )}
@@ -109,9 +109,9 @@ export default function ReportsClient() {
         </div>
 
         {distributionDiff?.shifts?.length > 0 && (
-          <div className="rounded-xl border border-amber-200 bg-amber-500/5 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800">Since this report</p>
-            <p className="mt-1 text-sm text-ink-soft">{distributionDiff.summary}</p>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">Since this report</p>
+            <p className="mt-1 text-sm text-slate-300">{distributionDiff.summary}</p>
           </div>
         )}
 
@@ -161,28 +161,28 @@ export default function ReportsClient() {
         <EmptyState icon="share" title="No saved reports yet" action={
           <a href="/app" className="btn-primary">Run an analysis</a>
         }>
-          Run a full analysis on the Analysis page, then click <strong className="text-ink-soft">Save to history</strong> to keep it here.
+          Run a full analysis on the Analysis page, then click <strong className="text-slate-300">Save to history</strong> to keep it here.
         </EmptyState>
       ) : (
         <div className="space-y-2">
           {reports.map((r) => (
             <div key={r.id} className="card flex items-center gap-3 p-4 hover:border-ink-600 transition">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent-soft">
                 <Icon name="bar" className="h-4 w-4" />
               </div>
               <button onClick={() => open(r.id)} className="flex-1 min-w-0 text-left">
-                <p className="truncate text-sm font-medium text-ink">{r.title}</p>
-                <p className="text-xs text-ink-soft">
+                <p className="truncate text-sm font-medium text-white">{r.title}</p>
+                <p className="text-xs text-slate-500">
                   Saved {timeAgo(r.created_at)}
                   {r.expires_at ? ` · share expires ${new Date(r.expires_at).toLocaleDateString()}` : ''}
                 </p>
               </button>
-              {loadingId === r.id && <Icon name="refresh" className="h-4 w-4 animate-spin text-ink-soft" />}
+              {loadingId === r.id && <Icon name="refresh" className="h-4 w-4 animate-spin text-slate-500" />}
               <button onClick={() => copyShareLink(r)} className="btn-ghost py-1.5 px-2 text-xs" title="Copy share link">
                 {copiedId === r.id ? 'Copied' : 'Share'}
               </button>
               <button onClick={() => open(r.id)} className="btn-ghost py-1.5 px-3 text-xs">Open</button>
-              <button onClick={() => setConfirmDelete(r.id)} className="text-ink-faint hover:text-rose-700 transition p-1.5">
+              <button onClick={() => setConfirmDelete(r.id)} className="text-slate-600 hover:text-rose-400 transition p-1.5">
                 <Icon name="trash" className="h-3.5 w-3.5" />
               </button>
             </div>

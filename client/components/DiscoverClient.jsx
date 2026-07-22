@@ -97,11 +97,11 @@ export default function DiscoverClient() {
             <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition ${
               i < step ? 'bg-emerald-600 text-white' :
               i === step ? 'bg-accent text-white' :
-              'bg-ink-800 text-ink-faint'
+              'bg-ink-800 text-slate-600'
             }`}>
               {i < step ? <Icon name="check" className="h-3 w-3" /> : i + 1}
             </div>
-            <span className={`text-xs font-medium ${i === step ? 'text-ink' : 'text-ink-faint'}`}>{s}</span>
+            <span className={`text-xs font-medium ${i === step ? 'text-white' : 'text-slate-600'}`}>{s}</span>
             {i < STEPS.length - 1 && <div className="h-px w-8 bg-ink-700" />}
           </div>
         ))}
@@ -120,12 +120,12 @@ export default function DiscoverClient() {
                 }`}
               >
                 <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                  mode === m.id ? 'bg-accent/20 text-accent' : 'bg-ink-800 text-ink-soft'
+                  mode === m.id ? 'bg-accent/20 text-accent-soft' : 'bg-ink-800 text-slate-400'
                 }`}>
                   <Icon name={m.icon} className="h-4 w-4" />
                 </span>
-                <span className="text-sm font-semibold text-ink">{m.title}</span>
-                <span className="text-xs leading-snug text-ink-soft">{m.hint}</span>
+                <span className="text-sm font-semibold text-white">{m.title}</span>
+                <span className="text-xs leading-snug text-slate-500">{m.hint}</span>
               </button>
             ))}
           </div>
@@ -148,7 +148,7 @@ export default function DiscoverClient() {
               <div>
                 <label htmlFor="discover-product-url" className="label">Your product URL</label>
                 <input id="discover-product-url" className="input" placeholder="https://yourproduct.com" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} />
-                <p className="mt-1.5 text-xs text-ink-soft">The agent reads this page to infer your market.</p>
+                <p className="mt-1.5 text-xs text-slate-500">The agent reads this page to infer your market.</p>
               </div>
             )}
             {(mode === 'direct' || mode === 'combo') && (
@@ -161,11 +161,11 @@ export default function DiscoverClient() {
                   value={urlsText}
                   onChange={(e) => setUrlsText(e.target.value)}
                 />
-                <p className="mt-1.5 text-xs text-ink-soft">One per line. These skip discovery.</p>
+                <p className="mt-1.5 text-xs text-slate-500">One per line. These skip discovery.</p>
               </div>
             )}
             <div className="flex items-center justify-between pt-1">
-              <p className="text-xs text-ink-soft">
+              <p className="text-xs text-slate-500">
                 {mode === 'direct' ? 'Pages added directly — no Research call.' : 'Uses You.com Research + Grok.'}
               </p>
               <button onClick={runDiscovery} disabled={!canRun || loading} className="btn-primary">
@@ -195,13 +195,13 @@ export default function DiscoverClient() {
           <section className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-ink">Review &amp; approve</h2>
-                {market && <p className="mt-1 max-w-2xl text-sm text-ink-soft"><span className="text-ink-soft">Market:</span> {market}</p>}
+                <h2 className="text-lg font-semibold text-white">Review &amp; approve</h2>
+                {market && <p className="mt-1 max-w-2xl text-sm text-slate-400"><span className="text-slate-500">Market:</span> {market}</p>}
               </div>
-              <div className="flex items-center gap-2 text-xs text-ink-soft">
-                <button onClick={() => setSelected(Object.fromEntries(candidates.map((c) => [c.pricing_url, true])))} className="hover:text-ink-soft">Select all</button>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <button onClick={() => setSelected(Object.fromEntries(candidates.map((c) => [c.pricing_url, true])))} className="hover:text-slate-300">Select all</button>
                 <span>·</span>
-                <button onClick={() => setSelected({})} className="hover:text-ink-soft">Clear</button>
+                <button onClick={() => setSelected({})} className="hover:text-slate-300">Clear</button>
               </div>
             </div>
 
@@ -215,19 +215,19 @@ export default function DiscoverClient() {
                       type="checkbox"
                       checked={on}
                       onChange={(e) => setSelected((s) => ({ ...s, [c.pricing_url]: e.target.checked }))}
-                      className="mt-1 h-4 w-4 accent-[#5C6B52]"
+                      className="mt-1 h-4 w-4 accent-indigo-500"
                     />
                     <CompanyLogo name={c.name} website={c.website} pricing_url={c.pricing_url} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-ink">{c.name}</span>
-                        {c.notes === 'Added directly' && <span className="chip border-ink-700 bg-ink-850 text-ink-soft text-[10px]">direct</span>}
+                        <span className="font-medium text-white">{c.name}</span>
+                        {c.notes === 'Added directly' && <span className="chip border-ink-700 bg-ink-850 text-slate-400 text-[10px]">direct</span>}
                       </div>
                       <a href={c.pricing_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                        className="mt-0.5 flex items-center gap-1 text-xs text-accent hover:underline truncate">
+                        className="mt-0.5 flex items-center gap-1 text-xs text-accent-soft hover:underline truncate">
                         {c.pricing_url} <Icon name="external" className="h-3 w-3 shrink-0" />
                       </a>
-                      {c.notes && c.notes !== 'Added directly' && <p className="mt-1 text-xs text-ink-soft">{c.notes}</p>}
+                      {c.notes && c.notes !== 'Added directly' && <p className="mt-1 text-xs text-slate-500">{c.notes}</p>}
                     </div>
                   </label>
                 );
@@ -239,7 +239,7 @@ export default function DiscoverClient() {
                 <Icon name="chevronLeft" className="h-4 w-4" /> Back
               </button>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-ink-soft">{selectedCount} of {candidates.length} selected</span>
+                <span className="text-sm text-slate-400">{selectedCount} of {candidates.length} selected</span>
                 <button onClick={saveSelected} disabled={saving || selectedCount === 0} className="btn-primary">
                   <Icon name="check" className={`h-4 w-4 ${saving ? 'animate-spin' : ''}`} />
                   {saving ? 'Saving…' : 'Approve & monitor'}
@@ -252,11 +252,11 @@ export default function DiscoverClient() {
 
       {step === 2 && (
         <section className="card flex flex-col items-center px-6 py-10 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
             <Icon name="check" className="h-6 w-6" />
           </span>
-          <h2 className="mt-4 text-lg font-semibold text-ink">Competitors added</h2>
-          <p className="mt-2 max-w-md text-sm text-ink-soft">
+          <h2 className="mt-4 text-lg font-semibold text-white">Competitors added</h2>
+          <p className="mt-2 max-w-md text-sm text-slate-400">
             {completedCount} competitor{completedCount === 1 ? '' : 's'} added. Monitoring is now underway.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">

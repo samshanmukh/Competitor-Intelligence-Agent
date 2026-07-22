@@ -19,13 +19,13 @@ function NavItem({ href, icon, label, badge, exact = false, collapsed = false, o
       aria-label={collapsed ? label : undefined}
       aria-current={isActive ? 'page' : undefined}
       onClick={onNavigate}
-      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm font-medium transition duration-calm ${
+      className={`group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition ${
         isActive
-          ? 'bg-mist text-ink'
-          : 'text-ink-soft hover:bg-mist/70 hover:text-ink'
+          ? 'bg-ink-800 text-white'
+          : 'text-slate-400 hover:bg-ink-800/70 hover:text-slate-200'
       } ${collapsed ? 'relative justify-center' : ''}`}
     >
-      <Icon name={icon} className="h-4 w-4 shrink-0 opacity-80" />
+      <Icon name={icon} className="h-4 w-4 shrink-0" />
       {!collapsed && <span className="truncate">{label}</span>}
       {!collapsed && badge > 0 && (
         <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-white">
@@ -33,7 +33,7 @@ function NavItem({ href, icon, label, badge, exact = false, collapsed = false, o
         </span>
       )}
       {collapsed && badge > 0 && (
-        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-paper bg-accent" />
+        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-accent border-2 border-ink-950" />
       )}
     </Link>
   );
@@ -43,7 +43,7 @@ function NavGroup({ label, children, collapsed }) {
   if (collapsed) return <>{children}</>;
   return (
     <div className="space-y-0.5">
-      <p className="mb-1.5 px-2.5 text-[11px] font-medium tracking-wide text-ink-faint">{label}</p>
+      <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">{label}</p>
       {children}
     </div>
   );
@@ -133,9 +133,9 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-line bg-paper/80 p-4 transition-all duration-calm md:flex ${collapsed ? 'w-[4.5rem]' : 'w-60'}`}>
+      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-ink-800 bg-ink-900/60 p-3 transition-all duration-200 md:flex ${collapsed ? 'w-16' : 'w-56'}`}>
         {/* Logo + collapse */}
-        <div className={`mb-8 flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center gap-2 px-1'}`}>
+        <div className={`mb-6 flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center gap-2 px-1'}`}>
           {collapsed ? (
             <BrandLogo href="/app" variant="mark" height={28} />
           ) : (
@@ -147,18 +147,18 @@ export default function Sidebar() {
             type="button"
             onClick={() => setCollapsed((c) => !c)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`flex h-8 w-8 items-center justify-center rounded-xl text-ink-faint transition duration-calm hover:bg-mist hover:text-ink ${collapsed ? '' : 'ml-auto'}`}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 transition hover:bg-ink-800 hover:text-slate-300 ${collapsed ? '' : 'ml-auto'}`}
           >
             <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <nav aria-label="Primary navigation" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain pr-0.5">
+        <nav aria-label="Primary navigation" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain pr-0.5">
           {renderNav(collapsed)}
         </nav>
 
         {/* Bottom: workspace + sign out */}
-        <div className={`mt-4 space-y-2 border-t border-line pt-4 ${collapsed ? 'flex flex-col items-center gap-1' : ''}`}>
+        <div className={`mt-4 space-y-2 border-t border-ink-800 pt-3 ${collapsed ? 'flex flex-col items-center gap-1' : ''}`}>
           {!collapsed && workspace && (
             <WorkspaceSwitcher
               workspace={workspace}
@@ -171,7 +171,7 @@ export default function Sidebar() {
             type="button"
             onClick={handleSignOut}
             title="Sign out"
-            className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs text-ink-faint transition duration-calm hover:bg-mist hover:text-ink ${collapsed ? 'justify-center' : 'w-full'}`}
+            className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-slate-600 hover:bg-ink-800 hover:text-slate-300 transition ${collapsed ? 'justify-center' : 'w-full'}`}
           >
             <Icon name="logout" className="h-3.5 w-3.5" />
             {!collapsed && 'Sign out'}
@@ -180,14 +180,14 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-line bg-paper/90 px-4 py-3 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-ink-800 bg-ink-900/90 px-4 py-3 backdrop-blur md:hidden">
         <BrandLogo href="/app" height={24} />
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-expanded={mobileOpen}
           aria-haspopup="dialog"
-          className="relative flex h-11 items-center gap-2 rounded-xl border border-line bg-paper px-3 text-sm font-medium text-ink transition duration-calm hover:bg-mist"
+          className="relative flex items-center gap-2 rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-ink-600 hover:text-white"
         >
           <Icon name="list" className="h-4 w-4" />
           Menu

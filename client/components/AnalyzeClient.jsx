@@ -117,25 +117,25 @@ function ProductStage({ product, onSaved }) {
               website={product.website}
               pricing_url={product.pricing_url}
               className="h-11 w-11 rounded-xl"
-              textClassName="text-lg text-accent"
+              textClassName="text-lg text-accent-soft"
             />
             <div className="min-w-0">
-              <h3 className="text-base font-semibold text-ink">{product.name}</h3>
+              <h3 className="text-base font-semibold text-white">{product.name}</h3>
               {product.pricing_url && (
                 <a href={product.pricing_url} target="_blank" rel="noreferrer"
-                  className="text-xs text-accent hover:underline inline-flex items-center gap-1">
+                  className="text-xs text-accent-soft hover:underline inline-flex items-center gap-1">
                   {product.pricing_url} <Icon name="external" className="h-3 w-3" />
                 </a>
               )}
               {product.description && (
                 <>
-                  <p className={`mt-1.5 text-sm text-ink-soft whitespace-pre-line ${expanded ? '' : 'line-clamp-2'}`}>
+                  <p className={`mt-1.5 text-sm text-slate-400 whitespace-pre-line ${expanded ? '' : 'line-clamp-2'}`}>
                     {product.description}
                   </p>
                   {product.description.length > 140 && (
                     <button
                       onClick={() => setExpanded((e) => !e)}
-                      className="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:text-ink transition"
+                      className="mt-1 inline-flex items-center gap-1 text-xs text-accent-soft hover:text-white transition"
                     >
                       {expanded ? 'Show less' : 'Show more'}
                       <Icon name={expanded ? 'chevronUp' : 'chevronDown'} className="h-3 w-3" />
@@ -159,7 +159,7 @@ function ProductStage({ product, onSaved }) {
           <input id="analysis-product-name" className="input" value={form.name} onChange={set('name')} placeholder="Acme Analytics" autoFocus />
         </div>
         <div>
-          <label htmlFor="analysis-product-url" className="label">Product URL <span className="text-ink-faint normal-case">(optional, helps find competitors)</span></label>
+          <label htmlFor="analysis-product-url" className="label">Product URL <span className="text-slate-600 normal-case">(optional, helps find competitors)</span></label>
           <div className="flex gap-2">
             <input id="analysis-product-url" className="input flex-1" value={form.pricing_url} onChange={set('pricing_url')} placeholder="https://acme.com/pricing" />
             <button onClick={autofill} disabled={inferring || !form.pricing_url} className="btn-ghost shrink-0">
@@ -169,7 +169,7 @@ function ProductStage({ product, onSaved }) {
           </div>
         </div>
         <div>
-          <label htmlFor="analysis-product-details" className="label">Details <span className="text-ink-faint normal-case">(optional)</span></label>
+          <label htmlFor="analysis-product-details" className="label">Details <span className="text-slate-600 normal-case">(optional)</span></label>
           <textarea id="analysis-product-details" className="input min-h-20 resize-y" value={form.description} onChange={set('description')}
             placeholder="What you do and who it's for. The more specific, the better the competitor matches." />
         </div>
@@ -328,7 +328,7 @@ function CompetitorStage({ product, competitors, onChange }) {
               <Icon name="plus" className="h-3.5 w-3.5" /> Add manually
             </button>
           )}
-          <span className="ml-auto text-xs text-ink-soft">
+          <span className="ml-auto text-xs text-slate-500">
             {Object.values(selected).filter(Boolean).length} selected
           </span>
         </div>
@@ -337,7 +337,7 @@ function CompetitorStage({ product, competitors, onChange }) {
 
         <div className="space-y-2">
           {candidates.length === 0 && !discovering && (
-            <p className="rounded-lg border border-dashed border-ink-700 p-4 text-center text-sm text-ink-soft">
+            <p className="rounded-lg border border-dashed border-ink-700 p-4 text-center text-sm text-slate-500">
               No competitors yet. Run “Find more” or add one manually above.
             </p>
           )}
@@ -353,15 +353,15 @@ function CompetitorStage({ product, competitors, onChange }) {
                 }`}>
                 <input type="checkbox" checked={on}
                   onChange={(e) => setSelected((s) => ({ ...s, [c.pricing_url]: e.target.checked }))}
-                  className="mt-1 h-4 w-4 accent-[#5C6B52]" />
+                  className="mt-1 h-4 w-4 accent-indigo-500" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-ink">{c.name}</span>
-                    {c.manual && <span className="chip border-ink-600 bg-ink-800 text-ink-soft text-[10px]">manual</span>}
+                    <span className="font-medium text-white">{c.name}</span>
+                    {c.manual && <span className="chip border-ink-600 bg-ink-800 text-slate-400 text-[10px]">manual</span>}
                   </div>
                   <a href={c.pricing_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                    className="block text-xs text-accent hover:underline truncate">{c.pricing_url}</a>
-                  {c.notes && <p className="mt-0.5 text-xs text-ink-soft">{c.notes}</p>}
+                    className="block text-xs text-accent-soft hover:underline truncate">{c.pricing_url}</a>
+                  {c.notes && <p className="mt-0.5 text-xs text-slate-500">{c.notes}</p>}
                 </div>
               </label>
             );
@@ -383,8 +383,8 @@ function CompetitorStage({ product, competitors, onChange }) {
   if (competitors.length === 0) {
     return (
       <StageCard step={2} title="Find competitors">
-        <p className="text-sm text-ink-soft">
-          Search the web for the closest competitors to <strong className="text-ink">{product.name}</strong>,
+        <p className="text-sm text-slate-400">
+          Search the web for the closest competitors to <strong className="text-slate-200">{product.name}</strong>,
           or add ones you already know — then confirm.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -408,18 +408,18 @@ function CompetitorStage({ product, competitors, onChange }) {
     <StageCard step={2} title="Competitors" done count={competitors.length}>
       <div className="flex flex-wrap gap-2">
         {competitors.map((c) => (
-          <span key={c.id} className="group flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-850 py-1 pl-2.5 pr-1 text-sm text-ink">
+          <span key={c.id} className="group flex items-center gap-1.5 rounded-lg border border-ink-700 bg-ink-850 py-1 pl-2.5 pr-1 text-sm text-slate-200">
             {c.name}
-            {c.value_score != null && <span className="text-xs text-ink-soft">{c.value_score}</span>}
-            <button onClick={() => removeOne(c.id)} className="ml-0.5 rounded p-0.5 text-ink-faint hover:bg-ink-700 hover:text-rose-700 transition">
+            {c.value_score != null && <span className="text-xs text-slate-500">{c.value_score}</span>}
+            <button onClick={() => removeOne(c.id)} className="ml-0.5 rounded p-0.5 text-slate-600 hover:bg-ink-700 hover:text-rose-400 transition">
               <Icon name="x" className="h-3 w-3" />
             </button>
           </span>
         ))}
-        <button onClick={discover} disabled={discovering} className="flex items-center gap-1 rounded-lg border border-dashed border-ink-600 px-2.5 py-1 text-sm text-ink-soft hover:text-ink-soft hover:border-ink-500 transition">
+        <button onClick={discover} disabled={discovering} className="flex items-center gap-1 rounded-lg border border-dashed border-ink-600 px-2.5 py-1 text-sm text-slate-500 hover:text-slate-300 hover:border-ink-500 transition">
           <Icon name={discovering ? 'refresh' : 'search'} className={`h-3.5 w-3.5 ${discovering ? 'animate-spin' : ''}`} /> Find more
         </button>
-        <button onClick={() => { setCandidates([]); setShowManual(true); }} className="flex items-center gap-1 rounded-lg border border-dashed border-ink-600 px-2.5 py-1 text-sm text-ink-soft hover:text-ink-soft hover:border-ink-500 transition">
+        <button onClick={() => { setCandidates([]); setShowManual(true); }} className="flex items-center gap-1 rounded-lg border border-dashed border-ink-600 px-2.5 py-1 text-sm text-slate-500 hover:text-slate-300 hover:border-ink-500 transition">
           <Icon name="plus" className="h-3.5 w-3.5" /> Add manually
         </button>
       </div>
@@ -601,7 +601,7 @@ function ReportStage({ competitors, onScored }) {
     <StageCard step={3} title="Competitive report">
       {!hasReport && !running && (
         <div className="text-center py-4 space-y-3">
-          <p className="text-sm text-ink-soft">
+          <p className="text-sm text-slate-400">
             Generate a full breakdown: pricing & plans, feature matrix, business-value comparison, user-review sentiment, and an analyst take.
           </p>
           <button onClick={runAll} className="btn-primary">
@@ -612,7 +612,7 @@ function ReportStage({ competitors, onScored }) {
 
       {running && (
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm text-accent">
+          <div className="flex items-center gap-2 text-sm text-accent-soft">
             <Icon name="refresh" className="h-4 w-4 animate-spin" /> {progress}
           </div>
           <Skeleton className="h-40" />
@@ -626,24 +626,24 @@ function ReportStage({ competitors, onScored }) {
           {/* Opt-in market intelligence (slow, finance research) */}
           {!market && !marketLoading && (
             <div className="rounded-xl border border-dashed border-ink-700 p-4 text-center">
-              <p className="text-sm text-ink-soft">
-                Add <strong className="text-ink">market size, growth timeline, and competitor funding</strong> via deep finance research.
+              <p className="text-sm text-slate-400">
+                Add <strong className="text-slate-200">market size, growth timeline, and competitor funding</strong> via deep finance research.
               </p>
               <button onClick={loadMarket} className="btn-ghost mt-3">
                 <Icon name="trending" className="h-4 w-4" /> Add market intelligence
               </button>
-              <p className="mt-2 text-xs text-ink-faint">Deep research — takes ~2–3 minutes. Saved with the report so you only run it once.</p>
+              <p className="mt-2 text-xs text-slate-600">Deep research — takes ~2–3 minutes. Saved with the report so you only run it once.</p>
             </div>
           )}
 
           {marketLoading && (
             <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-center">
-              <div className="flex items-center justify-center gap-2 text-sm text-accent">
+              <div className="flex items-center justify-center gap-2 text-sm text-accent-soft">
                 <Icon name="refresh" className="h-4 w-4 animate-spin" />
                 Researching market financials in the background…
-                <span className="tabular-nums text-ink-soft">{Math.floor(marketElapsed / 60)}:{String(marketElapsed % 60).padStart(2, '0')}</span>
+                <span className="tabular-nums text-slate-400">{Math.floor(marketElapsed / 60)}:{String(marketElapsed % 60).padStart(2, '0')}</span>
               </div>
-              <p className="mt-2 text-xs text-ink-soft">
+              <p className="mt-2 text-xs text-slate-500">
                 Deep finance research takes 2–3 minutes. You can navigate away — it keeps running and we'll
                 notify you (and drop the results in here) when it's done.
               </p>
@@ -683,8 +683,8 @@ function StageCard({ step, title, children, done, count }) {
         }`}>
           {done ? <Icon name="check" className="h-3.5 w-3.5" /> : step}
         </div>
-        <h2 className="text-sm font-semibold text-ink">{title}</h2>
-        {count != null && <span className="text-xs text-ink-soft">· {count}</span>}
+        <h2 className="text-sm font-semibold text-white">{title}</h2>
+        {count != null && <span className="text-xs text-slate-500">· {count}</span>}
       </div>
       {children}
     </section>
