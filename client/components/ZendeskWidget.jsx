@@ -94,7 +94,6 @@ function applyMiraStyle() {
 export default function ZendeskWidget() {
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!KEY) return undefined;
@@ -109,7 +108,6 @@ export default function ZendeskWidget() {
       zECall('messenger:on', 'open', onOpen);
       zECall('messenger:on', 'close', onClose);
       zECall('messenger:on', 'unreadMessages', onUnread);
-      setReady(true);
     };
 
     const existing = document.getElementById(SCRIPT_ID);
