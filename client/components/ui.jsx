@@ -48,7 +48,7 @@ const PATHS = {
 
 export function Icon({ name, className = 'w-4 h-4' }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"
       strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       {PATHS[name] ?? null}
     </svg>

@@ -20,30 +20,33 @@
 
 @layer components {
   .card {
-    @apply rounded-xl border border-ink-700 bg-ink-900/70 backdrop-blur;
+    @apply rounded-2xl border border-ink-700/80 bg-ink-900/50;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition
-      focus:outline-none focus:ring-2 focus:ring-accent/50 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors duration-200
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950
+      disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     @apply btn bg-accent text-white hover:bg-accent-dim;
   }
   .btn-ghost {
-    @apply btn border border-ink-700 bg-ink-850 text-slate-300 hover:border-ink-600 hover:text-white;
+    @apply btn border border-ink-700 bg-ink-850/80 text-slate-300 hover:border-ink-600 hover:bg-ink-800 hover:text-white;
   }
   .btn-danger {
     @apply btn border border-rose-900/60 bg-rose-950/40 text-rose-300 hover:bg-rose-950/70;
   }
   .input {
-    @apply w-full rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 text-sm text-slate-100
-      placeholder:text-slate-500 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40;
+    @apply w-full rounded-xl border border-ink-700 bg-ink-850 px-3.5 py-2.5 text-sm text-slate-100
+      placeholder:text-slate-500 transition-colors duration-200
+      focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/25;
+    min-height: 2.75rem;
   }
   .label {
-    @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-400;
+    @apply mb-1.5 block text-xs font-medium tracking-wide text-slate-500;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium;
   }
 }
 
