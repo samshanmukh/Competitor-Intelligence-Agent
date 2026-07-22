@@ -69,7 +69,6 @@ function SignupForm() {
               placeholder="Your name"
               minLength={2}
               required
-              autoFocus
             />
           </div>
           <div>

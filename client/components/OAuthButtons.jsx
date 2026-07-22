@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signInWithOAuth } from '../lib/auth';
 
 /** Google/GitHub — one button each for both sign-in and sign-up. */
-export default function OAuthButtons({ from }) {
+export default function OAuthButtons({ from, autoFocusGoogle = true }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');
+  const googleRef = useRef(null);
+
+  useEffect(() => {
+    if (!autoFocusGoogle) return;
+    // Prefer Google as the primary entry; don’t steal focus from verify/OTP flows.
+    const id = window.requestAnimationFrame(() => googleRef.current?.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, [autoFocusGoogle]);
 
   const go = async (provider) => {
     setLoading(provider);
@@ -23,6 +31,7 @@ export default function OAuthButtons({ from }) {
     <div className="space-y-3">
       <div className="grid gap-2">
         <button
+          ref={googleRef}
           type="button"
           onClick={() => go('google')}
           disabled={!!loading}

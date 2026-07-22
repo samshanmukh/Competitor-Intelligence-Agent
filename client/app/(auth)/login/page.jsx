@@ -128,7 +128,7 @@ function LoginForm() {
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label htmlFor="login-email" className="label">Email</label>
-            <input id="login-email" type="email" className="input" value={form.email} onChange={set('email')} placeholder="you@company.com" required autoFocus />
+            <input id="login-email" type="email" className="input" value={form.email} onChange={set('email')} placeholder="you@company.com" required />
           </div>
           <div>
             <label htmlFor="login-password" className="label">Password</label>
