@@ -118,7 +118,7 @@ export const METHODOLOGY = {
       heading: 'Estimated presence (triangulated)',
       bullets: [
         'Revenue (40%) — inferred from finance research and public estimates',
-        'Web traffic (25%) — monthly visits from research citations, Apify/SimilarWeb when configured, or relative rank proxy',
+        'Web traffic (25%) — monthly visits from research citations, or relative rank proxy when absolute visits are missing',
         'Reviews (20%) — G2/review volume and ratings from research',
       ],
     },

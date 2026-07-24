@@ -111,6 +111,8 @@ export const api = {
   marketStart: (effort) => request('/intelligence/market/start', { method: 'POST', body: { effort } }),
   marketStatus: (jobId) => request(`/intelligence/market/status/${jobId}`),
   marketPulse: () => request('/intelligence/market-pulse'),
+  getAnalysisLatest: () => request('/intelligence/analysis-latest'),
+  saveAnalysisLatest: (content) => request('/intelligence/analysis-latest', { method: 'PUT', body: { content } }),
   methodology: () => request('/methodology'),
 
   // TAM / SAM / SOM market model
@@ -127,6 +129,7 @@ export const api = {
   // Company deep dive — background job
   deepDiveStart: (company, url) => request('/company/deep-dive/start', { method: 'POST', body: { company, url } }),
   deepDiveStatus: (jobId) => request(`/company/deep-dive/status/${jobId}`),
+  companyFinancials: (company) => request('/company/financials', { method: 'POST', body: { company } }),
 
   // Saved report history
   saveReport: (title, content) => request('/reports', { method: 'POST', body: { title, content } }),
@@ -154,17 +157,20 @@ export const api = {
   generateFeatureGaps: () => request('/features/feature-gaps', { method: 'POST' }),
   listEvidence: () => request('/features/evidence'),
   createEvidence: (payload) => request('/features/evidence', { method: 'POST', body: payload }),
+  researchEvidence: (payload) => request('/features/evidence/research', { method: 'POST', body: payload }),
+  saveEvidenceBatch: (items) => request('/features/evidence/save-batch', { method: 'POST', body: { items } }),
   clearEvidence: () => request('/features/evidence', { method: 'DELETE' }),
   deleteEvidence: (id) => request(`/features/evidence/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   listWarRoom: () => request('/features/war-room'),
   createWarRoomDeal: (payload) => request('/features/war-room', { method: 'POST', body: payload }),
   updateWarRoomDeal: (id, payload) => request(`/features/war-room/${encodeURIComponent(id)}`, { method: 'PATCH', body: payload }),
+  generateWarRoomTalkTrack: (id) => request(`/features/war-room/${encodeURIComponent(id)}/talk-track`, { method: 'POST' }),
   clearWarRoom: () => request('/features/war-room', { method: 'DELETE' }),
   deleteWarRoomDeal: (id) => request(`/features/war-room/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   getMarketEntry: () => request('/features/market-entry'),
   generateMarketEntry: (payload) => request('/features/market-entry', { method: 'POST', body: payload }),
   getInvestorOnepager: () => request('/features/investor-onepager'),
-  generateInvestorOnepager: () => request('/features/investor-onepager', { method: 'POST' }),
+  generateInvestorOnepager: (payload = {}) => request('/features/investor-onepager', { method: 'POST', body: payload }),
   listFeatureNotifications: () => request('/features/notifications'),
   markFeatureNotificationsRead: () => request('/features/notifications/mark-read', { method: 'POST' }),
   getFeatureUsage: () => request('/features/usage'),

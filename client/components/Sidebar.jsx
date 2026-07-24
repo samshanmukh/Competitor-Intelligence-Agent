@@ -19,10 +19,10 @@ function NavItem({ href, icon, label, badge, exact = false, collapsed = false, o
       aria-label={collapsed ? label : undefined}
       aria-current={isActive ? 'page' : undefined}
       onClick={onNavigate}
-      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-colors duration-200 ${
+      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-all duration-200 ${
         isActive
-          ? 'bg-ink-800/90 text-white'
-          : 'text-slate-400 hover:bg-ink-800/50 hover:text-slate-200'
+          ? 'bg-white/[0.1] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-white/10'
+          : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200'
       } ${collapsed ? 'relative justify-center' : ''}`}
     >
       <Icon name={icon} className="h-4 w-4 shrink-0 opacity-80" />
@@ -82,7 +82,10 @@ export default function Sidebar() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/login');
+    const bypass = typeof window !== 'undefined'
+      && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      && (process.env.NEXT_PUBLIC_AUTH_BYPASS === '1' || process.env.NEXT_PUBLIC_AUTH_BYPASS === 'true');
+    router.push(bypass ? '/app' : '/login');
   };
 
   const handleCreateWorkspace = async () => {
@@ -123,6 +126,7 @@ export default function Sidebar() {
       <NavGroup label="Account" collapsed={isCollapsed}>
         <NavItem href="/my-product" icon="card" label="My product" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/discover" icon="plus" label="Discover" collapsed={isCollapsed} onNavigate={onNavigate} />
+        <NavItem href="/architecture" icon="map" label="Architecture" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/usage" icon="bar" label="Usage" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/settings" icon="settings" label="Settings" collapsed={isCollapsed} onNavigate={onNavigate} />
@@ -133,7 +137,7 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r border-ink-800/80 bg-ink-950/40 p-4 transition-all duration-200 md:flex ${collapsed ? 'w-[4.5rem]' : 'w-60'}`}>
+      <aside className={`glass-nav sticky top-0 hidden h-screen shrink-0 flex-col overflow-hidden border-r p-4 transition-all duration-200 md:flex ${collapsed ? 'w-[4.5rem]' : 'w-60'}`}>
         {/* Logo + collapse */}
         <div className={`mb-8 flex ${collapsed ? 'flex-col items-center gap-2' : 'items-center gap-2 px-1'}`}>
           {collapsed ? (
@@ -180,7 +184,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-ink-800 bg-ink-900/90 px-4 py-3 backdrop-blur md:hidden">
+      <header className="glass-nav sticky top-0 z-30 flex w-full items-center justify-between border-b px-4 py-3 md:hidden">
         <BrandLogo href="/app" height={24} />
         <button
           type="button"

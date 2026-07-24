@@ -1,17 +1,16 @@
 // Company Deep Dive — a standalone single-company dossier: overview, financials,
-// market size/growth, web traffic (Apify), and reviews + AI analysis.
+// market size/growth, web traffic (You.com research), and reviews + AI analysis.
 //
-// Because some sections are slow (deep finance research ~2-3 min, SimilarWeb
-// traffic can take several minutes), the full dossier runs as a durable
-// BACKGROUND JOB: start it, navigate away, get a push notification + cached
-// result when it's done.
+// Because some sections are slow (deep finance research ~2-3 min), the full
+// dossier runs as a durable BACKGROUND JOB: start it, navigate away, get a
+// push notification + cached result when it's done.
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { completeJSON } from '../services/ai.js';
-import { research, financeResearch } from '../services/youcom.js';
-import { getWebsiteTraffic, crawlContent, apifyConfigured } from '../services/apify.js';
+import { research, financeResearch, fetchContents } from '../services/youcom.js';
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
 import { sendPushToWorkspace } from '../services/push.js';
+import { makeAttribution, mergeAttributions } from '../services/attribution.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -31,14 +30,23 @@ function flatten(payload) {
   return parts.join('\n');
 }
 
+function normalizeUrl(url) {
+  if (!url) return null;
+  const s = String(url).trim();
+  if (!s) return null;
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+}
+
 /* ───────────────────────── Section functions ───────────────────────── */
 async function getOverview(company, url) {
-  // Pull web research + (if a URL is given) the company's own site content via
-  // Apify, so the overview is grounded in first-hand copy, not just summaries.
-  const [payload, siteContent] = await Promise.all([
+  const pageUrl = normalizeUrl(url);
+  const [payload, siteMap] = await Promise.all([
     research(`Company overview of ${company}${url ? ` (${url})` : ''}: what they do, founded year, headquarters, employee count, business model, products, and notable recent news.`),
-    url && apifyConfigured() ? crawlContent(url).catch(() => null) : Promise.resolve(null),
+    pageUrl
+      ? fetchContents([pageUrl]).catch(() => ({}))
+      : Promise.resolve({}),
   ]);
+  const siteContent = pageUrl ? (siteMap[pageUrl]?.markdown || Object.values(siteMap)[0]?.markdown || null) : null;
   const text = `${siteContent ? `THEIR WEBSITE:\n${siteContent.slice(0, 4000)}\n\n` : ''}${flatten(payload)}`.slice(0, 12000);
   const overview = await completeJSON({
     system: 'You extract structured company facts from research text. Use only facts present. Return ONLY valid JSON.',
@@ -49,8 +57,24 @@ RESEARCH:
 ${text}`,
     maxTokens: 800,
   });
-  const sources = (payload?.output?.sources || []).slice(0, 6).map((s) => ({ title: s.title, url: s.url }));
-  return overview ? { ...overview, sources } : null;
+  const researchAttr = makeAttribution('youcom-research', payload, { limit: 6 });
+  const contentsAttr = siteContent
+    ? makeAttribution('youcom-contents', pageUrl ? [{ title: company, url: pageUrl }] : [], { limit: 1 })
+    : null;
+  const attribution = mergeAttributions([researchAttr, contentsAttr], { limit: 8 });
+  return overview
+    ? {
+        ...overview,
+        sources: attribution.sources.length ? attribution.sources : researchAttr.sources,
+        attribution: {
+          ...researchAttr,
+          skills: attribution.skills,
+          sources: attribution.sources.length ? attribution.sources : researchAttr.sources,
+        },
+        skill: researchAttr.skill,
+        skillLabel: researchAttr.skillLabel,
+      }
+    : null;
 }
 
 async function getFinancials(company) {
@@ -68,23 +92,57 @@ RESEARCH:
 ${text}`,
     maxTokens: 1400,
   });
-  const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
+  const attribution = makeAttribution('youcom-finance', payload, { limit: 8 });
   return {
-    financials: structured?.financials || null,
-    market: structured?.market ? { ...structured.market, sources } : null,
+    financials: structured?.financials
+      ? { ...structured.financials, attribution, sources: attribution.sources, skill: attribution.skill, skillLabel: attribution.skillLabel }
+      : null,
+    market: structured?.market
+      ? { ...structured.market, sources: attribution.sources, attribution, skill: attribution.skill, skillLabel: attribution.skillLabel }
+      : null,
   };
 }
 
 async function getTraffic(company, url) {
-  if (!apifyConfigured()) return { traffic: null, configured: false };
+  const domain = String(url || company || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/.*$/, '')
+    .replace(/^www\./, '') || company;
   try {
-    const traffic = await getWebsiteTraffic(url || company);
-    return { traffic, configured: true, blocked: !traffic };
+    const payload = await research(
+      `Website traffic for ${company}${url ? ` (domain ${url})` : ''}: estimate monthly visits, global rank, bounce rate, pages per visit, visit duration, and traffic source mix if known. Cite sources.`,
+      { effort: 'lite' }
+    );
+    const text = flatten(payload).slice(0, 8000);
+    if (!text) return { traffic: null, configured: true };
+    const structured = await completeJSON({
+      system: 'Extract website traffic estimates from research. Use only numbers present. Return ONLY valid JSON.',
+      user: `From this research about "${company}" (${domain}), extract:
+{ "total_visits": number|null, "global_rank": number|null, "bounce_rate": number|null, "pages_per_visit": number|null, "avg_visit_duration": "string or null", "category": "string or null", "history": [{ "date": "YYYY-MM", "visits": number }], "sources": [{ "channel": string, "share": number }], "topCountries": [{ "country": string, "share": number }], "summary": "one line or null" }
+share values are 0–1 fractions when known. history max 12 months.
+
+RESEARCH:
+${text}`,
+      maxTokens: 900,
+    });
+    if (!structured) return { traffic: null, configured: true };
+    const attribution = makeAttribution('youcom-research', payload, { limit: 6 });
+    return {
+      traffic: {
+        domain,
+        ...structured,
+        // Keep channel mix under trafficChannels; citations live in attribution.
+        trafficChannels: structured.sources || [],
+        sources: attribution.sources,
+        attribution,
+        skill: attribution.skill,
+        skillLabel: attribution.skillLabel,
+        source: 'youcom-research',
+      },
+      configured: true,
+    };
   } catch (err) {
-    // PROXY_BLOCKED = Apify residential proxy refused (free plan); the UI uses
-    // `blocked` to show the "upgrade your Apify plan" explainer.
-    const blocked = err.code === 'PROXY_BLOCKED';
-    return { traffic: null, configured: true, blocked, error: err.message };
+    return { traffic: null, configured: true, error: err.message };
   }
 }
 
@@ -92,7 +150,7 @@ async function getReviews(company) {
   const payload = await research(`${company} customer reviews, ratings, pros and cons on G2, Capterra, Trustpilot.`);
   const text = flatten(payload).slice(0, 7000);
   if (!text) return null;
-  return await completeJSON({
+  const summary = await completeJSON({
     system: 'You summarize software reviews into structured sentiment + a short analyst take. Return ONLY valid JSON.',
     user: `Summarize customer review sentiment for "${company}".
 Return: { "rating": number|null, "sentiment": "positive"|"mixed"|"negative", "pros": ["..."], "cons": ["..."], "summary": "one-sentence take", "ai_analysis": "2-3 sentences on what this means for evaluating/competing with them" }
@@ -101,6 +159,15 @@ RESEARCH:
 ${text}`,
     maxTokens: 800,
   });
+  if (!summary) return null;
+  const attribution = makeAttribution('youcom-research', payload, { limit: 6 });
+  return {
+    ...summary,
+    attribution,
+    sources: attribution.sources,
+    skill: attribution.skill,
+    skillLabel: attribution.skillLabel,
+  };
 }
 
 /* ───────────────────────── Individual endpoints (still usable) ───────────────────────── */
@@ -139,7 +206,7 @@ async function runDeepDive(company, url) {
     getReviews(company),
   ]);
   const finVal = fin.status === 'fulfilled' ? fin.value : { financials: null, market: null };
-  const trafVal = traffic.status === 'fulfilled' ? traffic.value : { traffic: null, configured: apifyConfigured() };
+  const trafVal = traffic.status === 'fulfilled' ? traffic.value : { traffic: null, configured: true };
   return {
     company,
     url: url || null,
@@ -147,8 +214,8 @@ async function runDeepDive(company, url) {
     financials: finVal.financials,
     market: finVal.market,
     traffic: trafVal.traffic,
-    trafficConfigured: trafVal.configured,
-    trafficBlocked: trafVal.blocked || false,
+    trafficConfigured: trafVal.configured !== false,
+    trafficBlocked: false,
     trafficError: trafVal.error || null,
     reviews: reviews.status === 'fulfilled' ? reviews.value : null,
     generatedAt: new Date().toISOString(),
@@ -158,15 +225,15 @@ async function runDeepDive(company, url) {
 // Start a background deep-dive; returns a jobId immediately.
 router.post('/deep-dive/start', wrap(async (req, res) => {
   const { company, url } = req.body || {};
-  if (!company) return res.status(400).json({ error: 'company required' });
-  const workspaceId = req.workspaceId;
-  const jobId = await createJob({ workspaceId, userId: req.user.id, type: 'deep-dive' });
+  if (!company?.trim()) return res.status(400).json({ error: 'company required' });
+  const jobId = await createJob({ workspaceId: req.workspaceId, userId: req.user.id, type: 'deep-dive' });
 
-  runDeepDive(company, url)
+  const workspaceId = req.workspaceId;
+  runDeepDive(company.trim(), url?.trim() || null)
     .then(async (dossier) => {
       await completeJob(jobId, { dossier });
       sendPushToWorkspace(workspaceId, {
-        title: `Deep dive ready: ${company}`,
+        title: `Deep dive ready: ${company.trim()}`,
         body: 'Your company dossier has finished — open it to view.',
         url: '/company',
         tag: `deepdive-${jobId}`,

@@ -11,43 +11,186 @@
     @apply bg-ink-950 text-slate-200 antialiased;
     font-feature-settings: 'cv11', 'ss01';
     overflow-x: hidden;
+    /* Deep canvas — aurora lives on ::before so frosted panels have something to blur */
+    background-color: #07080b;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 75% 55% at 12% -8%, rgba(99, 102, 241, 0.32), transparent 58%),
+      radial-gradient(ellipse 55% 45% at 88% 8%, rgba(56, 189, 248, 0.16), transparent 52%),
+      radial-gradient(ellipse 50% 40% at 70% 70%, rgba(129, 140, 248, 0.1), transparent 55%),
+      radial-gradient(ellipse 65% 50% at 40% 110%, rgba(99, 102, 241, 0.14), transparent 55%);
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: #2c3340 transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
   }
 }
 
 @layer components {
+  .glass {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.045);
+    backdrop-filter: blur(22px) saturate(165%);
+    -webkit-backdrop-filter: blur(22px) saturate(165%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 10px 40px -16px rgba(0, 0, 0, 0.55);
+  }
+  .glass-strong {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(28px) saturate(175%);
+    -webkit-backdrop-filter: blur(28px) saturate(175%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 16px 48px -18px rgba(0, 0, 0, 0.6);
+  }
+  .glass-soft {
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .glass-nav {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(10, 11, 14, 0.45);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+  }
+
   .card {
-    @apply rounded-2xl border border-ink-700/80 bg-ink-900/50;
+    @apply rounded-2xl glass;
   }
   .btn {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors duration-200
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition-all duration-200
       focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950
       disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     @apply btn bg-accent text-white hover:bg-accent-dim;
+    box-shadow: 0 8px 24px -8px rgba(99, 102, 241, 0.55);
   }
   .btn-ghost {
-    @apply btn border border-ink-700 bg-ink-850/80 text-slate-300 hover:border-ink-600 hover:bg-ink-800 hover:text-white;
+    @apply btn text-slate-300 hover:text-white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+  }
+  .btn-ghost:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
   }
   .btn-danger {
-    @apply btn border border-rose-900/60 bg-rose-950/40 text-rose-300 hover:bg-rose-950/70;
+    @apply btn text-rose-300;
+    border: 1px solid rgba(251, 113, 133, 0.28);
+    background: rgba(136, 19, 55, 0.28);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .btn-danger:hover {
+    background: rgba(136, 19, 55, 0.45);
   }
   .input {
-    @apply w-full rounded-xl border border-ink-700 bg-ink-850 px-3.5 py-2.5 text-sm text-slate-100
-      placeholder:text-slate-500 transition-colors duration-200
-      focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/25;
+    @apply w-full rounded-xl px-3.5 py-2.5 text-sm text-slate-100
+      placeholder:text-slate-500 transition-all duration-200
+      focus:outline-none focus:ring-2 focus:ring-accent/30;
     min-height: 2.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+  }
+  .input:focus {
+    border-color: rgba(129, 140, 248, 0.55);
+    background: rgba(255, 255, 255, 0.06);
   }
   .label {
     @apply mb-1.5 block text-xs font-medium tracking-wide text-slate-500;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
+}
+
+/*
+ * Frosted ink surfaces — lift hard-coded solid panels across the app into glass.
+ * Specificity matches Tailwind utilities; listed after @tailwind utilities.
+ */
+.bg-ink-900,
+.bg-ink-900\/40,
+.bg-ink-900\/50,
+.bg-ink-900\/60,
+.bg-ink-900\/80,
+.bg-ink-900\/90 {
+  background-color: rgba(255, 255, 255, 0.045) !important;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.bg-ink-850,
+.bg-ink-850\/80 {
+  background-color: rgba(255, 255, 255, 0.055) !important;
+  backdrop-filter: blur(16px) saturate(155%);
+  -webkit-backdrop-filter: blur(16px) saturate(155%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.bg-ink-800,
+.bg-ink-800\/50,
+.bg-ink-800\/90 {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+
+.bg-ink-700 {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+}
+
+.bg-ink-600 {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+.border-ink-700,
+.border-ink-700\/80 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.border-ink-800,
+.border-ink-800\/80 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.border-ink-600 {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.border-ink-950 {
+  border-color: rgba(7, 8, 11, 0.65) !important;
+}
+
+/* Page shells stay clear so the aurora shows through frosted panels */
+.min-h-screen.bg-ink-950,
+.min-h-dvh.bg-ink-950 {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 .spinner {
@@ -60,6 +203,40 @@
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Sweeping shimmer for progressive analysis loaders */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 35%,
+    rgba(165, 180, 252, 0.14) 50%,
+    rgba(255, 255, 255, 0.04) 65%,
+    transparent 100%
+  );
+  animation: shimmer-sweep 1.4s ease-in-out infinite;
+}
+@keyframes shimmer-sweep {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes tab-ready-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(129, 140, 248, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(129, 140, 248, 0); }
+}
+.tab-ready {
+  animation: tab-ready-pulse 1.2s ease-out 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

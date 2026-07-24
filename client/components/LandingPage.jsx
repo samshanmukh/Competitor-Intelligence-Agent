@@ -8,16 +8,15 @@ import BrandLogo from './BrandLogo';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
-// Solid raised "3D" card: top highlight + contact shadow + ambient shadow,
-// with a subtle lift on hover. No translucent border lines.
+// Frosted glass card with lift on hover.
 const RAISED =
-  'rounded-2xl bg-ink-850 ring-1 ring-inset ring-white/[0.04] ' +
-  'shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.4),0_14px_34px_-12px_rgba(0,0,0,0.7)] ' +
-  'transition duration-300 hover:-translate-y-1 hover:bg-ink-800 ' +
-  'hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_6px_12px_rgba(0,0,0,0.45),0_24px_50px_-14px_rgba(0,0,0,0.8)]';
+  'rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-xl ' +
+  'shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_14px_40px_-16px_rgba(0,0,0,0.65)] ' +
+  'transition duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:border-white/15 ' +
+  'hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_24px_50px_-14px_rgba(0,0,0,0.75)]';
 
-// Recessed inner well for visuals inside a raised card.
-const WELL = 'rounded-xl bg-ink-950/70 shadow-[inset_0_1px_3px_rgba(0,0,0,0.55)]';
+// Recessed inner well for visuals inside a glass card.
+const WELL = 'rounded-xl border border-white/5 bg-black/25 shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)] backdrop-blur-sm';
 
 // Scroll-reveal wrapper.
 function Reveal({ children, delay = 0, y = 24, className = '' }) {
@@ -90,13 +89,14 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink-950 text-slate-200">
       {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
+      <header className="glass-nav sticky top-0 z-40 border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <BrandLogo href="/" height={32} priority />
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
             <a href="#how" className="transition hover:text-white">How it works</a>
             <a href="#why" className="transition hover:text-white">Why Mira</a>
+            <Link href="/architecture" className="transition hover:text-white">Architecture</Link>
           </nav>
           <div className="flex items-center gap-2">
             {authed ? (
@@ -231,7 +231,7 @@ export default function LandingPage() {
             className="relative"
           >
             <div className="absolute -inset-x-10 -top-8 bottom-0 -z-10 rounded-[40px] bg-accent/10 blur-3xl" />
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink-900 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]">
+            <div className="glass-strong overflow-hidden rounded-2xl shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]">
               <div className="flex items-center gap-1.5 border-b border-white/5 bg-white/[0.02] px-4 py-3">
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
@@ -427,6 +427,7 @@ export default function LandingPage() {
             <a href="#features" className="transition hover:text-slate-300">Features</a>
             <a href="#how" className="transition hover:text-slate-300">How it works</a>
             <a href="#why" className="transition hover:text-slate-300">Why Mira</a>
+            <Link href="/architecture" className="transition hover:text-slate-300">Architecture</Link>
             <Link href="/requests" className="transition hover:text-slate-300">Feature requests</Link>
             {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
             {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}

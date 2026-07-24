@@ -6,7 +6,9 @@ import {
 } from 'recharts';
 import { api } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
-import { Icon, Skeleton, useToast } from './ui';
+import { Icon, useToast } from './ui';
+import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
+import { SkillChipRow, SourceAttribution } from './SourceAttribution';
 
 const TIP = { background: '#0e1014', border: '1px solid #181c24', borderRadius: 8, fontSize: 12 };
 const AXIS = { fill: '#64748b', fontSize: 11 };
@@ -31,6 +33,7 @@ export default function CompanyDeepDiveClient() {
   const [compareResult, setCompareResult] = useState(null);
   const [compareLoading, setCompareLoading] = useState(false);
   const [savingDossier, setSavingDossier] = useState(false);
+  const [finRefreshing, setFinRefreshing] = useState(false);
   const toast = useToast();
 
   const pollRef = useRef(null);
@@ -90,17 +93,32 @@ export default function CompanyDeepDiveClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-white">Deep dive</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Enter any company — get a full dossier: overview, financials, market value, web traffic, and review analysis.
-        </p>
-      </div>
+  const refreshFinancials = async () => {
+    const company = form.company.trim() || dossier?.company || dossier?.overview?.name;
+    if (!company) return;
+    setFinRefreshing(true);
+    try {
+      const res = await api.companyFinancials(company);
+      setDossier((d) => d ? { ...d, financials: res.financials || null, market: res.market ?? d.market } : d);
+      toast({ type: 'success', title: 'Financials refreshed' });
+    } catch (err) {
+      toast({ type: 'error', title: 'Finance refresh failed', message: err.message });
+    } finally {
+      setFinRefreshing(false);
+    }
+  };
 
-      {/* Input */}
-      <div className="card p-5">
+  return (
+    <LabShell
+      title="Deep dive"
+      subtitle="Full dossier: overview, finance research, market value, web traffic, and reviews."
+      skills={[
+        { skill: 'you-research' },
+        { skill: 'you-finance' },
+        { skill: 'you-contents' },
+      ]}
+    >
+      <LabPanel title="Company">
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <div>
             <label htmlFor="deep-dive-company" className="label">Company name</label>
@@ -122,29 +140,38 @@ export default function CompanyDeepDiveClient() {
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-600">
-          Runs in the background (~2–5 min) — you can navigate away and we'll notify you when the dossier is ready.
+          Runs in the background (~2–5 min) — you can navigate away; we notify when ready.
         </p>
-      </div>
+      </LabPanel>
 
-      {/* In-progress */}
       {running && (
-        <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-sm text-accent-soft">
-            <Icon name="refresh" className="h-4 w-4 animate-spin" />
-            Building dossier for <strong className="text-white">{form.company}</strong>…
-            <span className="tabular-nums text-slate-400">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
-          </div>
-          <p className="mt-2 text-xs text-slate-500">
-            Overview, financials, market value, web traffic &amp; reviews. Deep research + traffic scraping take a few
-            minutes — you can leave this page; we'll send a notification when it's done.
+        <LabPanel title={`Building dossier · ${form.company}`}>
+          <p className="mb-4 text-xs text-slate-500">
+            Layers load in parallel — overview, finance, traffic, reviews.
+            <span className="ml-2 tabular-nums text-slate-400">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
           </p>
-        </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {['Overview', 'Financials', 'Traffic', 'Reviews'].map((label) => (
+              <div key={label} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <p className="mb-2 text-xs font-semibold text-slate-400">{label}</p>
+                <LabShimmerBlock rows={2} />
+              </div>
+            ))}
+          </div>
+        </LabPanel>
       )}
 
-      {/* Result */}
       {dossier && (
         <div className="space-y-5">
           <div className="flex flex-wrap gap-2 justify-end">
+            <button
+              className="btn-ghost text-sm"
+              disabled={finRefreshing}
+              onClick={refreshFinancials}
+            >
+              <Icon name={finRefreshing ? 'refresh' : 'trending'} className={`h-4 w-4 ${finRefreshing ? 'animate-spin' : ''}`} />
+              {finRefreshing ? 'Refreshing finance…' : 'Refresh financials'}
+            </button>
             <button
               className="btn-ghost text-sm"
               disabled={implLoading}
@@ -184,12 +211,17 @@ export default function CompanyDeepDiveClient() {
             </button>
           </div>
 
+          {finRefreshing && (
+            <LabPanel title="Financials">
+              <LabShimmerBlock rows={2} />
+            </LabPanel>
+          )}
+
           {implications && (
-            <section className="card p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-white">Implications for us</h2>
+            <LabPanel title="Implications for us" ready>
               <p className="text-sm text-slate-300">{implications.summary}</p>
               {implications.threats?.length > 0 && (
-                <div>
+                <div className="mt-3">
                   <p className="text-[10px] uppercase tracking-wide text-rose-300">Threats</p>
                   <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
                     {implications.threats.map((t, i) => <li key={i}>{t}</li>)}
@@ -197,7 +229,7 @@ export default function CompanyDeepDiveClient() {
                 </div>
               )}
               {implications.opportunities?.length > 0 && (
-                <div>
+                <div className="mt-3">
                   <p className="text-[10px] uppercase tracking-wide text-emerald-300">Opportunities</p>
                   <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
                     {implications.opportunities.map((t, i) => <li key={i}>{t}</li>)}
@@ -205,27 +237,26 @@ export default function CompanyDeepDiveClient() {
                 </div>
               )}
               {implications.actions?.length > 0 && (
-                <div>
+                <div className="mt-3">
                   <p className="text-[10px] uppercase tracking-wide text-accent-soft">Actions</p>
                   <ul className="mt-1 space-y-1 text-sm text-slate-400 list-disc pl-4">
                     {implications.actions.map((t, i) => <li key={i}>{t}</li>)}
                   </ul>
                 </div>
               )}
-            </section>
+            </LabPanel>
           )}
 
           <OverviewSection state={{ loading: false, data: dossier.overview }} />
-          <FinancialsSection state={{ loading: false, data: dossier.financials }} />
+          {!finRefreshing && <FinancialsSection state={{ loading: false, data: dossier.financials }} />}
           <MarketSection market={dossier.market} loading={false} />
           <TrafficSection state={{ loading: false, data: dossier.traffic, configured: dossier.trafficConfigured !== false, blocked: dossier.trafficBlocked, error: dossier.trafficError }} />
           <ReviewsSection state={{ loading: false, data: dossier.reviews }} />
         </div>
       )}
 
-      <section className="card p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-white">Compare companies</h2>
-        <p className="text-xs text-slate-500">Enter 2–4 names separated by commas.</p>
+      <LabPanel title="Compare companies">
+        <p className="mb-3 text-xs text-slate-500">Enter 2–4 names separated by commas.</p>
         <div className="flex gap-2">
           <input
             className="input flex-1"
@@ -256,8 +287,9 @@ export default function CompanyDeepDiveClient() {
             {compareLoading ? 'Comparing…' : 'Compare'}
           </button>
         </div>
-        {compareResult && (
-          <div className="space-y-2 pt-2">
+        {compareLoading && <div className="mt-4"><LabShimmerBlock rows={2} /></div>}
+        {compareResult && !compareLoading && (
+          <div className="mt-4 space-y-2">
             <p className="text-sm text-slate-300">{compareResult.summary}</p>
             <p className="text-sm text-accent-soft">{compareResult.recommendation}</p>
             {compareResult.implicationsForUs?.length > 0 && (
@@ -267,21 +299,28 @@ export default function CompanyDeepDiveClient() {
             )}
           </div>
         )}
-      </section>
-    </div>
+      </LabPanel>
+    </LabShell>
   );
 }
 
-function SectionCard({ icon, title, loading, empty, children, hint }) {
+function SectionCard({ icon, title, loading, empty, children, hint, skills, skill }) {
   return (
-    <section className="card p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <Icon name={icon} className="h-4 w-4 text-accent-soft" />
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
-        {loading && <Icon name="refresh" className="h-3.5 w-3.5 animate-spin text-slate-500 ml-1" />}
-        {hint && <span className="ml-auto text-xs text-slate-600">{hint}</span>}
+    <section className="glass rounded-2xl p-5">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <Icon name={icon} className="h-4 w-4 text-accent-soft" />
+          <h2 className="text-sm font-semibold text-white">{title}</h2>
+          {!loading && children && !empty && (
+            <span className="tab-ready rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-soft">Ready</span>
+          )}
+          {hint && <span className="text-xs text-slate-600">{hint}</span>}
+        </div>
+        {(skills?.length || skill) && !loading && (
+          <SkillChipRow skills={skills} skill={skill} size="sm" />
+        )}
       </div>
-      {loading ? <div className="space-y-2"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/2" /></div>
+      {loading ? <LabShimmerBlock rows={2} />
         : empty ? <p className="text-sm text-slate-500">{empty}</p>
         : children}
     </section>
@@ -314,7 +353,7 @@ function Chips({ items, color = 'slate' }) {
 function OverviewSection({ state, company }) {
   const o = state.data;
   return (
-    <SectionCard icon="radar" title="Company overview" loading={state.loading} empty={!o ? 'No overview found.' : null}>
+    <SectionCard icon="radar" title="Company overview" loading={state.loading} empty={!o ? 'No overview found.' : null} skills={[{ skill: 'you-research' }, { skill: 'you-contents' }]}>
       {o && (
         <div className="space-y-3">
           {o.summary && <p className="text-sm text-slate-300 leading-relaxed">{o.summary}</p>}
@@ -333,6 +372,7 @@ function OverviewSection({ state, company }) {
               <ul className="space-y-1">{o.recent_news.map((n, i) => <li key={i} className="text-xs text-slate-400">• {n}</li>)}</ul>
             </div>
           )}
+          <SourceAttribution attribution={o.attribution} sources={o.sources} skill={o.skill} skillLabel={o.skillLabel} compact />
         </div>
       )}
     </SectionCard>
@@ -343,7 +383,8 @@ function FinancialsSection({ state }) {
   const f = state.data;
   return (
     <SectionCard icon="trending" title="Financials & valuation" loading={state.loading}
-      hint={state.loading ? 'deep research…' : undefined} empty={!f ? 'No financial data found.' : null}>
+      hint={state.loading ? 'deep research…' : undefined} empty={!f ? 'No financial data found.' : null}
+      skill="you-finance">
       {f && (
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-4">
@@ -355,6 +396,7 @@ function FinancialsSection({ state }) {
           {f.investors?.length > 0 && (
             <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Key investors</p><Chips items={f.investors} color="accent" /></div>
           )}
+          <SourceAttribution attribution={f.attribution} sources={f.sources} skill={f.skill} skillLabel={f.skillLabel} compact />
         </div>
       )}
     </SectionCard>
@@ -365,7 +407,8 @@ function MarketSection({ market, loading }) {
   const history = (market?.history || []).filter((h) => h.year && typeof h.size_usd_millions === 'number');
   return (
     <SectionCard icon="bar" title="Market size & growth" loading={loading}
-      hint={loading ? 'deep research…' : undefined} empty={!loading && !market ? 'No market data found.' : null}>
+      hint={loading ? 'deep research…' : undefined} empty={!loading && !market ? 'No market data found.' : null}
+      skill="you-finance">
       {market && (
         <div className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -384,6 +427,7 @@ function MarketSection({ market, loading }) {
             </ResponsiveContainer>
           )}
           {market.summary && <p className="text-sm text-slate-400 leading-relaxed">{market.summary}</p>}
+          <SourceAttribution attribution={market.attribution} sources={market.sources} skill={market.skill} skillLabel={market.skillLabel} compact />
         </div>
       )}
     </SectionCard>
@@ -392,42 +436,22 @@ function MarketSection({ market, loading }) {
 
 function TrafficSection({ state }) {
   const t = state.data;
-  if (!state.loading && state.configured === false) {
-    return (
-      <SectionCard icon="activity" title="Web traffic"
-        empty="Apify not configured — set APIFY_TOKEN on the server to enable traffic data." />
-    );
-  }
-  if (!state.loading && !t && (state.error || state.blocked)) {
-    const needsApproval = /not-approved|permission/i.test(state.error || '');
+  if (!state.loading && !t && state.error) {
     return (
       <SectionCard icon="activity" title="Web traffic">
-        {needsApproval ? (
-          <>
-            <p className="text-sm text-amber-300">The SimilarWeb Actor needs a one-time permission approval in Apify.</p>
-            <p className="mt-1 text-xs text-slate-500">Open it in <a href="https://console.apify.com/actors" target="_blank" rel="noreferrer" className="text-accent-soft hover:underline">Apify Console</a>, run once / approve, then retry.</p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-amber-300">Traffic data unavailable — SimilarWeb blocks non-residential IPs.</p>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Traffic routes through Apify <strong>residential proxies</strong>, which are only available on a{' '}
-              <strong>paid Apify plan</strong> (the free tier returns 403). Upgrade at{' '}
-              <a href="https://console.apify.com/billing" target="_blank" rel="noreferrer" className="text-accent-soft hover:underline">Apify Billing</a>{' '}
-              to enable them — once active, traffic loads automatically (no code change). The rest of the dossier is
-              unaffected.
-            </p>
-          </>
-        )}
+        <p className="text-sm text-amber-300">Traffic research unavailable.</p>
+        <p className="mt-1 text-xs text-slate-500 leading-relaxed">{state.error}</p>
       </SectionCard>
     );
   }
   const history = (t?.history || []).filter((h) => h.date && typeof h.visits === 'number').slice(-12);
-  const sources = (t?.sources || []).map((s, i) => ({ ...s, pct: Math.round((s.share || 0) * 100), color: COLORS[i % COLORS.length] }));
+  const channels = (t?.trafficChannels || (Array.isArray(t?.sources) && t.sources[0]?.channel ? t.sources : []) || [])
+    .map((s, i) => ({ ...s, pct: Math.round((s.share || 0) * 100), color: COLORS[i % COLORS.length] }));
   return (
     <SectionCard icon="activity" title="Web traffic" loading={state.loading}
       hint={t?.global_rank ? `global rank #${t.global_rank.toLocaleString()}` : undefined}
-      empty={!state.loading && !t ? 'No traffic data found for this domain.' : null}>
+      empty={!state.loading && !t ? 'No traffic estimates found in research.' : null}
+      skill="you-research">
       {t && (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-4">
@@ -453,11 +477,11 @@ function TrafficSection({ state }) {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {sources.length > 0 && (
+            {channels.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Traffic sources</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Traffic mix</p>
                 <div className="space-y-1.5">
-                  {sources.map((s) => (
+                  {channels.map((s) => (
                     <div key={s.channel} className="flex items-center gap-2 text-xs">
                       <span className="w-24 shrink-0 capitalize text-slate-400">{s.channel}</span>
                       <div className="h-2 flex-1 rounded-full bg-ink-800 overflow-hidden">
@@ -486,6 +510,7 @@ function TrafficSection({ state }) {
               </div>
             )}
           </div>
+          <SourceAttribution attribution={t.attribution} sources={t.attribution?.sources || (t.sources?.[0]?.url ? t.sources : [])} skill={t.skill} skillLabel={t.skillLabel} compact />
         </div>
       )}
     </SectionCard>
@@ -501,7 +526,8 @@ function ReviewsSection({ state }) {
   };
   return (
     <SectionCard icon="users" title="User reviews & AI analysis" loading={state.loading}
-      empty={!r || !r.sentiment ? 'No public review data found.' : null}>
+      empty={!r || !r.sentiment ? 'No public review data found.' : null}
+      skill="you-research">
       {r && r.sentiment && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -536,6 +562,7 @@ function ReviewsSection({ state }) {
               <p className="text-sm text-slate-300">{r.ai_analysis}</p>
             </div>
           )}
+          <SourceAttribution attribution={r.attribution} sources={r.sources} skill={r.skill} skillLabel={r.skillLabel} compact />
         </div>
       )}
     </SectionCard>

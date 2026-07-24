@@ -47,7 +47,7 @@ test('computeMarketDistribution triangulates signals and preserves totals', () =
     'market_model',
     {
       trafficByName: { alpha: 5_000_000, beta: 2_000_000 },
-      trafficKinds: { alpha: 'apify', beta: 'research' },
+      trafficKinds: { alpha: 'research', beta: 'research' },
     },
   );
 
@@ -55,7 +55,7 @@ test('computeMarketDistribution triangulates signals and preserves totals', () =
   assert.equal(result.items.length, 3);
   assert.equal(result.items[0].name, 'Alpha');
   assert.equal(result.items[0].share_pct_tam, 5);
-  assert.equal(result.items[0].signals.traffic_kind, 'apify');
+  assert.equal(result.items[0].signals.traffic_kind, 'research');
   assert.equal(result.tracked_sum_pct, 8);
   assert.equal(result.remainder_pct, 92);
   assert.equal(

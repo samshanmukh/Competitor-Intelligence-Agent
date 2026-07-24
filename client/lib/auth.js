@@ -277,6 +277,19 @@ export async function refreshAccessToken() {
 
 // Hard sign-out used when the session can't be recovered.
 export function forceLogout() {
+  // Localhost auth bypass — don't bounce to /login; re-bootstrap instead.
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    const bypassOn = process.env.NEXT_PUBLIC_AUTH_BYPASS === '1'
+      || process.env.NEXT_PUBLIC_AUTH_BYPASS === 'true'
+      || localStorage.getItem('cia_token') === 'dev-bypass';
+    if (isLocal && bypassOn) {
+      clearAuth();
+      window.location.reload();
+      return;
+    }
+  }
   clearAuth();
   if (typeof window !== 'undefined') {
     window.location.href = `/login?from=${encodeURIComponent(window.location.pathname)}`;

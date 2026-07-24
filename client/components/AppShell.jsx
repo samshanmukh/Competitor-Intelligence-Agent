@@ -6,8 +6,9 @@ import { consumeReturnPath } from '../lib/auth';
 import Sidebar from './Sidebar';
 import SupportButton from './SupportButton';
 import ZendeskWidget, { isZendeskEnabled } from './ZendeskWidget';
+import DevAuthBootstrap from './DevAuthBootstrap';
 
-const NO_SHELL_PREFIXES = ['/login', '/signup', '/verify', '/oauth', '/auth', '/requests', '/reports/shared', '/invite'];
+const NO_SHELL_PREFIXES = ['/login', '/signup', '/verify', '/oauth', '/auth', '/requests', '/reports/shared', '/invite', '/architecture'];
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
@@ -24,12 +25,28 @@ export default function AppShell({ children }) {
   const noShell = pathname === '/' || NO_SHELL_PREFIXES.some((p) => pathname?.startsWith(p));
 
   // Marketing + auth pages stay clean; Zendesk (or Help FAB) lives in the signed-in app.
-  if (noShell) return children;
+  if (noShell) {
+    return (
+      <>
+        <DevAuthBootstrap />
+        {children}
+      </>
+    );
+  }
+
+  const isAnalysis = pathname === '/app';
 
   return (
-    <div className="flex min-h-dvh flex-col overflow-x-hidden md:flex-row">
+    <div className="relative flex min-h-dvh flex-col overflow-x-hidden md:h-dvh md:flex-row">
+      <DevAuthBootstrap />
       <Sidebar />
-      <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10">
+      <main
+        className={
+          isAnalysis
+            ? 'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:min-h-0'
+            : 'relative min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10'
+        }
+      >
         {children}
       </main>
       {zendesk ? <ZendeskWidget /> : <SupportButton />}

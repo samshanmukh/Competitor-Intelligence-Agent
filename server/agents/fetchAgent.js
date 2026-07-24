@@ -29,8 +29,6 @@ export async function fetchCompetitor(competitor) {
     return { ok: true, unchanged: true, snapshot: latest };
   }
 
-  // result.source is 'apify' when the You.com Contents API was empty and we fell
-  // back to the Apify crawler; otherwise it's a You.com fetch.
   const snapshot = await insertSnapshot(competitor.id, markdown, result.source || 'youcom');
   return { ok: true, unchanged: false, snapshot, previous: latest || null };
 }

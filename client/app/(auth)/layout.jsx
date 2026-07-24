@@ -2,7 +2,7 @@ import BrandLogo from '../../components/BrandLogo';
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">

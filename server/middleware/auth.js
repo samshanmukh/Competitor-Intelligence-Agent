@@ -1,5 +1,10 @@
 import { ensureUserHasWorkspace, isWorkspaceMember } from '../db/workspace.js';
 import { runWithWorkspaceKeys } from '../services/workspaceExecution.js';
+import {
+  authBypassActive,
+  DEV_BYPASS_USER,
+  isDevBypassToken,
+} from '../lib/authBypass.js';
 
 const INSFORGE_URL = process.env.INSFORGE_BASE_URL?.replace(/\/$/, '');
 if (!INSFORGE_URL) {
@@ -40,10 +45,19 @@ async function verifyToken(token) {
 
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '';
+
+  // Localhost-only bypass (AUTH_BYPASS=true). Accepts the fixed dev token.
+  if (authBypassActive(req) && isDevBypassToken(token)) {
+    req.user = { ...DEV_BYPASS_USER };
+    req.authBypass = true;
+    return next();
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'Unauthorized', code: 'UNAUTHENTICATED' });
   }
-  const v = await verifyToken(authHeader.slice(7));
+  const v = await verifyToken(token);
   if (v.ok) { req.user = v.user; return next(); }
   if (v.status === 401) return res.status(401).json({ error: 'Invalid or expired session', code: 'INVALID_TOKEN' });
   return res.status(503).json({ error: 'Auth service unavailable, try again', code: 'AUTH_UNAVAILABLE' });

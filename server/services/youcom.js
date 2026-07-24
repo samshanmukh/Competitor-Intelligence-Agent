@@ -101,8 +101,83 @@ async function request(path, body, { timeoutMs = 120000, retries = MAX_RETRIES }
  * Research API — used for competitor discovery.
  * Returns { output: { content, sources: [{url, title, snippets}] } }
  */
-export async function research(query) {
-  return request('/research', { input: query });
+export async function research(query, { effort = 'standard' } = {}) {
+  return request('/research', { input: query, research_effort: effort });
+}
+
+/**
+ * Cheap web search (you-web) — faster than research / finance_research.
+ * Tries POST /search; callers should fall back to research() if this fails.
+ * Returns a normalized { text, sources: [{title,url,snippet}] }.
+ */
+export async function webSearch(query, { count = 8 } = {}) {
+  const q = String(query || '').trim();
+  if (!q) return { text: '', sources: [] };
+
+  try {
+    const json = await request(
+      '/search',
+      { query: q, count },
+      { timeoutMs: 25000, retries: 1 }
+    );
+    const raw = json?.results;
+    const hits = Array.isArray(raw)
+      ? raw
+      : [
+          ...(Array.isArray(raw?.web) ? raw.web : []),
+          ...(Array.isArray(raw?.news) ? raw.news : []),
+          ...(Array.isArray(json?.hits) ? json.hits : []),
+          ...(Array.isArray(json?.web_results) ? json.web_results : []),
+        ];
+    const sources = [];
+    const parts = [];
+    if (typeof json?.answer === 'string') parts.push(json.answer);
+    for (const item of hits) {
+      const title = item.title || item.name || '';
+      const url = item.url || item.link || item.source_url || '';
+      const snippet = item.snippet || item.description || item.content
+        || (Array.isArray(item.snippets) ? item.snippets.join(' ') : '');
+      if (url || title || snippet) {
+        sources.push({ title, url, snippet });
+        parts.push([title, url, snippet].filter(Boolean).join(' — '));
+      }
+    }
+    const text = parts.join('\n').trim();
+    if (text || sources.length) return { text, sources: sources.slice(0, count), engine: 'youcom-search' };
+  } catch {
+    /* fall through to research lite */
+  }
+
+  // Fallback: lite research (still cheaper than finance_research).
+  const payload = await research(`Find recent web sources and concrete facts about: ${q}`, { effort: 'lite' });
+  const sources = (payload?.output?.sources || []).slice(0, count).map((s) => ({
+    title: s.title || '',
+    url: s.url || '',
+    snippet: Array.isArray(s.snippets) ? s.snippets.join(' ') : (s.snippet || ''),
+  }));
+  const text = [
+    payload?.output?.content,
+    ...sources.map((s) => [s.title, s.url, s.snippet].filter(Boolean).join(' — ')),
+  ].filter(Boolean).join('\n');
+  return { text, sources, engine: 'youcom-research' };
+}
+
+/** Flatten research/search-ish payloads into plain text for LLM prompts. */
+export function flattenYouPayload(payload) {
+  const parts = [];
+  const push = (v) => { if (typeof v === 'string' && v.trim()) parts.push(v.trim()); };
+  if (payload?.text) push(payload.text);
+  if (payload?.output) {
+    push(payload.output.content);
+    for (const src of payload.output.sources || []) {
+      push([src.title, src.url, (src.snippets || []).join(' ')].filter(Boolean).join(' — '));
+    }
+  }
+  push(payload?.answer); push(payload?.summary);
+  for (const src of payload?.sources || []) {
+    push([src.title, src.url, src.snippet].filter(Boolean).join(' — '));
+  }
+  return parts.join('\n');
 }
 
 /**
@@ -164,22 +239,7 @@ export async function fetchContents(urls) {
     for (const url of list) if (!map[url].markdown) map[url] = { markdown: null, error: `You.com: ${err.message}` };
   }
 
-  // 2) Fallback: for any URL still empty, use Apify's Website Content Crawler
-  //    (robust JS rendering + proxies), if configured.
-  try {
-    const { crawlContent, apifyConfigured } = await import('./apify.js');
-    if (apifyConfigured()) {
-      for (const url of list) {
-        if (map[url].markdown) continue;
-        try {
-          const md = await crawlContent(url);
-          if (md) map[url] = { markdown: md, error: null, source: 'apify' };
-        } catch { /* keep the You.com error */ }
-      }
-    }
-  } catch { /* apify service unavailable — keep You.com results */ }
-
   return map;
 }
 
-export const youcom = { research, fetchContents };
+export const youcom = { research, fetchContents, webSearch, financeResearch, flattenYouPayload };

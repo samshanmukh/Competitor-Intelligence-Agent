@@ -5,6 +5,7 @@ import { api } from '../lib/api';
 import { Icon, Spinner, useToast } from './ui';
 import { DistributionPanel } from './distribution/DistributionShared';
 import { useMarketResearch } from '../hooks/useMarketResearch';
+import { SkillChipRow, SourceAttribution } from './SourceAttribution';
 
 const JOB_KEY = 'cia_marketmodel_job';
 const FACT_KEY = 'cia_factcheck_job';
@@ -24,6 +25,14 @@ function badgeFor(c) {
   if (c.kind === 'input') return { cls: 'border-sky-500/30 bg-sky-500/10 text-sky-300', icon: 'settings', label: 'Your input' };
   if (c.kind === 'assumption' && c.verdict !== 'supported') return { cls: 'border-amber-500/30 bg-amber-500/10 text-amber-300', icon: 'alert', label: 'Assumption' };
   return VERDICT[c.verdict] || VERDICT.mixed;
+}
+
+function engineLabel(engine) {
+  if (engine === 'tavily') return 'Tavily (independent search)';
+  if (engine === 'youcom-search') return 'You.com web search';
+  if (engine === 'youcom-research') return 'You.com research';
+  if (engine === 'youcom-fallback') return 'You.com finance research (deep fallback)';
+  return engine;
 }
 
 function fmtUSD(n) {
@@ -226,6 +235,11 @@ export default function MarketModelClient() {
         <div>
           <h1 className="text-2xl font-semibold text-white">Market model</h1>
           <p className="mt-1 text-sm text-slate-400">TAM → SAM → SOM for your business. Every number is sourced or an editable assumption.</p>
+          <SkillChipRow
+            className="mt-3"
+            size="md"
+            skills={[{ skill: 'you-finance' }, { skill: 'tavily' }, { skill: 'grok' }]}
+          />
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {model && (
@@ -346,16 +360,17 @@ function FactDrawer({ factCheck, currentTam, busy, error, onRerun, onApplyTam, o
           <p className="text-xs leading-relaxed text-slate-500">
             An independent research pass re-checks each figure the model asserts, against fresh sources. Judge for yourself.
           </p>
-          {factCheck?.engine && (
-            <p className="mt-1.5 text-[11px] text-slate-600">
-              Verified via {factCheck.engine === 'tavily' ? 'Tavily (independent search)' : factCheck.engine === 'youcom-fallback' ? 'You.com (fallback — set TAVILY_API_KEY for an independent check)' : factCheck.engine}
-            </p>
-          )}
-
           {error && <div className="mt-3 rounded-lg border border-rose-500/30 bg-rose-950/30 p-3 text-sm text-rose-300">{error}</div>}
 
           {busy && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-slate-400"><Spinner /> Independently re-researching your claims… (1–2 min)</div>
+            <div className="mt-4 space-y-3" role="status" aria-label="Fact-checking">
+              <p className="text-sm text-slate-400">Independently re-researching your claims…</p>
+              <div className="space-y-2">
+                <div className="shimmer h-4 w-2/5 rounded" />
+                <div className="shimmer h-20 w-full rounded-xl" />
+                <div className="shimmer h-16 w-full rounded-xl" />
+              </div>
+            </div>
           )}
 
           {!busy && !factCheck && !error && (
@@ -388,18 +403,13 @@ function FactDrawer({ factCheck, currentTam, busy, error, onRerun, onApplyTam, o
                 );
               })}
 
-              {(factCheck.sources || []).length > 0 && (
-                <div className="pt-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Verification sources</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {factCheck.sources.map((s, i) => (
-                      <a key={i} href={s.url} target="_blank" rel="noreferrer" className="chip border-ink-600 bg-ink-850 text-slate-300 hover:text-white">
-                        <Icon name="external" className="h-3 w-3" /> {(s.title || s.url || 'source').slice(0, 34)}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <SourceAttribution
+                attribution={factCheck.attribution}
+                sources={factCheck.sources}
+                skill={factCheck.skill}
+                skillLabel={factCheck.skillLabel}
+                engine={factCheck.engine}
+              />
               {factCheck.checkedAt && <p className="pt-1 text-[11px] text-slate-600">Checked {new Date(factCheck.checkedAt).toLocaleString()}</p>}
             </div>
           )}
@@ -859,17 +869,18 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
         </div>
       )}
 
-      {/* Sources */}
-      {(model.sources || []).length > 0 && (
+      {/* Sources + You.com skill */}
+      {(model.sources?.length || model.attribution) && (
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
           <h3 className="text-sm font-semibold text-white">Sources</h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {model.sources.map((s, i) => (
-              <a key={i} href={s.url} target="_blank" rel="noreferrer" className="chip border-ink-600 bg-ink-850 text-slate-300 hover:text-white">
-                <Icon name="external" className="h-3 w-3" /> {(s.title || s.url || 'source').slice(0, 40)}
-              </a>
-            ))}
-          </div>
+          <SourceAttribution
+            className="mt-1 border-0 pt-0"
+            attribution={model.attribution}
+            sources={model.sources}
+            skill={model.skill || 'you-finance'}
+            skillLabel={model.skillLabel || 'You.com Finance'}
+            engine={model.engine}
+          />
         </div>
       )}
     </div>

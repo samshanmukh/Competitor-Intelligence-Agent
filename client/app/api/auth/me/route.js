@@ -1,9 +1,19 @@
 // Same-origin proxy for the current InsForge user (avoids browser → InsForge).
+import { authBypassActiveForHost, DEV_BYPASS_TOKEN } from '../../../../lib/authBypass';
 
 export async function GET(request) {
   const auth = request.headers.get('authorization') || '';
   if (!auth) {
     return Response.json({ error: 'Missing authorization.' }, { status: 401 });
+  }
+
+  const host = request.headers.get('host') || '';
+  const hostname = host.split(':')[0];
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (authBypassActiveForHost(hostname) && token === DEV_BYPASS_TOKEN) {
+    return Response.json({
+      user: { id: 'local-dev-user', email: 'dev@localhost', emailVerified: true },
+    });
   }
 
   // proxyInsforge always sends the anon key; forward the user bearer instead.

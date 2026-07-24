@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
-import { LabShell } from './labs/LabShell';
+import { EmptyState, Icon, useToast } from './ui';
+import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
+import { SourceAttribution } from './SourceAttribution';
 
 export default function InvestorClient() {
   const [result, setResult] = useState(null);
@@ -28,9 +29,12 @@ export default function InvestorClient() {
   const generate = async () => {
     setGenerating(true);
     try {
-      const res = await api.generateInvestorOnepager();
+      const res = await api.generateInvestorOnepager({ enrich: true });
       setResult(res.result || null);
-      toast({ type: 'success', title: 'One-pager ready' });
+      toast({
+        type: 'success',
+        title: res.result?.enriched ? 'One-pager ready (finance-enriched)' : 'One-pager ready',
+      });
     } catch (err) {
       toast({ type: 'error', title: 'Could not generate one-pager', message: err.message });
     } finally {
@@ -53,27 +57,52 @@ export default function InvestorClient() {
   return (
     <LabShell
       title="Investor one-pager"
-      subtitle="Convert competitive context into a crisp fundraising memo."
-      action={<div className="flex gap-2">
-        {result && <button onClick={copy} className="btn-ghost text-sm"><Icon name="copy" className="h-4 w-4" />{copied ? 'Copied' : 'Copy markdown'}</button>}
-        <button onClick={generate} disabled={generating} className="btn-primary text-sm">
-          {generating ? <Spinner /> : <Icon name="sparkle" className="h-4 w-4" />}
-          {generating ? 'Generating...' : 'Generate'}
-        </button>
-      </div>}
+      subtitle="Fundraising memo enriched with You.com finance research on market size, peers, and funding context."
+      skills={[{ skill: 'you-finance' }, { skill: 'grok' }]}
+      action={(
+        <div className="flex gap-2">
+          {result && (
+            <button onClick={copy} className="btn-ghost text-sm">
+              <Icon name="copy" className="h-4 w-4" />
+              {copied ? 'Copied' : 'Copy markdown'}
+            </button>
+          )}
+          <button onClick={generate} disabled={generating} className="btn-primary text-sm">
+            <Icon name={generating ? 'refresh' : 'sparkle'} className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
+            {generating ? 'Researching…' : 'Generate'}
+          </button>
+        </div>
+      )}
     >
-      {loading ? (
-        <div className="space-y-3"><Skeleton className="h-20" /><Skeleton className="h-72" /></div>
-      ) : !result ? (
+      {generating && (
+        <LabPanel title="Building memo">
+          <p className="mb-4 text-xs text-slate-500">Finance research can take 1–3 minutes, then the memo drafts.</p>
+          <LabShimmerBlock rows={4} />
+        </LabPanel>
+      )}
+
+      {!generating && loading ? (
+        <LabPanel><LabShimmerBlock rows={3} /></LabPanel>
+      ) : !generating && !result ? (
         <EmptyState icon="bar" title="No investor memo yet" action={<button onClick={generate} className="btn-primary">Generate one-pager</button>}>
-          Create a first draft from your product, competitors, and market signals.
+          Create a first draft from your product, competitors, and finance signals.
         </EmptyState>
-      ) : (
+      ) : !generating && result ? (
         <div className="space-y-4">
-          <section className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Headline</p>
-            <h2 className="mt-2 text-xl font-semibold text-white">{result.headline}</h2>
-          </section>
+          <LabPanel
+            title="Headline"
+            ready
+            skills={result.enriched ? [{ skill: 'you-finance' }, { skill: 'grok' }] : [{ skill: 'grok' }]}
+          >
+            <h2 className="text-xl font-semibold text-white">{result.headline}</h2>
+            <SourceAttribution
+              attribution={result.attribution}
+              sources={result.sources}
+              skill={result.skill || (result.enriched ? 'you-finance' : 'grok')}
+              skillLabel={result.skillLabel}
+              engine={result.financeEngine}
+            />
+          </LabPanel>
           <div className="grid gap-3 sm:grid-cols-2">
             <MemoBlock title="Problem" body={result.problem} />
             <MemoBlock title="Solution" body={result.solution} />
@@ -82,25 +111,30 @@ export default function InvestorClient() {
             <MemoBlock title="Differentiation" body={result.differentiation} />
             <MemoBlock title="Ask" body={result.ask} />
           </div>
+          {result.financeHighlights?.length > 0 && (
+            <LabPanel title="Finance highlights" ready>
+              <ul className="space-y-2 text-sm text-slate-400">
+                {result.financeHighlights.map((h, i) => <li key={i}>• {h}</li>)}
+              </ul>
+            </LabPanel>
+          )}
           {result.risks?.length > 0 && (
-            <section className="card p-5">
-              <h2 className="text-sm font-semibold text-white">Risks</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+            <LabPanel title="Risks">
+              <ul className="space-y-2 text-sm text-slate-400">
                 {result.risks.map((risk, i) => <li key={i}>- {risk}</li>)}
               </ul>
-            </section>
+            </LabPanel>
           )}
-          <section className="card p-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-white">Markdown</h2>
+          <LabPanel title="Markdown">
+            <div className="mb-3 flex justify-end">
               <button onClick={copy} className="btn-ghost py-1.5 px-2 text-xs">{copied ? 'Copied' : 'Copy'}</button>
             </div>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-ink-700 bg-ink-950 p-4 text-xs leading-relaxed text-slate-300">
+            <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-ink-700 bg-ink-950/60 p-4 text-xs leading-relaxed text-slate-300">
               {result.markdown || toMarkdown(result)}
             </pre>
-          </section>
+          </LabPanel>
         </div>
-      )}
+      ) : null}
     </LabShell>
   );
 }
@@ -108,10 +142,9 @@ export default function InvestorClient() {
 function MemoBlock({ title, body }) {
   if (!body) return null;
   return (
-    <section className="card p-5">
-      <h2 className="text-sm font-semibold text-white">{title}</h2>
-      <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
-    </section>
+    <LabPanel title={title}>
+      <p className="text-sm leading-relaxed text-slate-400">{body}</p>
+    </LabPanel>
   );
 }
 

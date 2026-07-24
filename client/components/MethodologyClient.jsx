@@ -33,7 +33,7 @@ export default function MethodologyClient() {
 
           <div className="mt-8 space-y-6">
             {(doc?.sections || []).map((section, i) => (
-              <section key={i} className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
+              <section key={i} className="glass rounded-2xl p-5">
                 <h2 className="text-sm font-semibold text-white">{section.heading}</h2>
                 {section.body && <p className="mt-2 text-sm leading-relaxed text-slate-400">{section.body}</p>}
                 {section.bullets?.length > 0 && (

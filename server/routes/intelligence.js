@@ -4,8 +4,7 @@ import insforge, { getCompetitor, listSnapshots, getLatestSnapshot, listCompetit
 import { getProduct } from '../db/products.js';
 import { getMarketModel, saveMarketModel, insertModelHistory, getModelHistory } from '../db/marketModel.js';
 import { completeJSON, complete } from '../services/ai.js';
-import { research, financeResearch, fetchContents } from '../services/youcom.js';
-import { crunchbaseFunding } from '../services/apify.js';
+import { research, financeResearch, fetchContents, webSearch } from '../services/youcom.js';
 import { tavilySearch, tavilyConfigured } from '../services/tavily.js';
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
 import { sendPushToWorkspace } from '../services/push.js';
@@ -26,6 +25,8 @@ import {
   syndicatedSnapshotKey,
 } from '../services/syndicatedShare.js';
 import { sendMarketShiftWebhook } from '../services/alerts.js';
+import { getWorkspaceJson, setWorkspaceJson } from '../services/workspaceStore.js';
+import { makeAttribution } from '../services/attribution.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -313,7 +314,16 @@ RESEARCH:
 ${researchText}`,
         maxTokens: 700,
       });
-      reviews.push({ name: c.name, id: c.id, ...(summary || { sentiment: null }) });
+      const attribution = makeAttribution('youcom-research', payload, { limit: 6 });
+      reviews.push({
+        name: c.name,
+        id: c.id,
+        ...(summary || { sentiment: null }),
+        attribution,
+        sources: attribution.sources,
+        skill: attribution.skill,
+        skillLabel: attribution.skillLabel,
+      });
     } catch (err) {
       reviews.push({ name: c.name, id: c.id, sentiment: null, error: err.message });
     }
@@ -456,7 +466,7 @@ ${researchText}`,
   });
 
   if (!structured) return null;
-  const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
+  const attribution = makeAttribution('youcom-finance', payload, { limit: 10 });
 
   // Grok returns { market: {size_current,cagr,history,summary}, companies, narrative }.
   // Flatten to the shape the UI expects (tolerating either nesting).
@@ -467,7 +477,10 @@ ${researchText}`,
     history: Array.isArray(m.history) ? m.history : [],
     summary: m.summary ?? null,
     narrative: structured.narrative ?? null,
-    sources,
+    sources: attribution.sources,
+    attribution,
+    skill: attribution.skill,
+    skillLabel: attribution.skillLabel,
   };
 
   let companies = (Array.isArray(structured.companies) ? structured.companies : []).map((c) => ({
@@ -550,7 +563,7 @@ ${researchText}`,
     pulse,
     signals: {
       traffic_configured: trafficResult.meta?.configured,
-      traffic_fetched: trafficResult.meta?.apify_fetched,
+      traffic_fetched: trafficResult.meta?.research ?? trafficResult.meta?.total ?? 0,
       traffic_meta: trafficResult.meta,
     },
   };
@@ -842,7 +855,8 @@ Cite sources for each figure.`;
   const payload = await financeResearch(input, 'deep');
   const text = flattenResearch(payload).slice(0, 12000);
   if (!text) return null;
-  const sources = (payload?.output?.sources || []).slice(0, 8).map((s) => ({ title: s.title, url: s.url }));
+  const attribution = makeAttribution('youcom-finance', payload, { limit: 10 });
+  const sources = attribution.sources;
 
   const structured = await completeJSON({
     system:
@@ -891,6 +905,10 @@ ${text}`,
   const model = buildModel(structured, sources);
   model.category = model.category || category;
   model.icp = model.icp || icp;
+  model.attribution = attribution;
+  model.skill = attribution.skill;
+  model.skillLabel = attribution.skillLabel;
+  model.engine = attribution.engine;
 
   // Build-time self-verify: cross-check TAM and auto-correct toward the sourced
   // figure, so the first render is already grounded (no manual Apply needed).
@@ -1012,6 +1030,35 @@ async function runFactCheck(workspaceId) {
       console.error('[fact-check] Tavily failed, falling back:', err.message);
     }
   }
+  // Cheap you-web pass before expensive finance_research.
+  if (!evidence) {
+    try {
+      const cat = model.category || name;
+      const icp = model.icp || 'target customers';
+      const queries = [`${cat} market size TAM growth${geo}`];
+      if (model.bottom_up?.customers) queries.push(`number of ${icp}${geo}`);
+      if (acvStr) queries.push(`${cat} typical annual price per customer`);
+      const results = (await Promise.all(
+        queries.slice(0, 3).map((q) => webSearch(q.slice(0, 380), { count: 6 }).catch(() => null))
+      )).filter((r) => r?.text);
+      if (results.length) {
+        const parts = [];
+        const seen = new Set();
+        for (const r of results) {
+          if (r.text) parts.push(r.text);
+          for (const it of r.sources || []) {
+            if (!it.url || seen.has(it.url)) continue;
+            seen.add(it.url);
+            if (sources.length < 10) sources.push({ title: it.title, url: it.url });
+          }
+        }
+        evidence = parts.join('\n\n').slice(0, 12000);
+        if (evidence) engine = results[0]?.engine || 'youcom-search';
+      }
+    } catch (err) {
+      console.error('[fact-check] you-web pass failed, falling back to finance:', err.message);
+    }
+  }
   if (!evidence) {
     const payload = await financeResearch(`Independently verify these claims about "${name}"${geo}: ${claims.join(' ')}. Provide concrete numbers and cite sources.`, 'deep');
     evidence = flattenResearch(payload).slice(0, 12000);
@@ -1058,28 +1105,21 @@ Rules: "supported" only if the research corroborates the figure or its order of 
     });
   }
 
-  // Structured spot-check: independent funding/valuation via Apify (best-effort).
-  try {
-    const funding = await crunchbaseFunding(name);
-    if (funding && (funding.funding || funding.valuation)) {
-      checks.push({
-        claim: `Market validation: ${name} funding/valuation`,
-        verdict: 'supported',
-        finding: `Crunchbase: ${[funding.funding && `raised ${funding.funding}`, funding.valuation && `valuation ${funding.valuation}`].filter(Boolean).join(', ')}.`,
-        confidence: 'high',
-        kind: 'market',
-        source: 'apify',
-      });
-      if (funding.url) sources.push({ title: 'Crunchbase (via Apify)', url: funding.url });
-    }
-  } catch { /* best-effort */ }
+  const attribution = makeAttribution(
+    engine === 'tavily' ? 'tavily' : engine || 'youcom-finance',
+    sources,
+    { limit: 10 }
+  );
 
   return {
     checks,
     overall: structured.overall || null,
     suggested_tam_usd: toNum(structured.suggested_tam_usd) || null,
-    sources,
+    sources: attribution.sources.length ? attribution.sources : sources,
     engine,
+    attribution,
+    skill: attribution.skill,
+    skillLabel: attribution.skillLabel,
     checkedAt: new Date().toISOString(),
   };
 }
@@ -1223,6 +1263,25 @@ router.put('/market-model', requireAuth, resolveWorkspace, wrap(async (req, res)
   const product = await getProduct(req.workspaceId);
   await saveMarketModel(req.workspaceId, product?.id, model);
   res.json({ model });
+}));
+
+// Latest full analysis snapshot for the Analysis page (auto-restored on revisit).
+router.get('/analysis-latest', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const result = await getWorkspaceJson(req.workspaceId, 'analysis-latest', null);
+  res.json({ result });
+}));
+
+router.put('/analysis-latest', requireAuth, resolveWorkspace, wrap(async (req, res) => {
+  const content = req.body?.content;
+  if (!content || typeof content !== 'object') {
+    return res.status(400).json({ error: 'content object required' });
+  }
+  const packed = {
+    ...content,
+    savedAt: new Date().toISOString(),
+  };
+  await setWorkspaceJson(req.workspaceId, 'analysis-latest', packed);
+  res.json({ result: packed });
 }));
 
 export default router;

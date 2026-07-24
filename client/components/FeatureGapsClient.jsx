@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
-import { LabShell } from './labs/LabShell';
+import { EmptyState, Icon, useToast } from './ui';
+import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
 
 const SEVERITY = {
   high: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
@@ -48,22 +48,28 @@ export default function FeatureGapsClient() {
       title="Feature gaps"
       subtitle="Spot missing capabilities and where competitors may be pulling ahead."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
-        {generating ? <Spinner /> : <Icon name="grid" className="h-4 w-4" />}
+        <Icon name={generating ? 'refresh' : 'grid'} className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
         {generating ? 'Scanning...' : 'Generate gaps'}
       </button>}
     >
-      {loading ? (
-        <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>
-      ) : !result ? (
+      {generating && (
+        <LabPanel title="Scanning gaps">
+          <LabShimmerBlock rows={3} />
+        </LabPanel>
+      )}
+
+      {!generating && loading ? (
+        <LabPanel><LabShimmerBlock rows={3} /></LabPanel>
+      ) : !generating && !result ? (
         <EmptyState icon="grid" title="No feature gap scan yet">Generate a radar from competitor notes, positioning, and recent changes.</EmptyState>
-      ) : (
+      ) : !generating && result ? (
         <div className="space-y-4">
           {result.summary && (
-            <section className="card p-5">
+            <LabPanel>
               <p className="text-sm leading-relaxed text-slate-300">{result.summary}</p>
-            </section>
+            </LabPanel>
           )}
-          <section className="card overflow-hidden">
+          <LabPanel className="overflow-hidden !p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-ink-700 text-xs uppercase tracking-wide text-slate-500">
@@ -88,17 +94,16 @@ export default function FeatureGapsClient() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </LabPanel>
           {result.quickWins?.length > 0 && (
-            <section className="card p-5">
-              <h2 className="text-sm font-semibold text-white">Quick wins</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+            <LabPanel title="Quick wins">
+              <ul className="space-y-2 text-sm text-slate-400">
                 {result.quickWins.map((item, i) => <li key={i}>- {item}</li>)}
               </ul>
-            </section>
+            </LabPanel>
           )}
         </div>
-      )}
+      ) : null}
     </LabShell>
   );
 }

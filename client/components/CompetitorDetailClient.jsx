@@ -278,8 +278,8 @@ export default function CompetitorDetailClient({ id }) {
           <div className="space-y-2">
             <p className="text-xs text-slate-500 flex items-center gap-2">
               Captured {timeAgo(latestSnapshot.fetched_at)}
-              {latestSnapshot.source === 'apify' && (
-                <span className="chip border-ink-700 bg-ink-850 text-slate-400 text-[10px]">via Apify</span>
+              {latestSnapshot.source && latestSnapshot.source !== 'youcom' && (
+                <span className="chip border-ink-700 bg-ink-850 text-slate-400 text-[10px]">via {latestSnapshot.source}</span>
               )}
             </p>
             <pre className="card max-h-[600px] overflow-auto whitespace-pre-wrap p-5 font-mono text-xs leading-relaxed text-slate-300">

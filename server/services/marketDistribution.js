@@ -66,13 +66,13 @@ function countSignalTypes(items) {
 /**
  * @param {object} [signals]
  * @param {Record<string, number>} [signals.trafficByName] — monthly visits keyed by lowercase name
- * @param {Record<string, 'apify'|'research'|'relative'>} [signals.trafficKinds]
+ * @param {Record<string, 'research'|'relative'>} [signals.trafficKinds]
  * @param {Record<string, { count?: number, rating?: number }>} [signals.reviewByName]
  */
 export function computeMarketDistribution(companies, tamUsd, tamSource = null, signals = {}) {
   const { trafficByName = {}, trafficKinds = {}, reviewByName = {} } = signals;
 
-  const absoluteTrafficCount = Object.values(trafficKinds).filter((k) => k === 'apify' || k === 'research').length;
+  const absoluteTrafficCount = Object.values(trafficKinds).filter((k) => k === 'research').length;
   const relativeTrafficCount = Object.values(trafficKinds).filter((k) => k === 'relative').length;
   const weights =
     relativeTrafficCount > absoluteTrafficCount ? WEIGHTS_RELATIVE_TRAFFIC : WEIGHTS;
@@ -194,7 +194,6 @@ function disclaimerFor(method, signalCounts, tamUsd, trafficMeta) {
     if (signalCounts.traffic) parts.push('web traffic');
     if (signalCounts.reviews) parts.push('review activity');
     let extra = '';
-    if (trafficMeta?.apify_fetched) extra += ` Apify/SimilarWeb: ${trafficMeta.apify_fetched} domains.`;
     if (trafficMeta?.research) extra += ` Research traffic: ${trafficMeta.research}.`;
     return `Triangulated presence from ${parts.join(', ')} — directional estimates, not syndicated market share.${
       tamUsd ? ' TAM-based revenue share shown where available.' : ''

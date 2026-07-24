@@ -11,6 +11,8 @@ import {
   pushNotification,
 } from '../services/workspaceStore.js';
 import { distributionSnapshotKey } from '../services/marketDistribution.js';
+import { webSearch, research, financeResearch, flattenYouPayload } from '../services/youcom.js';
+import { makeAttribution } from '../services/attribution.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -209,6 +211,89 @@ router.delete('/evidence', wrap(async (req, res) => {
   res.json({ ok: true, items: [] });
 }));
 
+/** Research proof points via cheap you-web search; returns candidates (not yet saved). */
+router.post('/evidence/research', wrap(async (req, res) => {
+  const { query, competitor, theme } = req.body || {};
+  const q = String(query || '').trim();
+  if (!q) return res.status(400).json({ error: 'query required' });
+
+  const ctx = await loadContext(req.workspaceId);
+  const productName = ctx.product?.name || 'our product';
+  const focus = [competitor, theme].filter(Boolean).join(' · ');
+  const searchQuery = [
+    q,
+    competitor ? `about ${competitor}` : '',
+    theme ? `theme:${theme}` : '',
+    `vs ${productName}`,
+    'buyer reviews pricing complaints quotes',
+  ].filter(Boolean).join(' ').slice(0, 380);
+
+  const hit = await webSearch(searchQuery, { count: 10 });
+  const evidenceText = (hit.text || '').slice(0, 10000);
+  if (!evidenceText) return res.status(502).json({ error: 'No research results. Try a more specific query.' });
+
+  const structured = await completeJSON({
+    system: `Extract reusable competitive evidence quotes from web research. Return ONLY valid JSON:
+{ "candidates": [{ "quote": string, "source": string|null, "theme": string|null, "competitor": string|null, "sentiment": "positive"|"neutral"|"negative" }] }
+Rules: max 6 candidates; quotes must be concrete (numbers, buyer language, product claims); prefer attributable sources; skip fluff.`,
+    user: JSON.stringify({
+      query: q,
+      competitor: competitor || null,
+      theme: theme || null,
+      product: productName,
+      focus: focus || null,
+      research: evidenceText,
+      sources: (hit.sources || []).slice(0, 10),
+    }),
+    maxTokens: 1800,
+  });
+
+  const candidates = (structured?.candidates || []).slice(0, 6).map((c, i) => ({
+    id: `cand-${Date.now()}-${i}`,
+    quote: String(c.quote || '').trim(),
+    source: c.source || hit.sources?.[i]?.url || hit.sources?.[i]?.title || null,
+    theme: c.theme || theme || null,
+    competitor: c.competitor || competitor || null,
+    sentiment: ['positive', 'neutral', 'negative'].includes(c.sentiment) ? c.sentiment : 'neutral',
+  })).filter((c) => c.quote);
+
+  const attribution = makeAttribution(hit.engine || 'youcom-search', hit, { limit: 10 });
+  await trackUsage(req.workspaceId, 'evidence_research');
+  res.json({
+    candidates,
+    engine: attribution.engine,
+    skill: attribution.skill,
+    skillLabel: attribution.skillLabel,
+    sources: attribution.sources,
+    attribution,
+  });
+}));
+
+/** Persist selected research candidates into the evidence locker. */
+router.post('/evidence/save-batch', wrap(async (req, res) => {
+  const list = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (!list.length) return res.status(400).json({ error: 'items required' });
+  let items = (await getWorkspaceJson(req.workspaceId, 'evidence', [])) || [];
+  const saved = [];
+  for (const raw of list.slice(0, 20)) {
+    const quote = String(raw.quote || '').trim();
+    if (!quote) continue;
+    const item = {
+      id: `${Date.now()}-${saved.length}`,
+      at: new Date().toISOString(),
+      quote,
+      source: raw.source || null,
+      theme: raw.theme || null,
+      competitor: raw.competitor || null,
+      sentiment: raw.sentiment || 'neutral',
+    };
+    items = [item, ...items].slice(0, 200);
+    saved.push(item);
+  }
+  await setWorkspaceJson(req.workspaceId, 'evidence', items);
+  res.json({ saved, items });
+}));
+
 // ─── War room ───────────────────────────────────────────────────────────────
 router.get('/war-room', wrap(async (req, res) => {
   res.json({ deals: (await getWorkspaceJson(req.workspaceId, 'war-room', [])) || [] });
@@ -251,6 +336,66 @@ router.delete('/war-room', wrap(async (req, res) => {
   res.json({ ok: true, deals: [] });
 }));
 
+/** Live talk track via you-research — updates the deal card in place. */
+router.post('/war-room/:id/talk-track', wrap(async (req, res) => {
+  const deals = (await getWorkspaceJson(req.workspaceId, 'war-room', [])) || [];
+  const deal = deals.find((d) => d.id === req.params.id);
+  if (!deal) return res.status(404).json({ error: 'Deal not found' });
+
+  const ctx = await loadContext(req.workspaceId);
+  const productName = ctx.product?.name || 'our product';
+  const competitor = deal.competitor || req.body?.competitor || 'the competitor';
+  const researchQ = [
+    `Competitive sales talk track for ${productName} vs ${competitor}`,
+    `Deal stage: ${deal.stage || 'discovery'}`,
+    deal.notes ? `Deal notes: ${deal.notes}` : '',
+    'Include objection handlers, differentiation, and what to say if buyer prefers competitor.',
+  ].filter(Boolean).join('\n');
+
+  const payload = await research(researchQ, { effort: 'standard' });
+  const researchText = flattenYouPayload(payload).slice(0, 12000);
+  if (!researchText) return res.status(502).json({ error: 'Research returned empty. Try again.' });
+
+  const structured = await completeJSON({
+    system: `Write a concise live sales talk track. Return ONLY valid JSON:
+{ "talkTrack": string, "objections": string[], "openers": string[], "landmines": string[] }
+talkTrack should be 4–8 short paragraphs the AE can read aloud. Be specific to the competitor.`,
+    user: JSON.stringify({
+      product: ctx.product,
+      deal: { title: deal.title, competitor, stage: deal.stage, notes: deal.notes },
+      research: researchText,
+    }),
+    maxTokens: 1600,
+  });
+
+  const talkTrack = String(structured?.talkTrack || '').trim();
+  if (!talkTrack) return res.status(502).json({ error: 'Could not generate talk track' });
+
+  const attribution = makeAttribution('youcom-research', payload, { limit: 8 });
+  const next = deals.map((d) => {
+    if (d.id !== deal.id) return d;
+    return {
+      ...d,
+      talkTrack,
+      talkTrackMeta: {
+        objections: structured?.objections || [],
+        openers: structured?.openers || [],
+        landmines: structured?.landmines || [],
+        generatedAt: new Date().toISOString(),
+        engine: attribution.engine,
+        skill: attribution.skill,
+        skillLabel: attribution.skillLabel,
+        sources: attribution.sources,
+        attribution,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  await setWorkspaceJson(req.workspaceId, 'war-room', next);
+  await trackUsage(req.workspaceId, 'war_room_talk_track');
+  res.json({ deal: next.find((d) => d.id === deal.id), deals: next });
+}));
+
 // ─── Market entry checklist ─────────────────────────────────────────────────
 router.post('/market-entry', wrap(async (req, res) => {
   const { geography, segment } = req.body || {};
@@ -284,20 +429,55 @@ router.get('/market-entry', wrap(async (req, res) => {
 // ─── Investor one-pager ─────────────────────────────────────────────────────
 router.post('/investor-onepager', wrap(async (req, res) => {
   const ctx = await loadContext(req.workspaceId);
+  const enrich = req.body?.enrich !== false;
+  const productName = ctx.product?.name || 'the company';
+  let financeBrief = null;
+  let financeEngine = null;
+
+  let financeAttribution = null;
+  if (enrich) {
+    try {
+      const peers = ctx.competitors.slice(0, 4).map((c) => c.name).filter(Boolean).join(', ');
+      const input = [
+        `Investor market + funding brief for ${productName}`,
+        ctx.product?.category ? `Category: ${ctx.product.category}` : '',
+        peers ? `Notable competitors: ${peers}` : '',
+        'Include TAM/SAM if available, category growth, comparable funding/valuations, and credible sources.',
+      ].filter(Boolean).join('\n');
+      const payload = await financeResearch(input, 'deep');
+      financeBrief = flattenYouPayload(payload).slice(0, 10000);
+      financeEngine = 'youcom-finance';
+      financeAttribution = makeAttribution('youcom-finance', payload, { limit: 10 });
+    } catch (err) {
+      console.error('[investor-onepager] finance enrich failed:', err.message);
+    }
+  }
+
   const result = await completeJSON({
     system: `Write an investor-ready one-pager as JSON:
-{ "headline": string, "problem": string, "solution": string, "market": string, "competition": string, "differentiation": string, "tractionPlaceholder": string, "risks": string[], "ask": string, "markdown": string }
-markdown should be a clean 1-page memo.`,
+{ "headline": string, "problem": string, "solution": string, "market": string, "competition": string, "differentiation": string, "tractionPlaceholder": string, "risks": string[], "ask": string, "markdown": string, "financeHighlights": string[] }
+markdown should be a clean 1-page memo. Use financeBrief numbers when present; otherwise mark as estimates.`,
     user: JSON.stringify({
       product: ctx.product,
       competitors: ctx.competitors.map((c) => ({ name: c.name, notes: c.notes })),
       distribution: ctx.distribution,
+      financeBrief,
     }),
-    maxTokens: 2500,
+    maxTokens: 2800,
   });
-  await setWorkspaceJson(req.workspaceId, 'investor-onepager-latest', { ...result, generatedAt: new Date().toISOString() });
+  const packed = {
+    ...result,
+    generatedAt: new Date().toISOString(),
+    financeEngine,
+    enriched: Boolean(financeBrief),
+    attribution: financeAttribution,
+    skill: financeAttribution?.skill || null,
+    skillLabel: financeAttribution?.skillLabel || null,
+    sources: financeAttribution?.sources || [],
+  };
+  await setWorkspaceJson(req.workspaceId, 'investor-onepager-latest', packed);
   await trackUsage(req.workspaceId, 'investor_onepager');
-  res.json({ result });
+  res.json({ result: packed });
 }));
 
 router.get('/investor-onepager', wrap(async (req, res) => {

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
-import { LabShell } from './labs/LabShell';
+import { EmptyState, Icon, useToast } from './ui';
+import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
 
 export default function PositioningLabClient() {
   const [result, setResult] = useState(null);
@@ -43,24 +43,30 @@ export default function PositioningLabClient() {
       title="Positioning lab"
       subtitle="Pressure-test three ways to explain why your product should win."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
-        {generating ? <Spinner /> : <Icon name="sparkle" className="h-4 w-4" />}
+        <Icon name={generating ? 'refresh' : 'sparkle'} className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
         {generating ? 'Generating...' : 'Generate options'}
       </button>}
     >
-      <section className="card p-5">
+      <LabPanel>
         <label htmlFor="positioning-focus" className="label">Focus (optional)</label>
         <input id="positioning-focus" className="input" value={focus} onChange={(e) => setFocus(e.target.value)} placeholder="Example: enterprise security buyers, PLG teams, AI-native category" />
-      </section>
+      </LabPanel>
 
-      {loading ? (
-        <div className="grid gap-3 md:grid-cols-3"><Skeleton className="h-56" /><Skeleton className="h-56" /><Skeleton className="h-56" /></div>
-      ) : !result ? (
+      {generating && (
+        <LabPanel title="Generating options">
+          <LabShimmerBlock rows={3} />
+        </LabPanel>
+      )}
+
+      {!generating && loading ? (
+        <LabPanel><LabShimmerBlock rows={3} /></LabPanel>
+      ) : !generating && !result ? (
         <EmptyState icon="sparkle" title="No positioning run yet">Generate three distinct options with scores, risks, and messaging guidance.</EmptyState>
-      ) : (
+      ) : !generating && result ? (
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
             {(result.options || []).slice(0, 3).map((option, i) => (
-              <section key={option.name || i} className="card p-4">
+              <LabPanel key={option.name || i} className="!p-4">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-sm font-semibold text-white">{option.name || `Option ${i + 1}`}</h2>
                   <span className="chip border-accent/30 bg-accent/10 text-accent-soft">{option.score || '-'} / 10</span>
@@ -71,15 +77,14 @@ export default function PositioningLabClient() {
                 <p className="mt-3 text-xs text-slate-500">Differentiation</p>
                 <p className="text-sm text-slate-400">{option.differentiation}</p>
                 {option.why && <p className="mt-3 text-sm text-slate-500">{option.why}</p>}
-              </section>
+              </LabPanel>
             ))}
           </div>
 
           {result.recommendation && (
-            <section className="card p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recommendation</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{result.recommendation}</p>
-            </section>
+            <LabPanel title="Recommendation">
+              <p className="text-sm leading-relaxed text-slate-300">{result.recommendation}</p>
+            </LabPanel>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -87,7 +92,7 @@ export default function PositioningLabClient() {
             <ListCard title="Do not" items={result.messagingDont} />
           </div>
         </div>
-      )}
+      ) : null}
     </LabShell>
   );
 }
@@ -95,11 +100,10 @@ export default function PositioningLabClient() {
 function ListCard({ title, items = [] }) {
   if (!items.length) return null;
   return (
-    <section className="card p-5">
-      <h2 className="text-sm font-semibold text-white">{title}</h2>
-      <ul className="mt-3 space-y-2 text-sm text-slate-400">
+    <LabPanel title={title}>
+      <ul className="space-y-2 text-sm text-slate-400">
         {items.map((item, i) => <li key={i}>- {item}</li>)}
       </ul>
-    </section>
+    </LabPanel>
   );
 }

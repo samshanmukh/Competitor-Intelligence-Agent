@@ -102,9 +102,14 @@ export function CompanyLogo({
   );
 }
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
+// ─── Skeleton / Shimmer ──────────────────────────────────────────────────────
 export function Skeleton({ className = '' }) {
-  return <div className={`animate-pulse rounded-lg bg-ink-800 ${className}`} />;
+  return <div className={`shimmer rounded-lg ${className}`} />;
+}
+
+/** Sweeping shimmer block (preferred over spinners for progressive loads). */
+export function Shimmer({ className = '' }) {
+  return <div className={`shimmer rounded-lg ${className}`} aria-hidden="true" />;
 }
 
 // ─── Impact Badge ────────────────────────────────────────────────────────────
@@ -142,7 +147,7 @@ export function ValueScore({ score }) {
 export function EmptyState({ icon = 'radar', title, children, action }) {
   return (
     <div className="card flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-ink-700 bg-ink-850 text-accent-soft">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-accent-soft backdrop-blur-md">
         <Icon name={icon} className="h-6 w-6" />
       </div>
       <h3 className="text-lg font-semibold text-white">{title}</h3>
@@ -215,7 +220,7 @@ export function TabBar({ tabs, active, onChange }) {
       <div
         role="tablist"
         aria-label="View options"
-        className="inline-flex min-w-full items-center gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1 sm:min-w-0 sm:w-fit"
+        className="inline-flex min-w-full items-center gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1 backdrop-blur-xl sm:min-w-0 sm:w-fit"
       >
         {tabs.map((t, index) => (
           <button
@@ -231,7 +236,7 @@ export function TabBar({ tabs, active, onChange }) {
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={`flex shrink-0 touch-manipulation items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition sm:px-3 sm:py-1.5 ${
               active === t.id
-                ? 'bg-ink-700 text-white shadow-sm'
+                ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -239,7 +244,7 @@ export function TabBar({ tabs, active, onChange }) {
             <span>{t.label}</span>
             {t.count != null && (
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                active === t.id ? 'bg-ink-600 text-slate-200' : 'bg-ink-800 text-slate-500'
+                active === t.id ? 'bg-white/15 text-slate-200' : 'bg-white/5 text-slate-500'
               }`}>
                 {t.count}
               </span>
@@ -311,7 +316,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/45 p-4 backdrop-blur-xl"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div
@@ -320,11 +325,11 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`relative ${width} max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain card shadow-2xl`}
+        className={`relative ${width} max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain glass-strong rounded-2xl shadow-2xl`}
       >
-        <div className="flex items-center justify-between border-b border-ink-700 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <h2 id={titleId} className="text-base font-semibold text-white">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-1 text-slate-500 transition hover:bg-ink-800 hover:text-white">
+          <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-lg p-1 text-slate-500 transition hover:bg-white/10 hover:text-white">
             <Icon name="x" className="h-4 w-4" />
           </button>
         </div>

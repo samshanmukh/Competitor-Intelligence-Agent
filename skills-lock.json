@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "you-finance": {
+      "source": "youdotcom-oss/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/you-finance/SKILL.md",
+      "computedHash": "bd04dbf7fb08e0c0359e4e1a61953bba19972e7d235f3a9696fbac9ec8d9f94e"
+    },
+    "you-research": {
+      "source": "youdotcom-oss/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/you-research/SKILL.md",
+      "computedHash": "b9434b6b9b87932f1b6b36f035fba8df42660cd21aa1eb172cbc47bfbee8e0f1"
+    },
+    "you-web": {
+      "source": "youdotcom-oss/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/you-web/SKILL.md",
+      "computedHash": "54054af6c62ae6bc18e6586f5f676b3477056c38f76fed7d33311b9c07ab23cf"
+    }
+  }
+}

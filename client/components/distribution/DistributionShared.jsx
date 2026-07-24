@@ -52,8 +52,8 @@ export function DistributionMetaChips({ distribution, trafficMeta, compact }) {
       {distribution.tam_source === 'market_model' && (
         <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">TAM from market model</span>
       )}
-      {tm?.apify_fetched > 0 && (
-        <span className="chip border-ink-700 bg-ink-850">SimilarWeb: {tm.apify_fetched}</span>
+      {tm?.research > 0 && (
+        <span className="chip border-ink-700 bg-ink-850">Traffic signals: {tm.research}</span>
       )}
       {tm?.research > 0 && (
         <span className="chip border-ink-700 bg-ink-850">Research traffic: {tm.research}</span>
@@ -132,7 +132,7 @@ export function PresenceChart({ distribution, limit = 10, barHeight = 'h-3', nam
                 {item.signals.traffic != null && (
                   <span>
                     Traffic {item.signals.traffic}
-                    {item.signals.traffic_kind === 'apify' && ' (SW)'}
+                    {item.signals.traffic_kind === 'research' && ' (research)'}
                     {item.signals.traffic_kind === 'research' && ' (src)'}
                     {item.signals.traffic_kind === 'relative' && ' (est)'}
                   </span>

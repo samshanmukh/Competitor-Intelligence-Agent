@@ -1,29 +1,5 @@
-// Multi-tier traffic resolution: research → Apify (SimilarWeb) → relative rank proxy.
-// Apify is used when configured (best absolute visits); research fills gaps for all competitors.
-
-import { apifyConfigured, getWebsiteTraffic } from './apify.js';
-
-const CACHE_MS = 7 * 86400000;
-const cache = new Map();
-
-function domainFromUrl(url) {
-  if (!url) return null;
-  try {
-    return new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.replace(/^www\./, '');
-  } catch {
-    return String(url).replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '') || null;
-  }
-}
-
-function cacheGet(key) {
-  const hit = cache.get(key);
-  if (hit && hit.expiresAt > Date.now()) return hit.value;
-  return null;
-}
-
-function cacheSet(key, value) {
-  cache.set(key, { value, expiresAt: Date.now() + CACHE_MS });
-}
+// Traffic resolution: research (finance/company extraction + text scan) → relative rank proxy.
+// Absolute visits come from You.com research; no third-party traffic scrapers.
 
 function parseVisits(raw) {
   if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return Math.round(raw);
@@ -88,64 +64,16 @@ export function trafficFromResearchText(text, competitors) {
   return { byName, kinds };
 }
 
-async function fetchApifyForDomain(domain) {
-  const cached = cacheGet(`apify:${domain}`);
-  if (cached !== null) return cached;
-  try {
-    const traffic = await getWebsiteTraffic(domain);
-    const visits = traffic?.total_visits ?? null;
-    cacheSet(`apify:${domain}`, visits);
-    return visits;
-  } catch {
-    cacheSet(`apify:${domain}`, null);
-    return null;
-  }
-}
-
-/** Apify SimilarWeb for all competitors with a domain (concurrency-limited). */
-export async function fetchApifyTraffic(competitors, { concurrency = 3 } = {}) {
-  if (!apifyConfigured() || !competitors?.length) {
-    return { byName: {}, kinds: {}, fetched: 0, attempted: 0, configured: apifyConfigured() };
-  }
-
-  const jobs = competitors
-    .map((c) => ({
-      name: c.name,
-      key: c.name?.toLowerCase(),
-      domain: domainFromUrl(c.website) || domainFromUrl(c.pricing_url),
-    }))
-    .filter((j) => j.key && j.domain);
-
-  const byName = {};
-  const kinds = {};
-  let fetched = 0;
-
-  for (let i = 0; i < jobs.length; i += concurrency) {
-    const batch = jobs.slice(i, i + concurrency);
-    const results = await Promise.allSettled(batch.map((j) => fetchApifyForDomain(j.domain)));
-    for (let k = 0; k < batch.length; k++) {
-      const visits = results[k].status === 'fulfilled' ? results[k].value : null;
-      if (visits > 0) {
-        byName[batch[k].key] = visits;
-        kinds[batch[k].key] = 'apify';
-        fetched++;
-      }
-    }
-  }
-
-  return { byName, kinds, fetched, attempted: jobs.length, configured: true };
-}
-
 /**
- * Relative rank proxy from global rank (Apify) or research rank mentions.
+ * Relative rank proxy from research rank mentions.
  * Used only when no absolute visits exist for a competitor.
  */
-export function relativeTrafficProxy(competitors, { apifyRanks = {}, researchRanks = {} }) {
+export function relativeTrafficProxy(competitors, { researchRanks = {} } = {}) {
   const scores = {};
   for (const c of competitors || []) {
     const key = c.name?.toLowerCase();
     if (!key) continue;
-    const rank = apifyRanks[key] ?? researchRanks[key];
+    const rank = researchRanks[key];
     if (typeof rank === 'number' && rank > 0) {
       scores[key] = 1 / Math.log10(rank + 10);
     }
@@ -165,7 +93,7 @@ export function relativeTrafficProxy(competitors, { apifyRanks = {}, researchRan
 function mergeTrafficMaps(...layers) {
   const byName = {};
   const kinds = {};
-  const priority = { apify: 3, research: 2, relative: 1 };
+  const priority = { research: 2, relative: 1 };
   for (const layer of layers) {
     for (const [key, visits] of Object.entries(layer.byName || {})) {
       const kind = layer.kinds?.[key] || 'research';
@@ -180,15 +108,14 @@ function mergeTrafficMaps(...layers) {
 }
 
 /**
- * Resolve traffic for all tracked competitors.
- * @returns {{ byName: Record<string, number>, meta: object }}
+ * Resolve traffic for all tracked competitors from research signals only.
+ * @returns {{ byName: Record<string, number>, kinds: object, meta: object }}
  */
 export async function resolveTrafficForCompetitors(competitors, { companies = [], researchText = '' } = {}) {
   const fromCompanies = trafficFromCompanies(companies);
   const fromText = trafficFromResearchText(researchText, competitors);
-  const apify = await fetchApifyTraffic(competitors);
 
-  let merged = mergeTrafficMaps(fromCompanies, fromText, apify);
+  let merged = mergeTrafficMaps(fromCompanies, fromText);
 
   const missing = (competitors || []).filter((c) => !merged.byName[c.name?.toLowerCase()]);
   if (missing.length) {
@@ -196,7 +123,7 @@ export async function resolveTrafficForCompetitors(competitors, { companies = []
     merged = mergeTrafficMaps(merged, relative);
   }
 
-  const counts = { apify: 0, research: 0, relative: 0 };
+  const counts = { research: 0, relative: 0 };
   for (const kind of Object.values(merged.kinds)) {
     if (counts[kind] != null) counts[kind]++;
   }
@@ -205,9 +132,7 @@ export async function resolveTrafficForCompetitors(competitors, { companies = []
     byName: merged.byName,
     kinds: merged.kinds,
     meta: {
-      configured: apify.configured,
-      apify_fetched: apify.fetched,
-      apify_attempted: apify.attempted,
+      configured: true,
       research: counts.research,
       relative: counts.relative,
       total: Object.keys(merged.byName).length,
@@ -222,6 +147,6 @@ export async function fetchTrafficSignals(competitors, opts = {}) {
   return {
     byName: result.byName,
     configured: result.meta.configured,
-    fetched: result.meta.apify_fetched,
+    fetched: result.meta.research,
   };
 }

@@ -92,7 +92,7 @@ export default function FeatureRequestsClient() {
   return (
     <div className="min-h-screen bg-ink-950 text-slate-200">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
+      <header className="glass-nav sticky top-0 z-40 border-b">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <BrandLogo href="/" height={28} />
           <Link href="/" className="text-sm text-slate-400 transition hover:text-white">← Home</Link>

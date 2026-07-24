@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
-import { LabShell } from './labs/LabShell';
+import { EmptyState, Icon, useToast } from './ui';
+import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
 
 const IMPACT = {
   high: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
@@ -50,30 +50,31 @@ export default function MovesClient() {
       title="Next moves"
       subtitle="A short, founder-facing brief of what to do next from market and competitor signals."
       action={<button onClick={generate} disabled={generating} className="btn-primary text-sm">
-        {generating ? <Spinner /> : <Icon name="sparkle" className="h-4 w-4" />}
+        <Icon name={generating ? 'refresh' : 'sparkle'} className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
         {generating ? 'Generating...' : 'Generate brief'}
       </button>}
     >
-      {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-20" />
-          <Skeleton className="h-20" />
-        </div>
-      ) : !brief ? (
+      {generating && (
+        <LabPanel title="Generating brief">
+          <LabShimmerBlock rows={3} />
+        </LabPanel>
+      )}
+
+      {!generating && loading ? (
+        <LabPanel><LabShimmerBlock rows={3} /></LabPanel>
+      ) : !generating && !brief ? (
         <EmptyState icon="trending" title="No brief yet" action={<button onClick={generate} className="btn-primary">Generate next moves</button>}>
           Turn recent competitor changes into a prioritized operating plan.
         </EmptyState>
-      ) : (
+      ) : !generating && brief ? (
         <div className="space-y-4">
-          <section className="card p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Brief</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-300">{brief.summary}</p>
-          </section>
+          <LabPanel title="Brief">
+            <p className="text-sm leading-relaxed text-slate-300">{brief.summary}</p>
+          </LabPanel>
 
           <section className="space-y-2">
             {moves.map((move, i) => (
-              <div key={`${move.title}-${i}`} className="card p-4">
+              <LabPanel key={`${move.title}-${i}`} className="!p-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-sm font-semibold text-accent-soft">
                     P{move.priority || i + 1}
@@ -88,20 +89,19 @@ export default function MovesClient() {
                     <p className="mt-2 text-sm leading-relaxed text-slate-400">{move.why}</p>
                   </div>
                 </div>
-              </div>
+              </LabPanel>
             ))}
           </section>
 
           {brief.watchouts?.length > 0 && (
-            <section className="card p-5">
-              <h2 className="text-sm font-semibold text-white">Watchouts</h2>
-              <ul className="mt-3 space-y-2 text-sm text-slate-400">
+            <LabPanel title="Watchouts">
+              <ul className="space-y-2 text-sm text-slate-400">
                 {brief.watchouts.map((w, i) => <li key={i}>- {w}</li>)}
               </ul>
-            </section>
+            </LabPanel>
           )}
         </div>
-      )}
+      ) : null}
     </LabShell>
   );
 }

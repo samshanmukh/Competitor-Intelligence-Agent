@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { EmptyState, Icon, Skeleton, Spinner, useToast } from './ui';
-import { LabShell } from './labs/LabShell';
+import { EmptyState, Icon, useToast } from './ui';
+import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
 
 export default function UsageClient() {
   const [usage, setUsage] = useState(null);
@@ -65,40 +65,39 @@ export default function UsageClient() {
       subtitle="See feature lab activity, export workspace data, and clear retained history."
       action={<div className="flex gap-2">
         <button onClick={exportWorkspace} disabled={exporting} className="btn-ghost text-sm">
-          {exporting ? <Spinner /> : <Icon name="download" className="h-4 w-4" />}
+          <Icon name={exporting ? 'refresh' : 'download'} className={`h-4 w-4 ${exporting ? 'animate-spin' : ''}`} />
           Export workspace
         </button>
         <button onClick={clearRetention} disabled={clearing} className="btn-ghost text-sm text-rose-300 hover:text-rose-200">
-          {clearing ? <Spinner /> : <Icon name="trash" className="h-4 w-4" />}
+          <Icon name={clearing ? 'refresh' : 'trash'} className={`h-4 w-4 ${clearing ? 'animate-spin' : ''}`} />
           Clear retention
         </button>
       </div>}
     >
       {!usage ? (
-        <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>
+        <LabPanel><LabShimmerBlock rows={3} /></LabPanel>
       ) : (
         <div className="space-y-4">
           <section className="grid gap-3 sm:grid-cols-3">
             {Object.entries(totals).length === 0 ? (
-              <div className="card p-5 sm:col-span-3">
+              <LabPanel className="sm:col-span-3">
                 <p className="text-sm text-slate-400">No metered lab usage yet.</p>
-              </div>
+              </LabPanel>
             ) : (
               Object.entries(totals).map(([key, value]) => (
-                <div key={key} className="card p-5">
+                <LabPanel key={key}>
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{key.replace(/_/g, ' ')}</p>
                   <p className="mt-2 text-2xl font-bold text-white tabular-nums">{value}</p>
-                </div>
+                </LabPanel>
               ))
             )}
           </section>
 
-          <section className="card p-5">
-            <h2 className="text-sm font-semibold text-white">Recent events</h2>
+          <LabPanel title="Recent events">
             {events.length === 0 ? (
               <EmptyState icon="activity" title="No usage events">Generate a lab output to populate usage history.</EmptyState>
             ) : (
-              <div className="mt-4 divide-y divide-ink-800">
+              <div className="divide-y divide-ink-800">
                 {events.slice(0, 30).map((event, i) => (
                   <div key={`${event.type || event.feature}-${event.at || i}`} className="flex items-center justify-between gap-3 py-3">
                     <div>
@@ -110,7 +109,7 @@ export default function UsageClient() {
                 ))}
               </div>
             )}
-          </section>
+          </LabPanel>
         </div>
       )}
     </LabShell>

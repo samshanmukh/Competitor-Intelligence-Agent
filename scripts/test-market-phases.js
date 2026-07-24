@@ -39,13 +39,13 @@ const companies = [
 ];
 const d = computeMarketDistribution(companies, 2e9, 'market_model', {
   trafficByName: { alpha: 5e6, beta: 2e6 },
-  trafficKinds: { alpha: 'apify', beta: 'research' },
-  trafficMeta: { apify_fetched: 1, research: 1, total: 2 },
+  trafficKinds: { alpha: 'research', beta: 'research' },
+  trafficMeta: { research: 2, total: 2 },
 });
 assert(d.method === 'triangulated', 'Phase 2 triangulated method');
 assert(d.items.length === 3, 'three competitors in distribution');
 assert(typeof d.cr4_pct === 'number', 'CR4 computed');
-assert(d.items[0].signals?.traffic_kind === 'apify', 'traffic_kind on item');
+assert(d.items[0].signals?.traffic_kind === 'research', 'traffic_kind on item');
 
 // Traffic from companies
 const fromCo = trafficFromCompanies([
@@ -57,7 +57,7 @@ assert(fromCo.byName.beta === 1200000, 'trafficFromCompanies parsed string');
 
 // Traffic from research text
 const fromText = trafficFromResearchText(
-  'Alpha Corp receives about 3.5 million monthly visits according to SimilarWeb.',
+  'Alpha Corp receives about 3.5 million monthly visits according to industry reports.',
   [{ name: 'Alpha Corp' }]
 );
 assert(fromText.byName['alpha corp'] > 0, 'trafficFromResearchText extracts visits');

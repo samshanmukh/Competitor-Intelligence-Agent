@@ -29,7 +29,7 @@ AI-powered competitive and market intelligence for founders. Discover competitor
 npm run install:all
 cp .env.example .env
 # Fill: YOUCOM_API_KEY, XAI_API_KEY, INSFORGE_BASE_URL, INSFORGE_ANON_KEY
-# Optional: APIFY_TOKEN, TAVILY_API_KEY, VAPID_*, RESEND_API_KEY, APP_URL
+# Optional: TAVILY_API_KEY, VAPID_*, RESEND_API_KEY, APP_URL
 
 # Client (dev): set NEXT_PUBLIC_API_BASE=http://localhost:4000 in client/.env.local
 
