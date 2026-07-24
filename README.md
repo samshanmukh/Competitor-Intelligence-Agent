@@ -50,7 +50,3 @@ node scripts/test-market-phases.js   # distribution smoke tests
 ## Deploy
 
 See [DEPLOY.md](./DEPLOY.md) (Render blueprint: `cia-api` + `cia-web`).
-
-## Product note
-
-Repo folder name is historical (`Competitor-Intelligence-Agent`). The product is **Mira AI**.
