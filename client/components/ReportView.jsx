@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { Icon, Shimmer, ValueScore } from './ui';
 import Link from 'next/link';
+import { companyLogoUrl } from '../lib/companyLogo';
 import {
   CHART_COLORS,
   DistributionMetaChips,
@@ -738,7 +739,7 @@ function MapPointLabel({ x, y, payload }) {
   const idx = payload.labelIndex ?? 0;
   const off = LABEL_OFFSETS[idx % LABEL_OFFSETS.length];
   const isYou = payload.isYou;
-  const label = truncateLabel(payload.name, isYou ? 14 : 16);
+  const label = truncateLabel(payload.shortName || payload.name, isYou ? 14 : 16);
   return (
     <text
       x={x + off.dx}
@@ -748,8 +749,58 @@ function MapPointLabel({ x, y, payload }) {
       fontWeight={isYou ? 700 : 400}
       textAnchor={off.anchor}
     >
-      {label}{isYou ? ' ★' : ''}
+      {label}{isYou ? ' (you)' : ''}
     </text>
+  );
+}
+
+/** Logo marker on the positioning map — larger hit target for easy hover. */
+function MapLogoShape(props) {
+  const { cx, cy, payload } = props;
+  if (cx == null || cy == null || !payload) return null;
+  const isYou = Boolean(payload.isYou);
+  const size = isYou ? 30 : 26;
+  const r = size / 2 + 3;
+  const letter = String(payload.shortName || payload.name || '?').trim().charAt(0).toUpperCase() || '?';
+  const stroke = isYou ? YOU_COLOR : (payload.color || '#64748b');
+
+  return (
+    <g style={{ cursor: 'pointer' }}>
+      {/* Invisible larger hit area */}
+      <circle cx={cx} cy={cy} r={r + 6} fill="transparent" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="#0e1014"
+        stroke={stroke}
+        strokeWidth={isYou ? 2.5 : 1.5}
+      />
+      {payload.logoUrl ? (
+        <image
+          href={payload.logoUrl}
+          xlinkHref={payload.logoUrl}
+          x={cx - size / 2}
+          y={cy - size / 2}
+          width={size}
+          height={size}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ pointerEvents: 'none' }}
+        />
+      ) : (
+        <text
+          x={cx}
+          y={cy + 4}
+          textAnchor="middle"
+          fill="#e2e8f0"
+          fontSize={12}
+          fontWeight={700}
+          style={{ pointerEvents: 'none' }}
+        >
+          {letter}
+        </text>
+      )}
+    </g>
   );
 }
 
@@ -759,7 +810,25 @@ function MapTooltip({ active, payload }) {
   if (!d) return null;
   return (
     <div style={TIP_STYLE} className="px-3 py-2 text-xs text-slate-200">
-      <p className="font-semibold text-white">{d.name}</p>
+      <div className="flex items-center gap-2">
+        {d.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={d.logoUrl}
+            alt=""
+            className="h-5 w-5 rounded bg-ink-800 object-contain p-0.5"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <span
+            className="inline-flex h-5 w-5 items-center justify-center rounded bg-ink-800 text-[10px] font-bold text-slate-300"
+            style={{ boxShadow: `inset 0 0 0 1px ${d.isYou ? YOU_COLOR : d.color}` }}
+          >
+            {String(d.shortName || d.name || '?').charAt(0).toUpperCase()}
+          </span>
+        )}
+        <p className="font-semibold text-white">{d.name}</p>
+      </div>
       <p className="mt-1 text-slate-400">Value: {d.value ?? '—'}/10</p>
       <p className="text-slate-400">
         Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '—'}
@@ -808,12 +877,14 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
     const value = c.value_score ?? null;
     return {
       name: c.name,
+      shortName: c.name,
       value,
       price,
       rating: r?.rating ?? null,
       sentiment: r?.sentiment || null,
       color: CHART_COLORS[i % CHART_COLORS.length],
       isYou: false,
+      logoUrl: companyLogoUrl({ website: c.website, pricing_url: c.pricing_url }),
       tierCount: stats.count,
       priceMax: stats.max,
       coverage: featureCoverage(m, featureCount),
@@ -836,6 +907,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
       sentiment: null,
       color: YOU_COLOR,
       isYou: true,
+      logoUrl: companyLogoUrl({ website: product.website, pricing_url: product.pricing_url }),
       priceEstimated: false,
       tierCount: stats.count,
       priceMax: stats.max,
@@ -965,7 +1037,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
         <ChartCard
           title="Positioning map"
           hint={mapData.length >= 2
-            ? 'Entry price vs. value — top-left is best value, bottom-right is overpriced. You are the pink star (★).'
+            ? 'Entry price vs. value — top-left is best value, bottom-right is overpriced. Hover a logo for details; your product has the accent ring.'
             : 'Map unlocks when at least two products have both a value score and an entry price.'}
         >
           {mapData.length >= 1 ? (
@@ -990,7 +1062,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
                     tick={AXIS}
                     label={{ value: 'Value score', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 11 }}
                   />
-                  <ZAxis range={[90, 90]} />
+                  <ZAxis range={[200, 200]} />
                   {avgPrice != null && domains.x[0] <= avgPrice && avgPrice <= domains.x[1] && (
                     <ReferenceLine x={avgPrice} stroke="#2c3340" strokeDasharray="4 4" />
                   )}
@@ -998,38 +1070,33 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
                     <ReferenceLine y={5} stroke="#2c3340" strokeDasharray="4 4" />
                   )}
                   <Tooltip content={<MapTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter
-                    data={mapData}
-                    shape={(props) => {
-                      const { cx, cy, payload } = props;
-                      if (payload?.isYou) {
-                        return (
-                          <polygon
-                            points={`${cx},${cy - 9} ${cx + 2.5},${cy - 3} ${cx + 8},${cy - 3} ${cx + 3.5},${cy + 1} ${cx + 5.5},${cy + 7} ${cx},${cy + 4} ${cx - 5.5},${cy + 7} ${cx - 3.5},${cy + 1} ${cx - 8},${cy - 3} ${cx - 2.5},${cy - 3}`}
-                            fill={YOU_COLOR}
-                            stroke="#fff"
-                            strokeWidth={1}
-                          />
-                        );
-                      }
-                      return <circle cx={cx} cy={cy} r={6} fill={payload?.color || '#818cf8'} stroke="#0e1014" strokeWidth={1.5} />;
-                    }}
-                  >
-                    {mapData.map((d, i) => (
-                      <Cell key={i} fill={d.isYou ? YOU_COLOR : d.color} />
-                    ))}
+                  <Scatter data={mapData} shape={<MapLogoShape />}>
                     <LabelList dataKey="name" content={<MapPointLabel />} />
                   </Scatter>
                 </ScatterChart>
               </ResponsiveContainer>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-ink-800 pt-3">
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 border-t border-ink-800 pt-3">
                 {mapData.map((d) => (
                   <span key={d.name} className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
-                    <span
-                      className="inline-block h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: d.isYou ? YOU_COLOR : d.color }}
-                    />
-                    {truncateLabel(d.name, 22)}
+                    {d.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={d.logoUrl}
+                        alt=""
+                        className="h-4 w-4 rounded-full bg-ink-800 object-contain p-0.5"
+                        style={{ boxShadow: `0 0 0 1.5px ${d.isYou ? YOU_COLOR : '#2c3340'}` }}
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-ink-800 text-[9px] font-bold text-slate-300"
+                        style={{ boxShadow: `0 0 0 1.5px ${d.isYou ? YOU_COLOR : '#2c3340'}` }}
+                      >
+                        {String(d.shortName || d.name || '?').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    {truncateLabel(d.shortName || d.name, 22)}
+                    {d.isYou && <span className="text-accent-soft">(you)</span>}
                     {d.priceEstimated && <span className="text-slate-600">(est. price)</span>}
                   </span>
                 ))}
