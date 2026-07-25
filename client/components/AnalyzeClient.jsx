@@ -619,9 +619,16 @@ function ReportStage({ competitors, onScored }) {
   const [exporting, setExporting] = useState(false);
   const [hydrating, setHydrating] = useState(true);
   const [restoredAt, setRestoredAt] = useState(null);
+  /** Live score/analysis patches so Business value cards update before list reload. */
+  const [scoreOverrides, setScoreOverrides] = useState({});
   const toast = useToast();
   const runIdRef = useRef(0);
   const snapshotRef = useRef({});
+
+  const scoredCompetitors = competitors.map((c) => {
+    const patch = scoreOverrides[c.id];
+    return patch ? { ...c, ...patch } : c;
+  });
 
   const pollRef = useRef(null);
   const tickRef = useRef(null);
@@ -633,7 +640,7 @@ function ReportStage({ competitors, onScored }) {
   }, [matrix, positioning, reviews, take, market, product, strategy]);
 
   const buildSnapshot = (extra = {}) => ({
-    competitors: competitors.map((c) => ({
+    competitors: scoredCompetitors.map((c) => ({
       id: c.id,
       name: c.name,
       value_score: c.value_score ?? null,
@@ -672,11 +679,27 @@ function ReportStage({ competitors, onScored }) {
     if (result.strategy) setStrategy(result.strategy);
     if (result.product) setProduct(result.product);
     if (result.market) setMarket(result.market);
+    let hydratedScores = false;
+    if (Array.isArray(result.competitors)) {
+      const patches = {};
+      for (const c of result.competitors) {
+        if (c?.id != null && (c.value_score != null || c.value_analysis)) {
+          patches[c.id] = {
+            value_score: c.value_score ?? null,
+            value_analysis: c.value_analysis ?? null,
+          };
+        }
+      }
+      if (Object.keys(patches).length) {
+        hydratedScores = true;
+        setScoreOverrides((prev) => ({ ...prev, ...patches }));
+      }
+    }
 
     const done = [];
     if (result.product || result.strategy?.icp || result.strategy?.business_model) done.push('icp');
     if (result.matrix) done.push('pricing', 'features', 'charts');
-    if (result.positioning || competitors.some((c) => c.value_score != null)) done.push('value');
+    if (result.positioning || competitors.some((c) => c.value_score != null) || hydratedScores) done.push('value');
     if (result.strategy) done.push('strategy');
     if (Array.isArray(result.reviews) && result.reviews.length) done.push('reviews');
     if (result.take) done.push('take');
@@ -796,6 +819,7 @@ function ReportStage({ competitors, onScored }) {
     setMarket(null);
     setProduct(null);
     setStrategy(null);
+    setScoreOverrides({});
     snapshotRef.current = {};
     markLayers(setLayers, LAYER_KEYS, 'loading');
     setProgress('Starting layered research…');
@@ -849,13 +873,28 @@ function ReportStage({ competitors, onScored }) {
             if (alive()) markLayers(setLayers, ['pricing', 'features', 'charts'], 'error');
           }),
 
-        // Score competitors one-by-one so Value/Map update as each finishes
+        // Score competitors one-by-one so Business value cards fill as each finishes
         (async () => {
+          // Always (re)score rivals that still lack a score on the list.
           const unscored = competitors.filter((c) => c.value_score == null);
           for (const c of unscored) {
             if (!alive()) return;
             setProgress(`Layer 1 · scoring ${c.name}…`);
-            await api.valueScore(c.id).catch(() => {});
+            try {
+              const r = await api.valueScore(c.id);
+              if (!alive()) return;
+              if (r?.score != null) {
+                setScoreOverrides((prev) => ({
+                  ...prev,
+                  [c.id]: {
+                    value_score: r.score,
+                    value_analysis: r.reasoning || r.value_analysis || null,
+                  },
+                }));
+              }
+            } catch {
+              /* keep going — other rivals may still score */
+            }
             if (!alive()) return;
             onScored?.();
           }
@@ -947,7 +986,7 @@ function ReportStage({ competitors, onScored }) {
 
   const hasReport = Boolean(
     matrix || positioning || (reviews && reviews.length) || take || strategy || product
-    || competitors.some((c) => c.value_score != null)
+    || scoredCompetitors.some((c) => c.value_score != null)
     || running
   );
 
@@ -1083,7 +1122,7 @@ function ReportStage({ competitors, onScored }) {
         <ReportView
           layout="tabs"
           layers={layers}
-          competitors={competitors}
+          competitors={scoredCompetitors}
           matrix={matrix}
           positioning={positioning}
           reviews={reviews}

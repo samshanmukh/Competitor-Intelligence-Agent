@@ -78,19 +78,42 @@ async function getProductContent(product) {
 }
 
 /**
- * Prefer a stored snapshot; if missing, fetch the pricing page (You.com contents)
- * and persist a snapshot so rivals score/price like the live product path.
+ * Prefer a stored snapshot; if missing, fetch the pricing page (You.com contents).
+ * Falls back to website URL, then You.com research, so rivals still get scored
+ * when pricing pages block scrapers.
  */
 async function ensureCompetitorContent(competitor) {
   if (!competitor?.id) return null;
   let snap = await getLatestSnapshot(competitor.id);
   if (snap?.content) return snap.content;
-  if (!competitor.pricing_url) return null;
+
+  const urls = [competitor.pricing_url, competitor.website].filter(Boolean);
+  for (const url of urls) {
+    try {
+      const fetched = await fetchCompetitor({ ...competitor, pricing_url: url });
+      if (fetched?.ok && fetched.snapshot?.content) return fetched.snapshot.content;
+    } catch {
+      /* try next */
+    }
+  }
+
+  // Research fallback — enough text for a value score even without a page scrape.
   try {
-    const fetched = await fetchCompetitor(competitor);
-    if (fetched?.ok && fetched.snapshot?.content) return fetched.snapshot.content;
+    const q = [
+      `${competitor.name} software pricing plans tiers monthly cost`,
+      competitor.website ? `(${competitor.website})` : '',
+      'value for money features included',
+    ].filter(Boolean).join(' ');
+    const payload = await research(q, { effort: 'lite' });
+    const text = [
+      payload?.output?.content,
+      ...(payload?.output?.sources || []).slice(0, 5).map((s) => (
+        [s.title, s.url, (s.snippets || []).join(' ')].filter(Boolean).join(' — ')
+      )),
+    ].filter(Boolean).join('\n');
+    if (text.trim()) return text.slice(0, 8000);
   } catch {
-    /* fall through */
+    /* ignore */
   }
   return null;
 }
@@ -274,28 +297,36 @@ router.post('/competitors/:id/value-score', requireAuth, resolveWorkspace, wrap(
   if (!competitor) return res.status(404).json({ error: 'Not found' });
 
   const content = await ensureCompetitorContent(competitor);
-  if (!content) return res.json({ score: null, error: 'No pricing page content yet' });
+  if (!content) {
+    return res.json({ score: null, reasoning: null, error: 'No pricing or research content yet' });
+  }
 
   const result = await completeJSON({
     system: 'You rate software products on value-for-money. Return ONLY valid JSON.',
     user: `Rate ${competitor.name} on value-for-money (1-10 scale).
 
-Pricing content:
-${content.slice(0, 3000)}
+Pricing / product content:
+${content.slice(0, 5000)}
 
-Return: { "score": number, "reasoning": "2-3 sentences" }`,
-    maxTokens: 300,
+Return: { "score": number, "reasoning": "2-3 sentences on value vs price" }`,
+    maxTokens: 400,
   });
 
-  if (result?.score) {
+  const score = typeof result?.score === 'number' ? result.score : Number(result?.score);
+  const reasoning = result?.reasoning || result?.value_analysis || null;
+  if (Number.isFinite(score)) {
     await insforge.database
       .from('competitors')
-      .update({ value_score: result.score, value_analysis: result.reasoning })
+      .update({ value_score: score, value_analysis: reasoning })
       .eq('id', competitor.id)
       .eq('workspace_id', req.workspaceId);
   }
 
-  res.json({ score: result?.score || null, reasoning: result?.reasoning || null });
+  res.json({
+    score: Number.isFinite(score) ? score : null,
+    reasoning,
+    error: Number.isFinite(score) ? null : 'Could not score competitor',
+  });
 }));
 
 // Review sentiment — fetch reviews via You.com Research and summarize per competitor.
