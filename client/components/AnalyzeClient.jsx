@@ -5,8 +5,6 @@ import { api } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
 import { CompanyLogo, Icon, Shimmer, Skeleton, useToast } from './ui';
 import ReportView from './ReportView';
-import { SkillChipRow } from './SourceAttribution';
-
 export default function AnalyzeClient() {
   const [product, setProduct] = useState(undefined); // undefined = loading, null = none
   const [competitors, setCompetitors] = useState(null);
@@ -1088,19 +1086,6 @@ function ReportStage({ competitors, onScored }) {
             {restoredAt && !running ? ` · saved ${new Date(restoredAt).toLocaleString()}` : ''}
           </span>
         )}
-        {(hasReport || doneCount > 0) && !running && (
-          <SkillChipRow
-            className="w-full basis-full sm:ml-auto sm:w-auto sm:basis-auto"
-            size="sm"
-            skills={[
-              { skill: 'you-contents' },
-              { skill: 'you-research' },
-              { skill: 'you-finance' },
-              { skill: 'grok' },
-            ]}
-          />
-        )}
-
         {!market && !marketLoading && (
           <button onClick={loadMarket} disabled={running} className="btn-ghost ml-auto px-2.5 py-1.5 text-xs">
             <Icon name="trending" className="h-3.5 w-3.5" /> Market intel

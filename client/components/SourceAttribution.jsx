@@ -41,51 +41,13 @@ export function skillChip(engineOrSkill) {
   };
 }
 
-/** Standalone chip — use in headers / toolbars for demos. */
-export function SkillChip({ skill, skillLabel, engine, size = 'md' }) {
-  const chip = skillChip(skill || engine);
-  const label = skillLabel || chip.skillLabel;
-  const id = chip.skill;
-  if (!id || id === 'unknown') return null;
-  const tone = SKILL_STYLES[id] || 'border-accent/40 bg-accent/15 text-accent-soft';
-  const sizeCls = size === 'lg'
-    ? 'px-2.5 py-1 text-xs'
-    : size === 'sm'
-      ? 'px-1.5 py-0.5 text-[10px]'
-      : 'px-2 py-0.5 text-[11px]';
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border font-semibold tracking-wide ${tone} ${sizeCls}`}
-      title={`Fetched / powered by ${label} (${id})`}
-    >
-      <span className="opacity-80">via</span>
-      <span>{label}</span>
-      <span className="font-mono font-medium opacity-70">({id})</span>
-    </span>
-  );
+/** Standalone chip — hidden in product UI (kept as no-ops so call sites stay safe). */
+export function SkillChip() {
+  return null;
 }
 
-export function SkillChipRow({ skills = [], skill, skillLabel, engine, size = 'md', className = '' }) {
-  const list = skills?.length
-    ? skills
-    : (skill || engine)
-      ? [{ skill: skill || skillChip(engine).skill, skillLabel }]
-      : [];
-  if (!list.length) return null;
-  return (
-    <div className={`flex flex-wrap items-center gap-1.5 ${className}`.trim()}>
-      {list.map((s) => (
-        <SkillChip
-          key={s.skill || s.engine}
-          skill={s.skill}
-          skillLabel={s.skillLabel}
-          engine={s.engine}
-          size={size}
-        />
-      ))}
-    </div>
-  );
+export function SkillChipRow() {
+  return null;
 }
 
 export function SourceAttribution({
@@ -97,22 +59,16 @@ export function SourceAttribution({
   engine,
   className = '',
   compact = false,
-  /** Always show skill chips even when there are no source URLs yet */
-  showSkill = true,
+  /** Skill chips are disabled in product UI; sources still render. */
+  showSkill = false,
 }) {
   const attrs = normalize(attribution, { sources, skills, skill, skillLabel, engine });
-  if (!attrs.skills.length && !attrs.sources.length) return null;
+  if (!attrs.sources.length) return null;
 
   return (
     <div className={`mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 ${className}`.trim()}>
-      {showSkill && attrs.skills.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Skill</span>
-          <SkillChipRow skills={attrs.skills} size={compact ? 'sm' : 'md'} />
-        </div>
-      )}
       {attrs.sources.length > 0 && (
-        <div className={showSkill && attrs.skills.length ? 'mt-2 border-t border-white/5 pt-2' : ''}>
+        <div>
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Sources</p>
           <ul className={compact ? 'flex flex-wrap gap-x-3 gap-y-1' : 'space-y-1.5'}>
             {attrs.sources.map((s, i) => (
