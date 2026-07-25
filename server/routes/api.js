@@ -23,8 +23,26 @@ import { getKey, setKey } from '../services/keys.js';
 import { sendPushToWorkspace } from '../services/push.js';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { METHODOLOGY } from '../services/marketInsights.js';
+import { buildDemoPositioningMap } from '../services/demoPositioningMap.js';
 
 const router = Router();
+
+/** Simple in-memory rate limit for the public landing demo (per IP). */
+const demoHits = new Map();
+function allowDemoHit(ip) {
+  const key = String(ip || 'unknown');
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const max = 8;
+  const row = demoHits.get(key) || { start: now, count: 0 };
+  if (now - row.start > windowMs) {
+    row.start = now;
+    row.count = 0;
+  }
+  row.count += 1;
+  demoHits.set(key, row);
+  return row.count <= max;
+}
 
 // Small async wrapper so route handlers can throw.
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -67,6 +85,38 @@ router.get('/health', (req, res) => {
 router.get('/methodology', (_req, res) => {
   res.json({ methodology: METHODOLOGY });
 });
+
+/**
+ * Public landing demo — no auth.
+ * Body: { pricingUrl }
+ * Discovers competitors and returns entry price + value scores for a positioning map.
+ */
+router.post(
+  '/demo/positioning-map',
+  wrap(async (req, res) => {
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
+      || req.socket?.remoteAddress
+      || 'unknown';
+    if (!allowDemoHit(ip)) {
+      return res.status(429).json({
+        error: 'Demo limit reached for this hour. Create a free account for unlimited runs.',
+        code: 'RATE_LIMITED',
+      });
+    }
+
+    const pricingUrl = req.body?.pricingUrl || req.body?.url || req.body?.productUrl;
+    try {
+      const result = await buildDemoPositioningMap(pricingUrl);
+      res.json(result);
+    } catch (err) {
+      const status = err?.code === 'INVALID_URL' ? 400 : 502;
+      res.status(status).json({
+        error: err?.message || 'Could not build positioning map',
+        code: err?.code || 'DEMO_FAILED',
+      });
+    }
+  })
+);
 
 // Everything below requires a valid session and a workspace the user belongs to.
 router.use(requireAuth, resolveWorkspace);

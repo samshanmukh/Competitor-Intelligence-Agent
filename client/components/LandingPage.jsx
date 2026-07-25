@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from './ui';
 import BrandLogo from './BrandLogo';
+import LandingPositioningDemo from './LandingPositioningDemo';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
@@ -201,30 +202,37 @@ export default function LandingPage() {
             transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.12, ease: EASE }}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Mira turns your business, market, and competitor signals into decision support for your next move.
+            Mira turns business, market, and competitor signals into decision support in ~2 minutes:
+            TAM/SAM/SOM sizing, 5–12 competitor matrices, and pricing from web + App Store / Play ($0–$99/mo band).
           </motion.p>
 
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: 18 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.18, ease: EASE }}
-            className="mt-9"
+            className="mx-auto mt-9 max-w-3xl"
             id="get-started"
           >
             {authed ? (
-              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <div className="mb-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
                   <Icon name="sparkle" className="h-4 w-4" /> Go to app
                 </Link>
                 <a href="#how" className="rounded-full border border-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">See how it works</a>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/signup" className="group inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
-                  Create your account <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            ) : null}
+            <LandingPositioningDemo />
+            {!authed && (
+              <p className="mt-4 text-center text-sm text-slate-500">
+                Or{' '}
+                <Link href="/signup" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
+                  create an account
                 </Link>
-                <Link href="/login" className="rounded-full border border-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">Sign in</Link>
-              </div>
+                {' · '}
+                <Link href="/login" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
+                  Sign in
+                </Link>
+              </p>
             )}
           </motion.div>
         </div>
@@ -431,6 +439,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
           <BrandLogo href="/" height={28} />
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link href="/guide" className="transition hover:text-slate-300">Guide</Link>
             <a href="https://www.joinmira.ai/faq" className="transition hover:text-slate-300">FAQ</a>
             <a href="https://www.joinmira.ai/about" className="transition hover:text-slate-300">About</a>
             <a href="https://www.joinmira.ai/team" className="transition hover:text-slate-300">Team</a>
@@ -451,10 +460,10 @@ export default function LandingPage() {
 }
 
 const STATS = [
-  { value: '~2 min', label: 'To a clear business snapshot' },
-  { value: 'TAM→SOM', label: 'Your market, sized' },
-  { value: '1', label: 'Sharp ideal-customer profile' },
-  { value: '3 moves', label: 'To focus on next' },
+  { value: '~2 min', label: 'To a clear business snapshot (~120 seconds)' },
+  { value: '3 layers', label: 'TAM → SAM → SOM market sizing' },
+  { value: '5–12', label: 'Competitors in a seed watchlist' },
+  { value: '52×/yr', label: 'Weekly refresh cadence target' },
 ];
 
 const SPOTLIGHT = [

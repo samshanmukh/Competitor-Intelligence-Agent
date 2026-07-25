@@ -64,6 +64,10 @@ async function request(path, { method = 'GET', body, headers: extraHeaders } = {
 export const api = {
   health: () => request('/health'),
 
+  /** Public landing demo — no auth. Long-running; needs NEXT_PUBLIC_API_BASE in prod. */
+  demoPositioningMap: (pricingUrl) =>
+    request('/demo/positioning-map', { method: 'POST', body: { pricingUrl } }),
+
   discover: (payload) => request('/discover', { method: 'POST', body: payload }),
 
   listCompetitors: (status) =>
