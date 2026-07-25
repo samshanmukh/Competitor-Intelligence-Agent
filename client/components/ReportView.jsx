@@ -593,23 +593,29 @@ function buildPricingEntries(product, matrix, competitors) {
 }
 
 function PricingCard({ name, tiers, you, loading }) {
+  // Hide placeholder rows like "Default —" that aren't real extracted plans.
+  const visible = (tiers || []).filter((t) => t?.price_monthly != null || (t?.name && !/^default$/i.test(String(t.name).trim())));
+  const hasPrices = visible.some((t) => t?.price_monthly != null);
+  const showEmpty = !hasPrices;
+
   return (
     <div className={`rounded-lg border p-3 ${you ? 'border-accent/40 bg-accent/5' : 'border-ink-700 bg-ink-850'}`}>
       <p className={`text-sm font-semibold ${you ? 'text-accent-soft' : 'text-white'}`}>
         {name}{you && <span className="text-[10px] font-normal"> (you)</span>}
       </p>
       <div className="mt-2 space-y-1.5">
-        {(tiers || []).length === 0 && (
+        {showEmpty ? (
           <p className="text-xs text-slate-600">
             {loading ? 'Extracting pricing…' : 'No pricing extracted'}
           </p>
+        ) : (
+          visible.map((t, i) => (
+            <div key={i} className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">{t.name}</span>
+              <span className="font-medium text-slate-200">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
+            </div>
+          ))
         )}
-        {(tiers || []).map((t, i) => (
-          <div key={i} className="flex items-center justify-between text-xs">
-            <span className="text-slate-400">{t.name}</span>
-            <span className="font-medium text-slate-200">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
-          </div>
-        ))}
       </div>
     </div>
   );
