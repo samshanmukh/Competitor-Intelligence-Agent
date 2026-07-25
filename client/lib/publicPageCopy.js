@@ -232,6 +232,32 @@ for exercising privacy rights.
 
 This Privacy Policy is published by ${ORG.legalName}, founded ${ORG.foundingDate},
 founder ${AUTHOR.name}. Website ${SITE_ORIGIN}. Updated ${GUIDE_UPDATED}.
+
+### 19. Research content vs personal data
+
+When Mira fetches public competitor pages or app-store listings, that public content is
+not treated as your personal data. Your workspace notes and account email are personal
+or customer data under this policy. Keep secrets (API keys, passwords) out of workspace
+notes.
+
+### 20. Retention examples
+
+- Active account: retained while the account remains open
+- Deleted account: deleted or anonymized within a reasonable period unless law requires
+  longer retention of logs
+- Security logs: typically retained for a limited window for abuse investigation
+
+### 21. How to exercise rights (step by step)
+
+1. Email ${ORG.email} from the address on your account  
+2. State the right you want to exercise (access, delete, correct, export)  
+3. Include your workspace name if known  
+4. We verify identity and respond within the time required by applicable law  
+
+### 22. Accessibility of this policy
+
+This Privacy Policy is available at ${SITE_ORIGIN}/privacy without login, in HTML that
+does not require JavaScript to read. Last updated ${GUIDE_UPDATED}.
 `.trim();
 }
 
@@ -341,6 +367,28 @@ provide notices to ${ORG.email}.
 
 ${ORG.legalName} (brand ${ORG.name}), founded ${ORG.foundingDate} by ${AUTHOR.name}.
 Site ${SITE_ORIGIN}. Updated ${GUIDE_UPDATED}.
+
+### 19. Beta / changing features
+
+Features may change as Mira evolves. We may add, modify, or remove functionality. If a
+change materially reduces a paid entitlement you purchased (if applicable), we will
+provide notice through the product or email.
+
+### 20. Export and deletion
+
+You may export or delete workspace content using in-product controls where available,
+or by emailing ${ORG.email}. Deletion may not remove residual backups immediately.
+
+### 21. Relationship to methodology
+
+By using Mira you acknowledge that presence and market figures can be estimates with
+evidence grades described at ${SITE_ORIGIN}/methodology. Mislabeling those estimates as
+audited share in your own materials is your responsibility, not Mira’s.
+
+### 22. Contact for legal notices
+
+Legal notices: ${ORG.email}. Privacy: ${SITE_ORIGIN}/privacy. About: ${SITE_ORIGIN}/about.
+Team: ${SITE_ORIGIN}/team. Contact page: ${SITE_ORIGIN}/contact. Updated ${GUIDE_UPDATED}.
 `.trim();
 }
 
