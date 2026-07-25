@@ -126,7 +126,6 @@ export default function Sidebar() {
       <NavGroup label="Account" collapsed={isCollapsed}>
         <NavItem href="/my-product" icon="card" label="My product" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/discover" icon="plus" label="Discover" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/architecture" icon="map" label="Architecture" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/usage" icon="bar" label="Usage" collapsed={isCollapsed} onNavigate={onNavigate} />
         <NavItem href="/settings" icon="settings" label="Settings" collapsed={isCollapsed} onNavigate={onNavigate} />

@@ -104,7 +104,6 @@ export default function LandingPage() {
             <a href="https://www.joinmira.ai/faq" className="transition hover:text-white">FAQ</a>
             <a href="https://www.joinmira.ai/about" className="transition hover:text-white">About</a>
             <a href="https://www.joinmira.ai/team" className="transition hover:text-white">Team</a>
-            <Link href="/architecture" className="transition hover:text-white">Architecture</Link>
           </nav>
           <div className="flex items-center gap-2">
             {authed ? (
@@ -446,7 +445,6 @@ export default function LandingPage() {
             <a href="https://www.joinmira.ai/team" className="transition hover:text-slate-300">Team</a>
             <a href="https://www.joinmira.ai/contact" className="transition hover:text-slate-300">Contact</a>
             <Link href="/methodology" className="transition hover:text-slate-300">Methodology</Link>
-            <Link href="/architecture" className="transition hover:text-slate-300">Architecture</Link>
             <Link href="/privacy" className="transition hover:text-slate-300">Privacy</Link>
             <Link href="/terms" className="transition hover:text-slate-300">Terms</Link>
             <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">Contact</a>

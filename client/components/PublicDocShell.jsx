@@ -8,7 +8,6 @@ const FOOTER_LINKS = [
   { href: '/contact', label: 'Contact' },
   { href: '/faq', label: 'FAQ' },
   { href: '/methodology', label: 'Methodology' },
-  { href: '/architecture', label: 'Architecture' },
   { href: '/privacy', label: 'Privacy' },
   { href: '/terms', label: 'Terms' },
   { href: '/signup', label: 'Create account' },
