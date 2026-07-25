@@ -86,54 +86,75 @@ async function getProductContent(product) {
   return content || null;
 }
 
+/** Thin scraper stubs (blocked pages) must not block You.com research fallback. */
+function contentUsefulForPricing(text) {
+  if (!text || typeof text !== 'string') return false;
+  const t = text.trim();
+  if (t.length < 400) return false;
+  if (/\$\s?\d/.test(t)) return true;
+  if (/\b(pricing|per month|\/mo|subscription|plan|tier)\b/i.test(t) && t.length >= 800) return true;
+  return t.length >= 1500;
+}
+
+function flattenResearchPayload(payload) {
+  return [
+    payload?.output?.content,
+    ...(payload?.output?.sources || []).slice(0, 6).map((s) => (
+      [s.title, s.url, (s.snippets || []).join(' ')].filter(Boolean).join(' — ')
+    )),
+  ].filter(Boolean).join('\n');
+}
+
+async function researchPricingContent(competitorOrName) {
+  const name = typeof competitorOrName === 'string' ? competitorOrName : competitorOrName?.name;
+  if (!name) return null;
+  const website = typeof competitorOrName === 'object' ? competitorOrName.website : null;
+  const q = [
+    `${name} official pricing plans tiers monthly cost USD`,
+    website ? `(${website})` : '',
+    'subscription price per month',
+  ].filter(Boolean).join(' ');
+  try {
+    const payload = await research(q, { effort: 'lite' });
+    const text = flattenResearchPayload(payload).trim();
+    return text ? text.slice(0, 8000) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Prefer a stored snapshot; if missing, fetch the pricing page (You.com contents).
- * Falls back to website URL, then You.com research, so rivals still get scored
- * when pricing pages block scrapers.
+ * Prefer a useful stored snapshot; else fetch pricing pages; else You.com research.
+ * Rejects tiny/blocked scrapes so rivals don't get stuck on "Default / —".
  */
 async function ensureCompetitorContent(competitor) {
   if (!competitor?.id) return null;
-  let snap = await getLatestSnapshot(competitor.id);
-  if (snap?.content) return snap.content;
+  const snap = await getLatestSnapshot(competitor.id);
+  if (contentUsefulForPricing(snap?.content)) return snap.content;
 
   const urls = [competitor.pricing_url, competitor.website].filter(Boolean);
   for (const url of urls) {
     try {
       const fetched = await fetchCompetitor({ ...competitor, pricing_url: url });
-      if (fetched?.ok && fetched.snapshot?.content) return fetched.snapshot.content;
+      const text = fetched?.snapshot?.content;
+      if (fetched?.ok && contentUsefulForPricing(text)) return text;
     } catch {
       /* try next */
     }
   }
 
-  // Research fallback — enough text for scores/matrix even without a page scrape.
-  // Persist so Pricing/Features/Value all see the same rival content on later calls.
-  try {
-    const q = [
-      `${competitor.name} software pricing plans tiers monthly cost`,
-      competitor.website ? `(${competitor.website})` : '',
-      'value for money features included',
-    ].filter(Boolean).join(' ');
-    const payload = await research(q, { effort: 'lite' });
-    const text = [
-      payload?.output?.content,
-      ...(payload?.output?.sources || []).slice(0, 5).map((s) => (
-        [s.title, s.url, (s.snippets || []).join(' ')].filter(Boolean).join(' — ')
-      )),
-    ].filter(Boolean).join('\n');
-    if (text.trim()) {
-      const clipped = text.slice(0, 8000);
-      try {
-        await insertSnapshot(competitor.id, clipped, 'you-research');
-      } catch {
-        /* non-fatal — still return text for this request */
-      }
-      return clipped;
+  const researched = await researchPricingContent(competitor);
+  if (researched) {
+    try {
+      await insertSnapshot(competitor.id, researched, 'you-research');
+    } catch {
+      /* non-fatal */
     }
-  } catch {
-    /* ignore */
+    return researched;
   }
-  return null;
+
+  // Last resort: return whatever scrape we have (may still help features/value).
+  return snap?.content || null;
 }
 
 // Analyze the user's OWN product (pricing tiers + value score) so it can be
@@ -262,12 +283,19 @@ ${prompt}`,
         user: `Extract pricing tiers for "${name}". Return:
 { "tiers": [{ "name": "string", "price_monthly": number|null }] }
 Use monthly USD when possible. If only annual is listed, divide by 12.
+Only include tiers you can support from the content. Prefer real plan names (Pro, Team, etc).
+Do NOT invent a "Default" tier with a null price.
 
 CONTENT:
-${String(content).slice(0, 4500)}`,
+${String(content).slice(0, 5000)}`,
         maxTokens: 500,
       });
-      return Array.isArray(result?.tiers) ? result.tiers : [];
+      const tiers = Array.isArray(result?.tiers) ? result.tiers : [];
+      // Drop worthless placeholders that render as "Default —" in the UI.
+      return tiers.filter((t) => {
+        const nameEmpty = !t?.name || /^default$/i.test(String(t.name).trim());
+        return !(nameEmpty && t?.price_monthly == null);
+      });
     } catch {
       return [];
     }
@@ -301,16 +329,35 @@ ${String(content).slice(0, 4500)}`,
 
   async function enrichEntry(name, content, entry) {
     let next = { ...entry, name };
-    const hasPrice = (next.tiers || []).some((t) => t?.price_monthly != null);
-    if (!hasPrice && content) {
-      const tiers = await extractTiers(name, content);
+    let text = content;
+    const priced = () => (next.tiers || []).some((t) => t?.price_monthly != null);
+
+    if (!priced()) {
+      let tiers = text ? await extractTiers(name, text) : [];
       if (tiers.length) next.tiers = tiers;
+      // Thin scrapes often have no $ — pull dedicated pricing research and retry.
+      if (!priced()) {
+        const researched = await researchPricingContent(name);
+        if (researched) {
+          text = researched;
+          tiers = await extractTiers(name, researched);
+          if (tiers.length) next.tiers = tiers;
+        }
+      }
     }
-    if (featureList.length && content && !hasFeatureFlags(next)) {
-      const flags = await extractFeatureFlags(name, content, featureList);
+
+    if (featureList.length && text && !hasFeatureFlags(next)) {
+      const flags = await extractFeatureFlags(name, text, featureList);
       if (flags) {
-        const baseTier = next.tiers?.[0] || { name: 'Default', price_monthly: null };
-        next.tiers = [{ ...baseTier, features: flags }, ...(next.tiers || []).slice(1)];
+        if ((next.tiers || []).length) {
+          next.tiers = [
+            { ...next.tiers[0], features: flags },
+            ...next.tiers.slice(1),
+          ];
+        } else {
+          // Keep feature flags without inventing a fake "Default —" price row.
+          next.tiers = [{ name: 'Plans', price_monthly: null, features: flags }];
+        }
       }
     }
     if (!next.tiers) next.tiers = [];
