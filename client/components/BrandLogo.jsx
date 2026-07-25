@@ -21,7 +21,7 @@ export default function BrandLogo({
     const logo = (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/mira-logo.svg"
+        src="/mira-logo.svg?v=3"
         alt="Mira"
         height={height}
         width={width}

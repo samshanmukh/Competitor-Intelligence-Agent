@@ -20,8 +20,8 @@ export const metadata = {
     },
   },
   icons: {
-    icon: [{ url: '/mira-mark.svg', type: 'image/svg+xml' }],
-    apple: [{ url: '/mira-mark.svg' }],
+    icon: [{ url: '/mira-mark.svg?v=3', type: 'image/svg+xml' }],
+    apple: [{ url: '/mira-mark.svg?v=3' }],
   },
   openGraph: {
     title: 'Mira · Competitive and market intelligence for founders',
@@ -29,7 +29,7 @@ export const metadata = {
     url: 'https://www.joinmira.ai',
     siteName: 'Mira',
     type: 'website',
-    images: [{ url: '/mira-logo.svg', width: 866, height: 301, alt: 'Mira' }],
+    images: [{ url: '/mira-logo.svg?v=3', width: 866, height: 301, alt: 'Mira' }],
   },
 };
 
