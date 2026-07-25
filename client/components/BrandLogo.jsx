@@ -2,9 +2,10 @@ import Link from 'next/link';
 import MiraMark from './MiraMark';
 
 /**
- * Mira brand logo — SVG mark + wordmark. Used across app chrome.
+ * Mira brand logo — official SVG mark + wordmark.
  * variant="mark" → icon only (collapsed sidebar)
- * variant="full" → icon + "Mira"
+ * variant="full" → icon + "Mira" (dark UI; white wordmark)
+ * variant="lockup" → full official SVG lockup (mark + designed wordmark; best on light)
  * wordmarkTone: "light" (default, dark UI) | "brand" (deep purple)
  */
 export default function BrandLogo({
@@ -15,6 +16,29 @@ export default function BrandLogo({
   wordmarkTone = 'light',
   priority: _priority,
 }) {
+  if (variant === 'lockup') {
+    const width = Math.round(height * (866 / 301));
+    const logo = (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/mira-logo.svg"
+        alt="Mira"
+        height={height}
+        width={width}
+        className={`inline-block object-contain ${className}`}
+        style={{ height, width: 'auto' }}
+        draggable={false}
+        decoding="async"
+      />
+    );
+    if (href === null || href === false) return logo;
+    return (
+      <Link href={href} className="inline-flex shrink-0 items-center" aria-label="Mira home">
+        {logo}
+      </Link>
+    );
+  }
+
   const iconPx = Math.round(height * (variant === 'mark' ? 1 : 0.95));
   const textClass =
     height >= 40

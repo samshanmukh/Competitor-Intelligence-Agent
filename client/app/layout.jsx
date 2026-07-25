@@ -29,7 +29,7 @@ export const metadata = {
     url: 'https://www.joinmira.ai',
     siteName: 'Mira',
     type: 'website',
-    images: [{ url: '/mira-logo.svg', width: 220, height: 64, alt: 'Mira' }],
+    images: [{ url: '/mira-logo.svg', width: 866, height: 301, alt: 'Mira' }],
   },
 };
 
