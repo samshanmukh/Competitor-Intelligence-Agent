@@ -57,7 +57,14 @@ export default function ReportView({
 }) {
   const youName = (product?.name || matrix?.productName || '').toLowerCase();
   const hasIcp = Boolean(product?.icp || product?.business_model || strategy?.icp || strategy?.business_model);
-  const hasPricing = Boolean(matrix?.competitors?.length > 0 || product?.tiers?.length > 0);
+  // Pricing comparison uses approved rivals + matrix tiers. Don't hide rivals when
+  // the matrix only returned the user's product (common when rival pages fail).
+  const pricingEntries = buildPricingEntries(product, matrix, competitors);
+  const hasPricing = Boolean(
+    pricingEntries.length > 0
+    || matrix?.competitors?.length > 0
+    || product?.tiers?.length > 0
+  );
   const hasFeatures = Boolean(matrix?.features?.length > 0);
   const panels = useMemo(() => {
     const pending = (id) => layers?.[id] === 'loading';
@@ -119,10 +126,15 @@ export default function ReportView({
             skills={[{ skill: 'you-contents' }, { skill: 'grok' }]}
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {product?.tiers?.length > 0 && <PricingCard name={product.name} tiers={product.tiers} you />}
-              {(matrix?.competitors || [])
-                .filter((c) => (c.name || '').toLowerCase() !== youName)
-                .map((c) => <PricingCard key={c.name} name={c.name} tiers={c.tiers} />)}
+              {pricingEntries.map((c) => (
+                <PricingCard
+                  key={c.name}
+                  name={c.name}
+                  tiers={c.tiers}
+                  you={c.you}
+                  loading={pending('pricing') && !(c.tiers || []).length}
+                />
+              ))}
             </div>
           </ReportSection>
         ) : <LayerPending label="pricing" />,
@@ -267,7 +279,7 @@ export default function ReportView({
     return list.filter((p) => p.node != null);
   }, [
     competitors, matrix, positioning, reviews, take, market, product, strategy,
-    hasIcp, hasPricing, hasFeatures, youName, layers,
+    hasIcp, hasPricing, hasFeatures, youName, layers, pricingEntries,
   ]);
 
   const [tab, setTab] = useState(panels[0]?.id || 'value');
@@ -419,14 +431,69 @@ function ChartCard({ title, hint, children }) {
   );
 }
 
-function PricingCard({ name, tiers, you }) {
+function normName(name) {
+  return String(name || '').toLowerCase().replace(/\s*\(you\)\s*$/i, '').trim();
+}
+
+/** One card per product + approved rival, filled from matrix tiers when available. */
+function buildPricingEntries(product, matrix, competitors) {
+  const youKey = normName(product?.name || matrix?.productName);
+  const byName = new Map();
+  for (const c of matrix?.competitors || []) {
+    const key = normName(c.name);
+    if (!key) continue;
+    byName.set(key, c);
+  }
+
+  const entries = [];
+  const seen = new Set();
+
+  if (product?.name || youKey) {
+    const key = youKey || normName(product.name);
+    const fromMatrix = byName.get(key);
+    const tiers = (product?.tiers?.length ? product.tiers : null) || fromMatrix?.tiers || [];
+    const name = product?.name || fromMatrix?.name || matrix?.productName;
+    if (name) {
+      entries.push({ name, tiers, you: true });
+      seen.add(key);
+    }
+  }
+
+  for (const c of competitors || []) {
+    const key = normName(c.name);
+    if (!key || seen.has(key) || key === youKey) continue;
+    const fromMatrix = byName.get(key)
+      || [...byName.values()].find((m) => {
+        const mk = normName(m.name);
+        return mk.includes(key) || key.includes(mk);
+      });
+    entries.push({ name: c.name, tiers: fromMatrix?.tiers || [], you: false });
+    seen.add(key);
+  }
+
+  // Matrix-only names (e.g. Grok used a different label) still appear.
+  for (const c of matrix?.competitors || []) {
+    const key = normName(c.name);
+    if (!key || seen.has(key) || key === youKey) continue;
+    entries.push({ name: c.name, tiers: c.tiers || [], you: false });
+    seen.add(key);
+  }
+
+  return entries;
+}
+
+function PricingCard({ name, tiers, you, loading }) {
   return (
     <div className={`rounded-lg border p-3 ${you ? 'border-accent/40 bg-accent/5' : 'border-ink-700 bg-ink-850'}`}>
       <p className={`text-sm font-semibold ${you ? 'text-accent-soft' : 'text-white'}`}>
         {name}{you && <span className="text-[10px] font-normal"> (you)</span>}
       </p>
       <div className="mt-2 space-y-1.5">
-        {(tiers || []).length === 0 && <p className="text-xs text-slate-600">No pricing extracted</p>}
+        {(tiers || []).length === 0 && (
+          <p className="text-xs text-slate-600">
+            {loading ? 'Extracting pricing…' : 'No pricing extracted'}
+          </p>
+        )}
         {(tiers || []).map((t, i) => (
           <div key={i} className="flex items-center justify-between text-xs">
             <span className="text-slate-400">{t.name}</span>

@@ -191,11 +191,23 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
     .join('\n\n');
 
   const prompt = productEntry + competitorPrompt;
-  if (!prompt.trim()) return res.json({ features: [], competitors: [] });
+  if (!prompt.trim()) {
+    // Still return stubs so the Pricing tab can show every approved rival.
+    return res.json({
+      features: [],
+      competitors: snapshots
+        .filter((s) => s.competitor)
+        .map((s) => ({ name: s.competitor.name, tiers: [] })),
+      productName,
+    });
+  }
 
   const matrix = await completeJSON({
     system: 'You extract feature comparison data from pricing pages. Return ONLY valid JSON.',
-    user: `Compare these products and extract a feature matrix.${productName ? ` Include "${productName}" (the user's own product) as one of the entries, using that exact name.` : ''} Return:
+    user: `Compare these products and extract a feature matrix.${productName ? ` Include "${productName}" (the user's own product) as one of the entries, using that exact name.` : ''}
+IMPORTANT: Include EVERY product listed below as its own competitors[] entry (use the exact == Name == heading). Do not omit rivals.
+
+Return:
 {
   "features": ["feature1", "feature2", ...],
   "competitors": [
@@ -211,10 +223,65 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
 Make features concise (3-5 words max). Include 10-20 meaningful differentiating features.
 
 ${prompt}`,
-    maxTokens: 2200,
+    maxTokens: 2800,
   });
 
-  res.json({ ...(matrix || { features: [], competitors: [] }), productName });
+  // Merge: ensure every requested rival appears, and backfill missing tiers
+  // with a focused per-competitor extract (matrix often drops rivals when scrapes are thin).
+  const byName = new Map();
+  for (const c of matrix?.competitors || []) {
+    const key = String(c?.name || '').toLowerCase().trim();
+    if (key) byName.set(key, c);
+  }
+
+  async function extractTiers(name, content) {
+    if (!content) return [];
+    try {
+      const result = await completeJSON({
+        system: 'You extract pricing tiers from website or research text. Return ONLY valid JSON.',
+        user: `Extract pricing tiers for "${name}". Return:
+{ "tiers": [{ "name": "string", "price_monthly": number|null }] }
+Use monthly USD when possible. If only annual is listed, divide by 12.
+
+CONTENT:
+${String(content).slice(0, 4500)}`,
+        maxTokens: 500,
+      });
+      return Array.isArray(result?.tiers) ? result.tiers : [];
+    } catch {
+      return [];
+    }
+  }
+
+  const merged = [];
+  for (const { competitor, content } of snapshots) {
+    if (!competitor) continue;
+    const key = String(competitor.name || '').toLowerCase().trim();
+    let entry = byName.get(key)
+      || [...byName.values()].find((c) => {
+        const ck = String(c?.name || '').toLowerCase().trim();
+        return ck.includes(key) || key.includes(ck);
+      });
+    if (!entry) entry = { name: competitor.name, tiers: [] };
+    else entry = { ...entry, name: competitor.name };
+
+    const hasPrice = (entry.tiers || []).some((t) => t?.price_monthly != null);
+    if (!hasPrice && content) {
+      const tiers = await extractTiers(competitor.name, content);
+      if (tiers.length) entry.tiers = tiers;
+    }
+    merged.push(entry);
+    byName.delete(key);
+  }
+
+  // Keep any extra matrix rows (e.g. the user's product column) not in competitorIds.
+  for (const c of byName.values()) merged.push(c);
+
+  res.json({
+    features: matrix?.features || [],
+    competitors: merged,
+    productName,
+  });
 }));
 
 // Positioning analysis — market overview for all workspace competitors
