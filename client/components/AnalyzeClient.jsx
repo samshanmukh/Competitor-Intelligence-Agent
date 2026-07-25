@@ -812,6 +812,18 @@ function ReportStage({ competitors, onScored }) {
     };
 
     try {
+      // Wave 0 — fetch rival pricing pages so matrix/scores aren't product-only
+      const needFetch = competitors.filter((c) => !c.hasSnapshot);
+      if (needFetch.length) {
+        setProgress(`Layer 0 · fetching ${needFetch.length} competitor page${needFetch.length === 1 ? '' : 's'}…`);
+        await Promise.all(
+          needFetch.map((c) => api.refreshOne(c.id).catch(() => null))
+        );
+        if (!alive()) return;
+        // Refresh list flags (hasSnapshot / urls) for subsequent waves
+        onScored?.();
+      }
+
       // Wave 1 — fast parallel foundations (ICP + pricing/features + first value scores)
       setProgress('Layer 1 · product, pricing matrix, value scores…');
       const wave1 = [

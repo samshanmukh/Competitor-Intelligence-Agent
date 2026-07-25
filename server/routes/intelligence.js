@@ -27,6 +27,7 @@ import {
 import { sendMarketShiftWebhook } from '../services/alerts.js';
 import { getWorkspaceJson, setWorkspaceJson } from '../services/workspaceStore.js';
 import { makeAttribution } from '../services/attribution.js';
+import { fetchCompetitor } from '../agents/fetchAgent.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -74,6 +75,24 @@ async function getProductContent(product) {
   }
   if (product.pricing_data) content += `\n\nManual pricing details: ${product.pricing_data}`;
   return content || null;
+}
+
+/**
+ * Prefer a stored snapshot; if missing, fetch the pricing page (You.com contents)
+ * and persist a snapshot so rivals score/price like the live product path.
+ */
+async function ensureCompetitorContent(competitor) {
+  if (!competitor?.id) return null;
+  let snap = await getLatestSnapshot(competitor.id);
+  if (snap?.content) return snap.content;
+  if (!competitor.pricing_url) return null;
+  try {
+    const fetched = await fetchCompetitor(competitor);
+    if (fetched?.ok && fetched.snapshot?.content) return fetched.snapshot.content;
+  } catch {
+    /* fall through */
+  }
+  return null;
 }
 
 // Analyze the user's OWN product (pricing tiers + value score) so it can be
@@ -126,8 +145,8 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
   const snapshots = await Promise.all(
     competitorIds.map(async (id) => {
       const c = await getCompetitor(id, req.workspaceId);
-      const snap = c ? await getLatestSnapshot(id) : null;
-      return { competitor: c, content: snap?.content };
+      const content = c ? await ensureCompetitorContent(c) : null;
+      return { competitor: c, content };
     })
   );
 
@@ -254,15 +273,15 @@ router.post('/competitors/:id/value-score', requireAuth, resolveWorkspace, wrap(
   const competitor = await getCompetitor(req.params.id, req.workspaceId);
   if (!competitor) return res.status(404).json({ error: 'Not found' });
 
-  const snap = await getLatestSnapshot(competitor.id);
-  if (!snap) return res.json({ score: null });
+  const content = await ensureCompetitorContent(competitor);
+  if (!content) return res.json({ score: null, error: 'No pricing page content yet' });
 
   const result = await completeJSON({
     system: 'You rate software products on value-for-money. Return ONLY valid JSON.',
     user: `Rate ${competitor.name} on value-for-money (1-10 scale).
 
 Pricing content:
-${snap.content?.slice(0, 3000)}
+${content.slice(0, 3000)}
 
 Return: { "score": number, "reasoning": "2-3 sentences" }`,
     maxTokens: 300,
