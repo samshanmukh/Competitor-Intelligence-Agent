@@ -443,13 +443,19 @@ export function WorkspaceSwitcher({ workspace, workspaces, onSwitch, onCreate })
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-52 rounded-xl border border-ink-700 bg-ink-900 p-1 shadow-xl z-50">
+        <div
+          className="menu-panel absolute bottom-full left-0 z-[80] mb-1 w-52 rounded-xl border border-white/15 p-1 shadow-2xl"
+          role="listbox"
+          aria-label="Switch workspace"
+        >
           {workspaces.map((ws) => (
             <button
               key={ws.id}
               onClick={() => { onSwitch(ws); setOpen(false); }}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-                ws.id === workspace?.id ? 'bg-ink-800 text-white' : 'text-slate-400 hover:bg-ink-800 hover:text-white'
+                ws.id === workspace?.id
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-300 hover:bg-white/8 hover:text-white'
               }`}
             >
               <div className="flex h-5 w-5 items-center justify-center rounded bg-accent/20 text-accent-soft text-[9px] font-bold uppercase">
@@ -459,10 +465,10 @@ export function WorkspaceSwitcher({ workspace, workspaces, onSwitch, onCreate })
               {ws.id === workspace?.id && <Icon name="check" className="ml-auto h-3 w-3 text-accent-soft" />}
             </button>
           ))}
-          <div className="my-1 border-t border-ink-700" />
+          <div className="my-1 border-t border-white/10" />
           <button
             onClick={() => { onCreate(); setOpen(false); }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-ink-800 hover:text-slate-200 transition"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/8 hover:text-slate-200"
           >
             <Icon name="plus" className="h-4 w-4" />
             New workspace
