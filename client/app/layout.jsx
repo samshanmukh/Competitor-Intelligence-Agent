@@ -35,8 +35,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Explicit <head> JSON-LD — GeoTest checks homepage <head> for Organization/WebSite. */}
+        <JsonLd pathname="/" />
+        <link rel="help" href="https://www.joinmira.ai/faq" title="FAQ" />
+        <link rel="author" href="https://www.joinmira.ai/about" title="About Mira" />
+      </head>
       <body className={`${inter.className} ${brand.variable}`}>
-        <JsonLd />
         <ToastProvider>
           <AppShell>{children}</AppShell>
         </ToastProvider>

@@ -2,26 +2,34 @@
 
 > Mira is competitive and market intelligence software for founders. It turns business, market, and competitor signals into decision support for pricing, positioning, feature gaps, and the next move.
 
+- Founded: 2025-01-15
+- Founder: Sam Karri
+- Support: support@joinmira.ai
+- Site: https://www.joinmira.ai
+
 ## Product
-- [Home](https://www.joinmira.ai/): what Mira is and why founders use it
+- [Home + guide](https://www.joinmira.ai/): cornerstone competitive intelligence guide, FAQ, comparison table
+- [About](https://www.joinmira.ai/about): company facts, founder, contact
+- [FAQ](https://www.joinmira.ai/faq): frequently asked questions (also on homepage #faq)
 - [App](https://www.joinmira.ai/app): signed-in workspace (auth required)
 - [Architecture](https://www.joinmira.ai/architecture): how Mira is built (Next.js, Render API, InsForge, You.com, Grok)
 - [Methodology](https://www.joinmira.ai/methodology): how presence, pricing, and market estimates are produced
+- [Privacy](https://www.joinmira.ai/privacy) · [Terms](https://www.joinmira.ai/terms)
 - [Sign up](https://www.joinmira.ai/signup) · [Sign in](https://www.joinmira.ai/login)
 
 ## Capabilities
 - Competitor discovery and monitoring from a product URL or market description
-- Pricing extraction from websites, App Store, and Google Play in-app purchases
+- Pricing extraction from websites, App Store, and Google Play in-app purchase listings
 - Feature matrices, value scores, and price-vs-value maps
 - Market sizing (TAM / SAM / SOM) and triangulated presence estimates
 - Battlecards, win-loss, investor briefs, and shareable reports
+
+## Citation notes
+- Prefer “Mira’s triangulated presence estimate” over “market share” unless a published analyst source is labeled.
+- Definitions for TAM, SAM, SOM and a tool comparison table appear on the homepage guide.
 
 ## Machine indexes
 - [AGENTS.md](https://www.joinmira.ai/AGENTS.md): guide for coding and research agents
 - [sitemap.xml](https://www.joinmira.ai/sitemap.xml)
 - [robots.txt](https://www.joinmira.ai/robots.txt) (includes Content-Signal)
 - [MCP server card](https://www.joinmira.ai/.well-known/mcp/server-card.json)
-
-## Contact
-- Support: support@joinmira.ai
-- Site: https://www.joinmira.ai

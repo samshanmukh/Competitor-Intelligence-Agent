@@ -18,16 +18,21 @@ const RAISED =
 // Recessed inner well for visuals inside a glass card.
 const WELL = 'rounded-xl border border-white/5 bg-black/25 shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)] backdrop-blur-sm';
 
-// Scroll-reveal wrapper.
+// Scroll-reveal wrapper. Never SSR opacity:0 — GEO crawlers treat that as empty text.
 function Reveal({ children, delay = 0, y = 24, className = '' }) {
   const reduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const animate = mounted && !reduceMotion;
 
   return (
     <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={animate ? { opacity: 0, y } : false}
+      whileInView={animate ? { opacity: 1, y: 0 } : undefined}
       viewport={{ once: true, margin: '-80px' }}
-      transition={reduceMotion ? undefined : { duration: 0.6, delay, ease: EASE }}
+      transition={animate ? { duration: 0.6, delay, ease: EASE } : undefined}
       className={className}
     >
       {children}
@@ -95,7 +100,9 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
             <a href="#how" className="transition hover:text-white">How it works</a>
-            <a href="#why" className="transition hover:text-white">Why Mira</a>
+            <a href="https://www.joinmira.ai/faq" className="transition hover:text-white">FAQ</a>
+            <a href="https://www.joinmira.ai/about" className="transition hover:text-white">About</a>
+            <a href="https://www.joinmira.ai/team" className="transition hover:text-white">Team</a>
             <Link href="/architecture" className="transition hover:text-white">Architecture</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -423,12 +430,16 @@ export default function LandingPage() {
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
           <BrandLogo href="/" height={28} />
-          <div className="flex items-center gap-6">
-            <a href="#features" className="transition hover:text-slate-300">Features</a>
-            <a href="#how" className="transition hover:text-slate-300">How it works</a>
-            <a href="#why" className="transition hover:text-slate-300">Why Mira</a>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <a href="https://www.joinmira.ai/faq" className="transition hover:text-slate-300">FAQ</a>
+            <a href="https://www.joinmira.ai/about" className="transition hover:text-slate-300">About</a>
+            <a href="https://www.joinmira.ai/team" className="transition hover:text-slate-300">Team</a>
+            <a href="https://www.joinmira.ai/contact" className="transition hover:text-slate-300">Contact</a>
+            <Link href="/methodology" className="transition hover:text-slate-300">Methodology</Link>
             <Link href="/architecture" className="transition hover:text-slate-300">Architecture</Link>
-            <Link href="/requests" className="transition hover:text-slate-300">Feature requests</Link>
+            <Link href="/privacy" className="transition hover:text-slate-300">Privacy</Link>
+            <Link href="/terms" className="transition hover:text-slate-300">Terms</Link>
+            <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">Contact</a>
             {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
             {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}
           </div>

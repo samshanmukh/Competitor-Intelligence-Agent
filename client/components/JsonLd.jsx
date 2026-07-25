@@ -1,11 +1,15 @@
-import { ORGANIZATION_JSON_LD } from '../lib/agentContent';
+import { buildJsonLdGraph } from '../lib/agentContent';
 
-/** Server-safe JSON-LD for Organization / SoftwareApplication / WebSite. */
-export default function JsonLd() {
+/**
+ * Raw JSON-LD script (not next/script) so crawlers see application/ld+json in HTML.
+ * Place inside <head> in the root layout.
+ */
+export default function JsonLd({ pathname = '/' }) {
+  const data = buildJsonLdGraph({ pathname });
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
 }

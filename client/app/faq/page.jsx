@@ -1,0 +1,37 @@
+import Link from 'next/link';
+import JsonLd from '../../components/JsonLd';
+import PublicDocShell from '../../components/PublicDocShell';
+import { FAQS, GUIDE_UPDATED, ORG } from '../../lib/geoContent';
+
+export const metadata = {
+  title: 'FAQ',
+  description:
+    'Frequently asked questions about Mira competitive intelligence software — pricing research, market sizing, and how Mira compares to enterprise CI tools.',
+  alternates: { canonical: '/faq' },
+};
+
+export default function FaqPage() {
+  return (
+    <>
+      <JsonLd pathname="/faq" />
+      <PublicDocShell title="Mira FAQ" updated={GUIDE_UPDATED}>
+        <p>
+          Answers about Mira competitive and market intelligence software. Prefer the homepage guide
+          at{' '}
+          <Link href="/#faq" className="text-indigo-300 underline-offset-2 hover:underline">
+            /#faq
+          </Link>{' '}
+          for the full cornerstone article. Support: {ORG.email}.
+        </p>
+        <div className="mt-8 space-y-8">
+          {FAQS.map((item) => (
+            <div key={item.question}>
+              <h2 className="text-lg font-semibold text-white">{item.question}</h2>
+              <p className="mt-2 text-slate-300">{item.answer}</p>
+            </div>
+          ))}
+        </div>
+      </PublicDocShell>
+    </>
+  );
+}
