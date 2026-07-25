@@ -50,6 +50,41 @@ details: ${SITE_ORIGIN}/methodology.
 This Contact page is public (no login). The email address above is also listed on the
 homepage, About page, Team page, Privacy Policy, and Terms of Service so incomplete
 crawls still find a channel.
+
+### Contact completeness checklist
+
+GeoTest and similar GEO tools look for:
+
+1. A dedicated Contact URL (this page)
+2. A visible email address (${ORG.email})
+3. Links from About / Team / homepage to Contact
+4. Organization identity (legal name, founding date, founder)
+
+Mira publishes all four. We do not invent a phone number or postal address on this
+page. If you need a phone callback, include your number in email.
+
+### Example outreach
+
+Subject: Product question — https://example.com  
+
+Body: We use Mira for competitive intelligence. Can you confirm how App Store pricing
+fallback works when a competitor has no public pricing page? Our workspace URL is …
+Founder name: …
+
+### Hours and language
+
+Support is offered in English. We are not a 24/7 call center; email is the durable
+channel. For self-serve answers first, read https://www.joinmira.ai/faq.
+
+### Related identity pages
+
+- About: https://www.joinmira.ai/about
+- Team: https://www.joinmira.ai/team
+- Privacy: https://www.joinmira.ai/privacy
+- Terms: https://www.joinmira.ai/terms
+- Home guide: https://www.joinmira.ai/#competitive-intelligence-guide
+
+Last updated 2026-07-25. Organization: ${ORG.legalName}. Founder: ${AUTHOR.name}.
 `;
 
 export default function ContactPage() {

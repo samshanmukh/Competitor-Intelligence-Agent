@@ -45,6 +45,45 @@ partnerships or collaboration ideas, email ${ORG.email}.
 
 ${AUTHOR.name}, ${AUTHOR.jobTitle}, ${ORG.legalName}. Founded ${ORG.foundingDate}.
 Website https://www.joinmira.ai. Support ${ORG.email}. Team page updated 2026-07-25.
+
+### Extended biography notes for ${AUTHOR.name}
+
+${AUTHOR.name} founded Mira to compress the time between “I shipped a product” and
+“I understand my market well enough to choose a price, a wedge, and a next move.”
+Before Mira, that work often meant a messy mix of spreadsheets, screenshots, and
+ad-hoc ChatGPT threads with no provenance. Mira’s research waterfall keeps source
+links and evidence grades so founders can defend numbers in advisor meetings.
+
+Responsibilities include:
+
+- Product roadmap for discovery, pricing, feature matrices, and market models
+- Public methodology for presence estimates and TAM/SAM/SOM assumptions
+- Agent-readable surfaces (llms.txt, AGENTS.md, MCP server card, Markdown negotiation)
+- Support triage via ${ORG.email}
+
+### Team FAQ
+
+**Who is on the Mira team?**  
+${AUTHOR.name} (${AUTHOR.jobTitle}) leads the company. Mira is intentionally small.
+
+**How do I contact the team?**  
+Email ${ORG.email} or use https://www.joinmira.ai/contact.
+
+**Where is the About page?**  
+https://www.joinmira.ai/about
+
+**When was Mira founded?**  
+${ORG.foundingDate}
+
+### Trust signals
+
+- Named founder with role title
+- Public email contact channel
+- Linked About, Contact, FAQ, Privacy, and Terms pages
+- Methodology and architecture documentation for technical readers
+
+This Team page is server-rendered HTML (not a login-gated app shell) so crawlers and
+AI agents can read it without executing application JavaScript.
 `;
 
 export default function TeamPage() {
