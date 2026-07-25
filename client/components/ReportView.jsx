@@ -187,7 +187,7 @@ export default function ReportView({
               </table>
               {matrixColumns.some((c) => !c.you && !(c.flags || []).some((x) => x === true || x === false)) && (
                 <p className="mt-3 text-[11px] text-slate-500">
-                  Rival columns show – until their pricing/product pages are fetched. Hit Regenerate if they stay empty.
+                  Rival columns still empty — hit Regenerate to pull You.com pricing/feature research for each competitor.
                 </p>
               )}
             </div>

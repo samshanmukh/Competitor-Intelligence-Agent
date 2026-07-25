@@ -204,10 +204,20 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
     return res.status(400).json({ error: 'competitorIds array required' });
   }
 
+  // Load every rival with useful pricing/feature text (scrape → research). Never
+  // let a thin blocked page leave rivals out of the matrix prompt.
   const snapshots = await Promise.all(
     competitorIds.map(async (id) => {
       const c = await getCompetitor(id, req.workspaceId);
-      const content = c ? await ensureCompetitorContent(c) : null;
+      if (!c) return { competitor: null, content: null };
+      let content = await ensureCompetitorContent(c);
+      if (!contentUsefulForPricing(content)) {
+        const researched = await researchPricingContent(c);
+        if (researched) {
+          content = researched;
+          try { await insertSnapshot(c.id, researched, 'you-research'); } catch { /* ignore */ }
+        }
+      }
       return { competitor: c, content };
     })
   );
@@ -220,13 +230,13 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
     const pc = await getProductContent(product);
     if (product && pc) {
       productName = product.name;
-      productEntry = `== ${product.name} (THIS IS THE USER'S OWN PRODUCT) ==\n${pc.slice(0, 3000)}\n\n`;
+      productEntry = `== ${product.name} (THIS IS THE USER'S OWN PRODUCT) ==\n${pc.slice(0, 4000)}\n\n`;
     }
   }
 
   const competitorPrompt = snapshots
     .filter((s) => s.competitor && s.content)
-    .map((s) => `== ${s.competitor.name} ==\n${s.content?.slice(0, 3000)}`)
+    .map((s) => `== ${s.competitor.name} ==\n${s.content?.slice(0, 4000)}`)
     .join('\n\n');
 
   const prompt = productEntry + competitorPrompt;
@@ -241,10 +251,23 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
     });
   }
 
+  const namedProducts = [
+    productName,
+    ...snapshots.filter((s) => s.competitor).map((s) => s.competitor.name),
+  ].filter(Boolean);
+
   const matrix = await completeJSON({
-    system: 'You extract feature comparison data from pricing pages. Return ONLY valid JSON.',
-    user: `Compare these products and extract a feature matrix.${productName ? ` Include "${productName}" (the user's own product) as one of the entries, using that exact name.` : ''}
-IMPORTANT: Include EVERY product listed below as its own competitors[] entry (use the exact == Name == heading). Do not omit rivals.
+    system: 'You build cross-product feature comparison matrices for software. Return ONLY valid JSON.',
+    user: `Compare these products and extract a feature matrix.
+Products that MUST appear as competitors[] entries (exact names): ${JSON.stringify(namedProducts)}
+${productName ? `"${productName}" is the user's own product.` : ''}
+
+Rules:
+- features[] must be comparable across ALL products (e.g. "Cloud agents", "Team SSO", "Usage analytics", "Privacy mode"). Prefer 12-18 generic capabilities.
+- Do NOT use single-vendor brand names (no "Bugbot", no product-codename features) unless the capability is industry-standard.
+- For EVERY product, fill tiers[0].features as a boolean array the SAME length as features[].
+- Use true/false only. Prefer false over null when the product does not offer an equivalent. Avoid null.
+- Also extract pricing tiers with monthly USD when present.
 
 Return:
 {
@@ -259,10 +282,9 @@ Return:
   ]
 }
 
-Make features concise (3-5 words max). Include 10-20 meaningful differentiating features.
-
+SOURCE TEXT:
 ${prompt}`,
-    maxTokens: 2800,
+    maxTokens: 3500,
   });
 
   // Merge: ensure every requested rival (+ product) appears, and backfill missing
@@ -306,25 +328,42 @@ ${String(content).slice(0, 5000)}`,
     try {
       const result = await completeJSON({
         system: 'You map product capabilities to a fixed feature list. Return ONLY valid JSON.',
-        user: `For "${name}", mark each feature true/false/null (unknown) from the content.
+        user: `For "${name}", mark each capability true or false from the content.
+Map EQUIVALENT capabilities (e.g. "cloud agents" ≈ hosted/async agents; "team SSO" ≈ SAML/OIDC).
 Features (in order): ${JSON.stringify(features)}
-Return: { "flags": [true|false|null, ...] } with exactly ${features.length} entries.
+Return: { "flags": [true|false, ...] } with exactly ${features.length} entries.
+Rules: use true/false only (no null). If content is substantial and a capability is not offered, use false.
 
 CONTENT:
-${String(content).slice(0, 4500)}`,
-        maxTokens: 400,
+${String(content).slice(0, 5000)}`,
+        maxTokens: 500,
       });
       const flags = result?.flags;
       if (!Array.isArray(flags) || flags.length !== features.length) return null;
-      return flags.map((f) => (f === true ? true : f === false ? false : null));
+      return flags.map((f) => (f === true ? true : false));
     } catch {
       return null;
     }
   }
 
-  function hasFeatureFlags(entry) {
+  function flagCoverage(entry, n) {
     const flags = entry?.tiers?.[0]?.features;
-    return Array.isArray(flags) && flags.some((f) => f === true || f === false);
+    if (!Array.isArray(flags) || !n) return 0;
+    const filled = flags.filter((f) => f === true || f === false).length;
+    return filled / n;
+  }
+
+  function applyFlags(entry, flags) {
+    if ((entry.tiers || []).length) {
+      return {
+        ...entry,
+        tiers: [{ ...entry.tiers[0], features: flags }, ...entry.tiers.slice(1)],
+      };
+    }
+    return {
+      ...entry,
+      tiers: [{ name: 'Plans', price_monthly: null, features: flags }],
+    };
   }
 
   async function enrichEntry(name, content, entry) {
@@ -332,10 +371,14 @@ ${String(content).slice(0, 4500)}`,
     let text = content;
     const priced = () => (next.tiers || []).some((t) => t?.price_monthly != null);
 
+    if (!contentUsefulForPricing(text)) {
+      const researched = await researchPricingContent(name);
+      if (researched) text = researched;
+    }
+
     if (!priced()) {
       let tiers = text ? await extractTiers(name, text) : [];
       if (tiers.length) next.tiers = tiers;
-      // Thin scrapes often have no $ — pull dedicated pricing research and retry.
       if (!priced()) {
         const researched = await researchPricingContent(name);
         if (researched) {
@@ -346,19 +389,10 @@ ${String(content).slice(0, 4500)}`,
       }
     }
 
-    if (featureList.length && text && !hasFeatureFlags(next)) {
+    // Always fill sparse/empty rival feature columns when we have source text.
+    if (featureList.length && text && flagCoverage(next, featureList.length) < 0.6) {
       const flags = await extractFeatureFlags(name, text, featureList);
-      if (flags) {
-        if ((next.tiers || []).length) {
-          next.tiers = [
-            { ...next.tiers[0], features: flags },
-            ...next.tiers.slice(1),
-          ];
-        } else {
-          // Keep feature flags without inventing a fake "Default —" price row.
-          next.tiers = [{ name: 'Plans', price_monthly: null, features: flags }];
-        }
-      }
+      if (flags) next = applyFlags(next, flags);
     }
     if (!next.tiers) next.tiers = [];
     return next;

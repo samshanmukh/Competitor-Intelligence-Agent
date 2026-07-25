@@ -23,6 +23,12 @@ export async function fetchCompetitor(competitor) {
   if (!markdown) {
     return { ok: false, error: result?.error || 'No content returned (site may block scrapers).' };
   }
+  // Reject blocked-page stubs so callers fall through to You.com research.
+  const trimmed = String(markdown).trim();
+  const hasMoney = /\$\s?\d/.test(trimmed);
+  if (trimmed.length < 400 || (!hasMoney && trimmed.length < 800)) {
+    return { ok: false, error: 'Content too thin for pricing/feature extraction (site may block scrapers).' };
+  }
 
   const latest = await getLatestSnapshot(competitor.id);
   if (latest && latest.content_hash === hashContent(markdown)) {

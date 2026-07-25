@@ -836,15 +836,14 @@ function ReportStage({ competitors, onScored }) {
     };
 
     try {
-      // Wave 0 — fetch rival pricing pages so matrix/scores aren't product-only
-      const needFetch = competitors.filter((c) => !c.hasSnapshot);
-      if (needFetch.length) {
-        setProgress(`Layer 0 · fetching ${needFetch.length} competitor page${needFetch.length === 1 ? '' : 's'}…`);
+      // Wave 0 — refresh EVERY rival page. Thin/blocked scrapes used to set
+      // hasSnapshot=true and skip research, leaving Pricing/Features empty.
+      if (competitors.length) {
+        setProgress(`Layer 0 · fetching ${competitors.length} competitor page${competitors.length === 1 ? '' : 's'}…`);
         await Promise.all(
-          needFetch.map((c) => api.refreshOne(c.id).catch(() => null))
+          competitors.map((c) => api.refreshOne(c.id).catch(() => null))
         );
         if (!alive()) return;
-        // Refresh list flags (hasSnapshot / urls) for subsequent waves
         onScored?.();
       }
 
