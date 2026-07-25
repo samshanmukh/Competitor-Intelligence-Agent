@@ -45,11 +45,11 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       url: SITE_ORIGIN,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_ORIGIN}/mira-logo.svg`,
+        url: `${SITE_ORIGIN}/mira-logo.png`,
         width: 512,
         height: 128,
       },
-      image: `${SITE_ORIGIN}/mira-logo.svg`,
+      image: `${SITE_ORIGIN}/mira-logo.png`,
       description: ORG.description,
       foundingDate: ORG.foundingDate,
       email: ORG.email,
@@ -104,7 +104,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       description: ORG.description,
       brand: { '@id': orgId },
       url: SITE_ORIGIN,
-      image: `${SITE_ORIGIN}/mira-logo.svg`,
+      image: `${SITE_ORIGIN}/mira-logo.png`,
       category: 'Competitive Intelligence Software',
       offers: {
         '@type': 'Offer',
@@ -135,7 +135,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
     },
   ];
 
-  if (pathname === '/' || pathname === '/faq') {
+  if (pathname === '/faq' || pathname === '/guide') {
     graph.push({
       '@type': 'FAQPage',
       '@id': `${pageUrl}#faq`,
@@ -146,7 +146,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
     });
   }
 
-  if (pathname === '/') {
+  if (pathname === '/guide') {
     graph.push(
       {
         '@type': 'Article',
@@ -154,16 +154,16 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
         headline: 'Competitive intelligence for founders: how Mira turns market signals into next moves',
         description:
           'A practical guide to competitive and market intelligence for startups — definitions, comparison of CI tools, pricing research methods, and how Mira works.',
-        url: `${SITE_ORIGIN}/#competitive-intelligence-guide`,
+        url: `${SITE_ORIGIN}/guide`,
         mainEntityOfPage: {
           '@type': 'WebPage',
-          '@id': `${SITE_ORIGIN}/#competitive-intelligence-guide`,
+          '@id': `${SITE_ORIGIN}/guide`,
         },
         datePublished: GUIDE_PUBLISHED,
         dateModified: GUIDE_UPDATED,
         author: { '@id': personId },
         publisher: { '@id': orgId },
-        image: `${SITE_ORIGIN}/mira-logo.svg`,
+        image: `${SITE_ORIGIN}/mira-logo.png`,
         inLanguage: 'en-US',
         about: [
           { '@type': 'Thing', name: 'Competitive intelligence' },
@@ -173,7 +173,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       },
       {
         '@type': 'BreadcrumbList',
-        '@id': `${SITE_ORIGIN}/#breadcrumb`,
+        '@id': `${SITE_ORIGIN}/guide#breadcrumb`,
         itemListElement: [
           {
             '@type': 'ListItem',
@@ -185,24 +185,24 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
             '@type': 'ListItem',
             position: 2,
             name: 'Competitive intelligence guide',
-            item: `${SITE_ORIGIN}/#competitive-intelligence-guide`,
+            item: `${SITE_ORIGIN}/guide`,
           },
         ],
       },
       {
         '@type': 'WebPage',
-        '@id': `${SITE_ORIGIN}/#webpage`,
-        url: SITE_ORIGIN,
-        name: 'Mira · Competitive and market intelligence for founders',
+        '@id': `${SITE_ORIGIN}/guide#webpage`,
+        url: `${SITE_ORIGIN}/guide`,
+        name: 'Competitive intelligence guide · Mira',
         description: ORG.description,
         isPartOf: { '@id': websiteId },
         about: { '@id': productId },
         primaryImageOfPage: {
           '@type': 'ImageObject',
-          url: `${SITE_ORIGIN}/mira-logo.svg`,
+          url: `${SITE_ORIGIN}/mira-logo.png`,
         },
         dateModified: GUIDE_UPDATED,
-        breadcrumb: { '@id': `${SITE_ORIGIN}/#breadcrumb` },
+        breadcrumb: { '@id': `${SITE_ORIGIN}/guide#breadcrumb` },
         speakable: {
           '@type': 'SpeakableSpecification',
           cssSelector: ['#mira-definition', '#competitive-intelligence-guide h2'],
@@ -272,7 +272,8 @@ ${COMPARISON_ROWS.map(
 ${FAQS.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
 
 ## Key public pages
-- [${SITE_ORIGIN}/](${SITE_ORIGIN}/) — product home + guide
+- [${SITE_ORIGIN}/](${SITE_ORIGIN}/) — product home
+- [${SITE_ORIGIN}/guide](${SITE_ORIGIN}/guide) — competitive intelligence guide (cornerstone)
 - [${SITE_ORIGIN}/about](${SITE_ORIGIN}/about) — company & contact
 - [${SITE_ORIGIN}/faq](${SITE_ORIGIN}/faq) — frequently asked questions
 - [${SITE_ORIGIN}/architecture](${SITE_ORIGIN}/architecture) — how Mira is built
@@ -333,17 +334,27 @@ Mira is competitive and market intelligence software for founders.
 - Founder: ${AUTHOR.name} (${AUTHOR.jobTitle})
 - Website: ${SITE_ORIGIN}
 - Support: ${ORG.email}
-- Public docs: /architecture, /methodology, /faq, /privacy, /terms
+- Public docs: /guide, /architecture, /methodology, /faq, /privacy, /terms
 `;
 
 const FAQ_MD = `# Mira FAQ
 
 ${FAQS.map((f) => `## ${f.question}\n\n${f.answer}`).join('\n\n')}
+
+Full guide: ${SITE_ORIGIN}/guide
+`;
+
+const GUIDE_MD = `# Competitive intelligence guide — Mira
+
+Long-form founder guide: ${SITE_ORIGIN}/guide
+
+${HOME_MD}
 `;
 
 export function getPageMarkdown(pathname) {
   const path = pathname === '' ? '/' : pathname;
   if (path === '/') return HOME_MD;
+  if (path === '/guide') return GUIDE_MD;
   if (path === '/architecture') return ARCHITECTURE_MD;
   if (path === '/methodology') return METHODOLOGY_MD;
   if (path === '/about') return ABOUT_MD;

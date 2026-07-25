@@ -82,7 +82,7 @@ channel. For self-serve answers first, read https://www.joinmira.ai/faq.
 - Team: https://www.joinmira.ai/team
 - Privacy: https://www.joinmira.ai/privacy
 - Terms: https://www.joinmira.ai/terms
-- Home guide: https://www.joinmira.ai/#competitive-intelligence-guide
+- Guide: https://www.joinmira.ai/guide
 
 Last updated 2026-07-25. Organization: ${ORG.legalName}. Founder: ${AUTHOR.name}.
 

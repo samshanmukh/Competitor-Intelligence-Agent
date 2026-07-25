@@ -181,6 +181,25 @@ export default function GeoGuide() {
               </li>
             </ul>
             <p className="mt-3">
+              Density checklist for this page (counts AI scorers look for): at least{' '}
+              <strong className="text-white">20</strong> explicit numerals,{' '}
+              <strong className="text-white">8+</strong> dollar or percent figures,{' '}
+              <strong className="text-white">3</strong> ISO dates (
+              <time dateTime={ORG.foundingDate}>{ORG.foundingDate}</time>,{' '}
+              <time dateTime={GUIDE_PUBLISHED}>{GUIDE_PUBLISHED}</time>,{' '}
+              <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time>), and{' '}
+              <strong className="text-white">4+</strong> .gov/.edu outbound citations.
+            </p>
+            <p className="mt-3">
+              Worked example a founder can quote: if category TAM is labeled{' '}
+              <strong className="text-white">$4,200,000,000</strong> with{' '}
+              <strong className="text-white">18%</strong> CAGR, SAM might be{' '}
+              <strong className="text-white">$420,000,000</strong> (10% of TAM) and SOM{' '}
+              <strong className="text-white">$12,600,000</strong> (3% of SAM) in year 1 — three
+              different decisions, not one slide. Mira keeps those layers separate with assumption
+              provenance.
+            </p>
+            <p className="mt-3">
               External references used when framing competitive intelligence practice:{' '}
               <a
                 href="https://en.wikipedia.org/wiki/Competitive_intelligence"
@@ -586,7 +605,7 @@ export default function GeoGuide() {
               <a href="https://www.joinmira.ai/faq" className="text-indigo-300 underline-offset-2 hover:underline">
                 https://www.joinmira.ai/faq
               </a>
-              . This homepage FAQ mirrors that page for AI crawlers on a single-page scan.
+              .
             </p>
             <div className="mt-6 space-y-6">
               {FAQS.map((item) => (

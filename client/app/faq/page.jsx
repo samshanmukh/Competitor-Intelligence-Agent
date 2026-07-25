@@ -16,12 +16,11 @@ export default function FaqPage() {
       <JsonLd pathname="/faq" />
       <PublicDocShell title="Mira FAQ" updated={GUIDE_UPDATED}>
         <p>
-          Answers about Mira competitive and market intelligence software. Prefer the homepage guide
-          at{' '}
-          <Link href="/#faq" className="text-indigo-300 underline-offset-2 hover:underline">
-            /#faq
-          </Link>{' '}
-          for the full cornerstone article. Support: {ORG.email}.
+          Answers about Mira competitive and market intelligence software. Full guide:{' '}
+          <Link href="/guide" className="text-indigo-300 underline-offset-2 hover:underline">
+            /guide
+          </Link>
+          . Support: {ORG.email}.
         </p>
         <div className="mt-8 space-y-8">
           {FAQS.map((item) => (

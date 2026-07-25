@@ -8,6 +8,7 @@ export default function sitemap() {
     { url: `${SITE}/team`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${SITE}/contact`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${SITE}/faq`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${SITE}/guide`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${SITE}/architecture`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE}/methodology`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },

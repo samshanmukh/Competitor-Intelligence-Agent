@@ -71,7 +71,7 @@ export const FAQS = [
   {
     question: 'Where can I find Mira’s FAQ, About, and Team pages?',
     answer:
-      'FAQ: https://www.joinmira.ai/faq (also on the homepage under #faq). About: https://www.joinmira.ai/about. Team: https://www.joinmira.ai/team. Privacy: /privacy. Terms: /terms. Methodology: /methodology. Architecture: /architecture.',
+      'FAQ: https://www.joinmira.ai/faq. Guide: https://www.joinmira.ai/guide. About: https://www.joinmira.ai/about. Team: https://www.joinmira.ai/team. Privacy: /privacy. Terms: /terms. Methodology: /methodology. Architecture: /architecture.',
   },
 ];
 

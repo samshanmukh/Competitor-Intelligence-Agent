@@ -2,6 +2,7 @@ import Link from 'next/link';
 import BrandLogo from './BrandLogo';
 
 const FOOTER_LINKS = [
+  { href: '/guide', label: 'Guide' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Team' },
   { href: '/contact', label: 'Contact' },

@@ -10,6 +10,7 @@ const PUBLIC_EXACT = [
   '/about',
   '/team',
   '/contact',
+  '/guide',
   '/faq',
   '/privacy',
   '/terms',
@@ -18,8 +19,12 @@ const PUBLIC_EXACT = [
   '/llms.txt',
   '/AGENTS.md',
   '/mira-mark.svg',
+  '/mira-mark.png',
   '/mira-logo.svg',
+  '/mira-logo.png',
   '/icon.svg',
+  '/favicon-32.png',
+  '/apple-touch-icon.png',
 ];
 const PUBLIC_PREFIX = [
   '/login',

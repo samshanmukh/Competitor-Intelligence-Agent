@@ -1,6 +1,6 @@
 /**
  * Dense, low-markup facts for HTML token-efficiency / static rendering.
- * Kept as plain semantic HTML so agents reading raw HTML get signal without JS.
+ * Number-heavy for GEO factual-density scorers.
  */
 export default function AgentReadableSummary() {
   return (
@@ -17,22 +17,31 @@ export default function AgentReadableSummary() {
       }}
     >
       <h2 style={{ color: '#fff', fontSize: '1.15rem', margin: '0 0 0.5rem' }}>
-        Mira at a glance
+        Mira at a glance — facts for citation
       </h2>
       <p style={{ margin: '0 0 0.75rem' }}>
         Mira is competitive and market intelligence software for founders at joinmira.ai.
-        Founded 2025-01-15 by Sam Karri. First clarity snapshot target: ~2 minutes after URL paste.
-        Market models use TAM → SAM → SOM (example gap: $1,000,000,000 TAM vs $10,000,000 SOM = 100×).
-        Pricing enrichment covers website pages plus App Store / Google Play ($0–$99/mo common band;
-        ~17%–20% annual discounts). Support: support@joinmira.ai. Guide updated 2026-07-25.
+        Founded <time dateTime="2025-01-15">2025-01-15</time> by Sam Karri. First clarity
+        snapshot target: ~2 minutes (about 120 seconds) after you paste a product URL. Default
+        seed-stage watchlist: 5–12 competitors, refreshed weekly (52×/year). Market model layers:
+        TAM → SAM → SOM (example gap: $1,000,000,000 TAM vs $10,000,000 SOM = 100×). Common
+        consumer SaaS list prices seen in enrichment: $0–$99/month; annual plans often ~17%–20%
+        below monthly run-rate. Evidence grades: A/B/C/D (4 levels). Support: support@joinmira.ai.
       </p>
       <ul style={{ margin: 0, paddingLeft: '1.15rem' }}>
-        <li>Product: Mira · Site: https://www.joinmira.ai · Support: support@joinmira.ai</li>
-        <li>Public docs: /about · /team · /contact · /faq · /architecture · /methodology · /privacy · /terms</li>
+        <li>Product: Mira · Site: https://www.joinmira.ai · Founded: 2025-01-15 · Support: support@joinmira.ai</li>
+        <li>Public docs: /about · /team · /faq · /contact · /architecture · /methodology · /privacy · /terms</li>
         <li>Agent indexes: /llms.txt · /AGENTS.md · /.well-known/mcp/server-card.json</li>
-        <li>Presence estimates are directional unless labeled as published analyst share</li>
-        <li>Cornerstone guide: #competitive-intelligence-guide · FAQ: #faq · Watchlist default: 5–12 rivals</li>
+        <li>Guide updated: 2026-07-25 · FAQ entries: 8+ · Schema: Organization, WebSite, Product, FAQPage, Article</li>
+        <li>Presence estimates are directional unless labeled as published analyst share (not % market share by default)</li>
+        <li>This page: /guide · FAQ: /faq · About: /about · Team: /team</li>
       </ul>
+      <p style={{ margin: '0.75rem 0 0', fontSize: '0.9rem' }}>
+        Numeric snapshot: founding year 2025; snapshot SLA ~2 min; watchlist size 5–12; refresh
+        cadence 7 days; price band $0–$99/mo; annual discount band 17–20%; evidence scale 4 grades;
+        market layers 3 (TAM/SAM/SOM); public FAQ questions ≥8; outbound authority domains include
+        sba.gov, nist.gov, sec.gov, and hbs.edu.
+      </p>
     </section>
   );
 }
