@@ -1,6 +1,15 @@
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
-import insforge, { getCompetitor, listSnapshots, getLatestSnapshot, listCompetitors, getSetting, setSetting, listRecentChanges } from '../db/index.js';
+import insforge, {
+  getCompetitor,
+  listSnapshots,
+  getLatestSnapshot,
+  insertSnapshot,
+  listCompetitors,
+  getSetting,
+  setSetting,
+  listRecentChanges,
+} from '../db/index.js';
 import { getProduct } from '../db/products.js';
 import { getMarketModel, saveMarketModel, insertModelHistory, getModelHistory } from '../db/marketModel.js';
 import { completeJSON, complete } from '../services/ai.js';
@@ -97,7 +106,8 @@ async function ensureCompetitorContent(competitor) {
     }
   }
 
-  // Research fallback — enough text for a value score even without a page scrape.
+  // Research fallback — enough text for scores/matrix even without a page scrape.
+  // Persist so Pricing/Features/Value all see the same rival content on later calls.
   try {
     const q = [
       `${competitor.name} software pricing plans tiers monthly cost`,
@@ -111,7 +121,15 @@ async function ensureCompetitorContent(competitor) {
         [s.title, s.url, (s.snippets || []).join(' ')].filter(Boolean).join(' — ')
       )),
     ].filter(Boolean).join('\n');
-    if (text.trim()) return text.slice(0, 8000);
+    if (text.trim()) {
+      const clipped = text.slice(0, 8000);
+      try {
+        await insertSnapshot(competitor.id, clipped, 'you-research');
+      } catch {
+        /* non-fatal — still return text for this request */
+      }
+      return clipped;
+    }
   } catch {
     /* ignore */
   }
@@ -226,13 +244,15 @@ ${prompt}`,
     maxTokens: 2800,
   });
 
-  // Merge: ensure every requested rival appears, and backfill missing tiers
-  // with a focused per-competitor extract (matrix often drops rivals when scrapes are thin).
+  // Merge: ensure every requested rival (+ product) appears, and backfill missing
+  // tiers / feature flags (matrix often drops rivals when scrapes are thin).
   const byName = new Map();
   for (const c of matrix?.competitors || []) {
     const key = String(c?.name || '').toLowerCase().trim();
     if (key) byName.set(key, c);
   }
+
+  const featureList = Array.isArray(matrix?.features) ? matrix.features : [];
 
   async function extractTiers(name, content) {
     if (!content) return [];
@@ -253,32 +273,87 @@ ${String(content).slice(0, 4500)}`,
     }
   }
 
+  async function extractFeatureFlags(name, content, features) {
+    if (!content || !features.length) return null;
+    try {
+      const result = await completeJSON({
+        system: 'You map product capabilities to a fixed feature list. Return ONLY valid JSON.',
+        user: `For "${name}", mark each feature true/false/null (unknown) from the content.
+Features (in order): ${JSON.stringify(features)}
+Return: { "flags": [true|false|null, ...] } with exactly ${features.length} entries.
+
+CONTENT:
+${String(content).slice(0, 4500)}`,
+        maxTokens: 400,
+      });
+      const flags = result?.flags;
+      if (!Array.isArray(flags) || flags.length !== features.length) return null;
+      return flags.map((f) => (f === true ? true : f === false ? false : null));
+    } catch {
+      return null;
+    }
+  }
+
+  function hasFeatureFlags(entry) {
+    const flags = entry?.tiers?.[0]?.features;
+    return Array.isArray(flags) && flags.some((f) => f === true || f === false);
+  }
+
+  async function enrichEntry(name, content, entry) {
+    let next = { ...entry, name };
+    const hasPrice = (next.tiers || []).some((t) => t?.price_monthly != null);
+    if (!hasPrice && content) {
+      const tiers = await extractTiers(name, content);
+      if (tiers.length) next.tiers = tiers;
+    }
+    if (featureList.length && content && !hasFeatureFlags(next)) {
+      const flags = await extractFeatureFlags(name, content, featureList);
+      if (flags) {
+        const baseTier = next.tiers?.[0] || { name: 'Default', price_monthly: null };
+        next.tiers = [{ ...baseTier, features: flags }, ...(next.tiers || []).slice(1)];
+      }
+    }
+    if (!next.tiers) next.tiers = [];
+    return next;
+  }
+
   const merged = [];
+
+  // Product column first (when includeProduct), then each requested rival.
+  if (productName) {
+    const key = productName.toLowerCase().trim();
+    let entry = byName.get(key)
+      || [...byName.values()].find((c) => {
+        const ck = String(c?.name || '').toLowerCase().trim();
+        return ck.includes(key) || key.includes(ck);
+      })
+      || { name: productName, tiers: [] };
+    const product = await getProduct(req.workspaceId);
+    const pc = product ? await getProductContent(product) : productEntry;
+    entry = await enrichEntry(productName, pc, entry);
+    merged.push(entry);
+    byName.delete(key);
+  }
+
   for (const { competitor, content } of snapshots) {
     if (!competitor) continue;
     const key = String(competitor.name || '').toLowerCase().trim();
+    if (productName && key === productName.toLowerCase().trim()) continue;
     let entry = byName.get(key)
       || [...byName.values()].find((c) => {
         const ck = String(c?.name || '').toLowerCase().trim();
         return ck.includes(key) || key.includes(ck);
       });
     if (!entry) entry = { name: competitor.name, tiers: [] };
-    else entry = { ...entry, name: competitor.name };
-
-    const hasPrice = (entry.tiers || []).some((t) => t?.price_monthly != null);
-    if (!hasPrice && content) {
-      const tiers = await extractTiers(competitor.name, content);
-      if (tiers.length) entry.tiers = tiers;
-    }
+    entry = await enrichEntry(competitor.name, content, entry);
     merged.push(entry);
     byName.delete(key);
   }
 
-  // Keep any extra matrix rows (e.g. the user's product column) not in competitorIds.
   for (const c of byName.values()) merged.push(c);
 
   res.json({
-    features: matrix?.features || [],
+    features: featureList,
     competitors: merged,
     productName,
   });

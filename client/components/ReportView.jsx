@@ -66,6 +66,9 @@ export default function ReportView({
     || product?.tiers?.length > 0
   );
   const hasFeatures = Boolean(matrix?.features?.length > 0);
+  // Same merge as Pricing: always show you + every approved rival as columns,
+  // even when the saved/live matrix only contains the product.
+  const matrixColumns = buildMatrixColumns(product, matrix, competitors);
   const panels = useMemo(() => {
     const pending = (id) => layers?.[id] === 'loading';
     const list = [];
@@ -157,25 +160,21 @@ export default function ReportView({
                 <thead>
                   <tr className="border-b border-ink-700">
                     <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-slate-500">Feature</th>
-                    {matrix.competitors.map((c) => {
-                      const isYou = (c.name || '').toLowerCase() === youName;
-                      return (
-                        <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium ${isYou ? 'text-accent-soft' : 'text-slate-300'}`}>
-                          {c.name}{isYou && <span className="block text-[9px] font-normal text-accent-soft/70">you</span>}
-                        </th>
-                      );
-                    })}
+                    {matrixColumns.map((c) => (
+                      <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium ${c.you ? 'text-accent-soft' : 'text-slate-300'}`}>
+                        {c.name}{c.you && <span className="block text-[9px] font-normal text-accent-soft/70">you</span>}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-800">
-                  {matrix.features.map((f, fi) => (
+                  {(matrix?.features || []).map((f, fi) => (
                     <tr key={fi}>
                       <td className="py-2 pr-4 text-xs text-slate-300">{f}</td>
-                      {matrix.competitors.map((c) => {
-                        const isYou = (c.name || '').toLowerCase() === youName;
-                        const has = c.tiers?.[0]?.features?.[fi];
+                      {matrixColumns.map((c) => {
+                        const has = c.flags?.[fi];
                         return (
-                          <td key={c.name} className={`px-3 py-2 text-center ${isYou ? 'bg-accent/5' : ''}`}>
+                          <td key={c.name} className={`px-3 py-2 text-center ${c.you ? 'bg-accent/5' : ''}`}>
                             {has === true ? <Icon name="check" className="mx-auto h-3.5 w-3.5 text-emerald-400" />
                               : has === false ? <Icon name="x" className="mx-auto h-3.5 w-3.5 text-slate-700" />
                               : <span className="text-slate-700">–</span>}
@@ -186,6 +185,11 @@ export default function ReportView({
                   ))}
                 </tbody>
               </table>
+              {matrixColumns.some((c) => !c.you && !(c.flags || []).some((x) => x === true || x === false)) && (
+                <p className="mt-3 text-[11px] text-slate-500">
+                  Rival columns show – until their pricing/product pages are fetched. Hit Regenerate if they stay empty.
+                </p>
+              )}
             </div>
           </ReportSection>
         ) : <LayerPending label="feature matrix" />,
@@ -232,14 +236,15 @@ export default function ReportView({
         ),
       });
     }
-    if (reviews?.length || pending('reviews')) {
+    if (reviews?.length || competitors.length || pending('reviews')) {
+      const reviewEntries = buildReviewEntries(competitors, reviews, product);
       list.push({
         id: 'reviews',
         label: 'Reviews',
         icon: 'users',
         loading: pending('reviews'),
-        node: reviews?.length
-          ? <ReviewsSection reviews={reviews} />
+        node: reviewEntries.length
+          ? <ReviewsSection reviews={reviewEntries} loading={pending('reviews')} />
           : <LayerPending label="reviews" />,
       });
     }
@@ -279,7 +284,7 @@ export default function ReportView({
     return list.filter((p) => p.node != null);
   }, [
     competitors, matrix, positioning, reviews, take, market, product, strategy,
-    hasIcp, hasPricing, hasFeatures, youName, layers, pricingEntries,
+    hasIcp, hasPricing, hasFeatures, youName, layers, pricingEntries, matrixColumns,
   ]);
 
   const [tab, setTab] = useState(panels[0]?.id || 'value');
@@ -419,7 +424,16 @@ function entryPrice(comp) {
   const prices = (comp?.tiers || []).map((t) => t.price_monthly).filter((p) => typeof p === 'number' && p > 0);
   return prices.length ? Math.min(...prices) : null;
 }
-const findByName = (arr, name) => arr?.find((x) => (x.name || '').toLowerCase() === (name || '').toLowerCase());
+const findByName = (arr, name) => {
+  const key = normName(name);
+  if (!key || !arr?.length) return null;
+  return arr.find((x) => normName(x.name) === key)
+    || arr.find((x) => {
+      const xk = normName(x.name);
+      return xk.includes(key) || key.includes(xk);
+    })
+    || null;
+};
 
 function ChartCard({ title, hint, children }) {
   return (
@@ -433,6 +447,102 @@ function ChartCard({ title, hint, children }) {
 
 function normName(name) {
   return String(name || '').toLowerCase().replace(/\s*\(you\)\s*$/i, '').trim();
+}
+
+/** Feature-matrix columns: you + every approved rival (flags from matrix when present). */
+function buildMatrixColumns(product, matrix, competitors) {
+  const featureCount = matrix?.features?.length || 0;
+  const youKey = normName(product?.name || matrix?.productName);
+  const byName = new Map();
+  for (const c of matrix?.competitors || []) {
+    const key = normName(c.name);
+    if (key) byName.set(key, c);
+  }
+
+  const pickFlags = (entry) => {
+    const flags = entry?.tiers?.[0]?.features;
+    if (!Array.isArray(flags) || !featureCount) return [];
+    return Array.from({ length: featureCount }, (_, i) => (
+      flags[i] === true ? true : flags[i] === false ? false : null
+    ));
+  };
+
+  const columns = [];
+  const seen = new Set();
+
+  if (product?.name || youKey) {
+    const key = youKey || normName(product.name);
+    const fromMatrix = byName.get(key);
+    const name = product?.name || fromMatrix?.name || matrix?.productName;
+    if (name) {
+      columns.push({ name, you: true, flags: pickFlags(fromMatrix), tiers: fromMatrix?.tiers || product?.tiers || [] });
+      seen.add(key);
+    }
+  }
+
+  for (const c of competitors || []) {
+    const key = normName(c.name);
+    if (!key || seen.has(key) || key === youKey) continue;
+    const fromMatrix = byName.get(key)
+      || [...byName.values()].find((m) => {
+        const mk = normName(m.name);
+        return mk.includes(key) || key.includes(mk);
+      });
+    columns.push({
+      name: c.name,
+      you: false,
+      flags: pickFlags(fromMatrix),
+      tiers: fromMatrix?.tiers || [],
+    });
+    seen.add(key);
+  }
+
+  for (const c of matrix?.competitors || []) {
+    const key = normName(c.name);
+    if (!key || seen.has(key) || key === youKey) continue;
+    columns.push({ name: c.name, you: false, flags: pickFlags(c), tiers: c.tiers || [] });
+    seen.add(key);
+  }
+
+  return columns;
+}
+
+/** Reviews cards for you (optional) + every approved rival. */
+function buildReviewEntries(competitors, reviews, product) {
+  const byName = new Map();
+  for (const r of reviews || []) {
+    const key = normName(r.name);
+    if (key) byName.set(key, r);
+  }
+  const entries = [];
+  const seen = new Set();
+  for (const c of competitors || []) {
+    const key = normName(c.name);
+    if (!key || seen.has(key)) continue;
+    const hit = byName.get(key)
+      || [...byName.values()].find((r) => {
+        const rk = normName(r.name);
+        return rk.includes(key) || key.includes(rk);
+      });
+    entries.push(hit ? { ...hit, name: c.name } : { name: c.name, id: c.id, sentiment: null, rating: null });
+    seen.add(key);
+  }
+  for (const r of reviews || []) {
+    const key = normName(r.name);
+    if (!key || seen.has(key)) continue;
+    entries.push(r);
+    seen.add(key);
+  }
+  // Prefer rivals first; product review rows are uncommon but keep if present.
+  if (product?.name) {
+    const youKey = normName(product.name);
+    entries.sort((a, b) => {
+      const ay = normName(a.name) === youKey ? 1 : 0;
+      const by = normName(b.name) === youKey ? 1 : 0;
+      return ay - by;
+    });
+  }
+  return entries;
 }
 
 /** One card per product + approved rival, filled from matrix tiers when available. */
@@ -1084,7 +1194,7 @@ function StarRating({ value }) {
   );
 }
 
-function ReviewsSection({ reviews }) {
+function ReviewsSection({ reviews, loading }) {
   const withData = reviews.filter((r) => r.sentiment);
   const rated = reviews.filter((r) => typeof r.rating === 'number');
   const avgRating = rated.length ? (rated.reduce((s, r) => s + r.rating, 0) / rated.length) : null;
@@ -1093,91 +1203,89 @@ function ReviewsSection({ reviews }) {
 
   return (
     <ReportSection icon="users" title="Voice of the customer" skills={[{ skill: 'you-research' }]}>
-      {withData.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-ink-700 p-4 text-center text-sm text-slate-500">
-          No public review data was found for these competitors.
-        </p>
-      ) : (
-        <>
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-              <p className="text-2xl font-bold text-amber-400">{avgRating != null ? avgRating.toFixed(1) : '—'}</p>
-              <p className="text-xs text-slate-500">avg rating / 5</p>
-            </div>
-            <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-              <p className="text-2xl font-bold text-emerald-400">{counts.positive}</p>
-              <p className="text-xs text-slate-500">positively reviewed</p>
-            </div>
-            <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-              <p className="text-2xl font-bold text-rose-400">{counts.negative}</p>
-              <p className="text-xs text-slate-500">negatively reviewed</p>
-            </div>
+      {withData.length > 0 && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
+            <p className="text-2xl font-bold text-amber-400">{avgRating != null ? avgRating.toFixed(1) : '—'}</p>
+            <p className="text-xs text-slate-500">avg rating / 5</p>
           </div>
-
-          {rated.length >= 2 && (
-            <div className="mb-4">
-              <ChartCard title="Customer rating comparison" hint="Average star rating out of 5.">
-                <ResponsiveContainer width="100%" height={Math.max(150, rated.length * 36)}>
-                  <BarChart data={rated.map((r, i) => ({ name: r.name, rating: r.rating, color: CHART_COLORS[i % CHART_COLORS.length] }))}
-                    layout="vertical" margin={{ left: 8, right: 24 }}>
-                    <CartesianGrid stroke="#181c24" horizontal={false} />
-                    <XAxis type="number" domain={[0, 5]} tick={AXIS} />
-                    <YAxis type="category" dataKey="name" width={90} tick={AXIS} />
-                    <Tooltip contentStyle={TIP_STYLE} cursor={{ fill: '#13161c' }} formatter={(v) => [`${v}/5`, 'Rating']} />
-                    <Bar dataKey="rating" radius={[0, 4, 4, 0]} fill="#fbbf24">
-                      <LabelList dataKey="rating" position="right" style={{ fill: '#94a3b8', fontSize: 11 }} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {reviews.map((r) => (
-              <div key={r.id ?? r.name} className="rounded-lg border border-ink-700 bg-ink-850 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-white">{r.name}</span>
-                  <div className="flex items-center gap-3">
-                    <StarRating value={r.rating} />
-                    {r.sentiment && <SentimentChip sentiment={r.sentiment} />}
-                  </div>
-                </div>
-                {r.summary && <p className="mt-2 text-sm text-slate-300">“{r.summary}”</p>}
-                {(r.pros?.length || r.cons?.length) ? (
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {r.pros?.length > 0 && (
-                      <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-2.5">
-                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">What users love</p>
-                        <ul className="space-y-1">{r.pros.map((p, i) => (
-                          <li key={i} className="flex gap-1.5 text-xs text-slate-300"><span className="text-emerald-500">+</span>{p}</li>
-                        ))}</ul>
-                      </div>
-                    )}
-                    {r.cons?.length > 0 && (
-                      <div className="rounded-lg border border-rose-900/30 bg-rose-950/10 p-2.5">
-                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">Common complaints</p>
-                        <ul className="space-y-1">{r.cons.map((c, i) => (
-                          <li key={i} className="flex gap-1.5 text-xs text-slate-300"><span className="text-rose-500">−</span>{c}</li>
-                        ))}</ul>
-                      </div>
-                    )}
-                  </div>
-                ) : !r.sentiment ? (
-                  <p className="mt-1 text-xs text-slate-600">No review data found.</p>
-                ) : null}
-                <SourceAttribution
-                  attribution={r.attribution}
-                  sources={r.sources}
-                  skill={r.skill || 'you-research'}
-                  skillLabel={r.skillLabel || 'You.com Research'}
-                  compact
-                />
-              </div>
-            ))}
+          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{counts.positive}</p>
+            <p className="text-xs text-slate-500">positively reviewed</p>
           </div>
-        </>
+          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
+            <p className="text-2xl font-bold text-rose-400">{counts.negative}</p>
+            <p className="text-xs text-slate-500">negatively reviewed</p>
+          </div>
+        </div>
       )}
+
+      {rated.length >= 2 && (
+        <div className="mb-4">
+          <ChartCard title="Customer rating comparison" hint="Average star rating out of 5.">
+            <ResponsiveContainer width="100%" height={Math.max(150, rated.length * 36)}>
+              <BarChart data={rated.map((r, i) => ({ name: r.name, rating: r.rating, color: CHART_COLORS[i % CHART_COLORS.length] }))}
+                layout="vertical" margin={{ left: 8, right: 24 }}>
+                <CartesianGrid stroke="#181c24" horizontal={false} />
+                <XAxis type="number" domain={[0, 5]} tick={AXIS} />
+                <YAxis type="category" dataKey="name" width={90} tick={AXIS} />
+                <Tooltip contentStyle={TIP_STYLE} cursor={{ fill: '#13161c' }} formatter={(v) => [`${v}/5`, 'Rating']} />
+                <Bar dataKey="rating" radius={[0, 4, 4, 0]} fill="#fbbf24">
+                  <LabelList dataKey="rating" position="right" style={{ fill: '#94a3b8', fontSize: 11 }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {reviews.map((r) => (
+          <div key={r.id ?? r.name} className="rounded-lg border border-ink-700 bg-ink-850 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-white">{r.name}</span>
+              <div className="flex items-center gap-3">
+                <StarRating value={r.rating} />
+                {r.sentiment && <SentimentChip sentiment={r.sentiment} />}
+              </div>
+            </div>
+            {r.summary && <p className="mt-2 text-sm text-slate-300">“{r.summary}”</p>}
+            {(r.pros?.length || r.cons?.length) ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {r.pros?.length > 0 && (
+                  <div className="rounded-lg border border-emerald-900/30 bg-emerald-950/10 p-2.5">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-500">What users love</p>
+                    <ul className="space-y-1">{r.pros.map((p, i) => (
+                      <li key={i} className="flex gap-1.5 text-xs text-slate-300"><span className="text-emerald-500">+</span>{p}</li>
+                    ))}</ul>
+                  </div>
+                )}
+                {r.cons?.length > 0 && (
+                  <div className="rounded-lg border border-rose-900/30 bg-rose-950/10 p-2.5">
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-rose-500">Common complaints</p>
+                    <ul className="space-y-1">{r.cons.map((c, i) => (
+                      <li key={i} className="flex gap-1.5 text-xs text-slate-300"><span className="text-rose-500">−</span>{c}</li>
+                    ))}</ul>
+                  </div>
+                )}
+              </div>
+            ) : !r.sentiment ? (
+              <p className="mt-1 text-xs text-slate-600">
+                {loading ? 'Fetching reviews…' : 'No review data found.'}
+              </p>
+            ) : null}
+            {(r.sentiment || r.sources?.length || r.attribution) && (
+              <SourceAttribution
+                attribution={r.attribution}
+                sources={r.sources}
+                skill={r.skill || 'you-research'}
+                skillLabel={r.skillLabel || 'You.com Research'}
+                compact
+              />
+            )}
+          </div>
+        ))}
+      </div>
     </ReportSection>
   );
 }
