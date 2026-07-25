@@ -12,8 +12,7 @@ export default function sitemap() {
     { url: `${SITE}/methodology`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${SITE}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
     { url: `${SITE}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
-    { url: `${SITE}/signup`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${SITE}/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    // Intentionally omit /login and /signup — thin auth shells drag full-site GEO averages.
     { url: `${SITE}/llms.txt`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE}/AGENTS.md`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
   ];

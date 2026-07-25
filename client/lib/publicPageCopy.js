@@ -183,6 +183,55 @@ changes may also be communicated by email or in-product notice.
 
 Privacy questions: ${ORG.email}. Company overview: ${SITE_ORIGIN}/about.
 Terms: ${SITE_ORIGIN}/terms. Contact page: ${SITE_ORIGIN}/contact.
+
+### 11. Categories of data in more detail
+
+**Identifiers:** email, user id, workspace id.  
+**Commercial information:** plan entitlements shown in-app (if any).  
+**Internet activity:** pages and features used inside the authenticated app.  
+**Geolocation:** coarse location inferred from IP for abuse prevention only.  
+**Inferences:** none used for advertising profiles.
+
+### 12. No sale of personal information
+
+Mira does not sell personal information as that term is commonly defined under U.S.
+state privacy laws. We do not share personal information for cross-context behavioral
+advertising.
+
+### 13. Cookies and similar technologies
+
+We use cookies and local storage required for authentication, session continuity, and
+basic product analytics. You can clear cookies in your browser; doing so may sign you
+out.
+
+### 14. Data minimization
+
+We aim to collect only what is needed to run competitive intelligence workflows you
+request. Workspace content is under your control; delete reports you no longer need.
+
+### 15. Subprocessors overview
+
+Infrastructure may include cloud hosting (for example Vercel for the frontend), API
+hosts (for example Render for the intelligence API), authentication/database providers
+(InsForge), email delivery, and research APIs that fetch public web/app-store content
+you ask Mira to analyze. A current list is available on request via ${ORG.email}.
+
+### 16. Incident response
+
+If we become aware of a personal data breach affecting you, we will notify you and
+regulators as required by applicable law, and email ${ORG.email} remains the contact
+for privacy follow-ups.
+
+### 17. California / similar state rights summary
+
+Depending on residency, you may have rights to know, delete, correct, and opt out of
+certain sharing. Submit requests to ${ORG.email}. We will not discriminate against you
+for exercising privacy rights.
+
+### 18. Policy ownership
+
+This Privacy Policy is published by ${ORG.legalName}, founded ${ORG.foundingDate},
+founder ${AUTHOR.name}. Website ${SITE_ORIGIN}. Updated ${GUIDE_UPDATED}.
 `.trim();
 }
 
@@ -250,6 +299,48 @@ of changes that are not material; material changes may require additional notice
 
 Questions: ${ORG.email}. Privacy: ${SITE_ORIGIN}/privacy. About: ${SITE_ORIGIN}/about.
 Contact: ${SITE_ORIGIN}/contact.
+
+### 11. Estimates and professional advice
+
+Mira outputs may include market size estimates, competitor presence estimates, and
+pricing observations. They are not legal, financial, tax, or investment advice. You
+remain responsible for decisions you make using the software.
+
+### 12. Availability
+
+We strive for high availability but do not guarantee uninterrupted service. Planned
+maintenance may occur. Research providers and third-party sites can rate-limit or
+block automated fetches; Mira will surface gaps rather than invent missing prices.
+
+### 13. Indemnity
+
+To the extent permitted by law, you agree to indemnify ${ORG.legalName} against claims
+arising from your misuse of the service or your violation of these Terms.
+
+### 14. Governing law
+
+These Terms are governed by the laws applicable to ${ORG.legalName}’s principal place
+of business, without regard to conflict-of-law rules, except where mandatory consumer
+protections apply.
+
+### 15. Severability
+
+If a provision is unenforceable, the remainder stays in effect.
+
+### 16. Entire agreement
+
+These Terms plus the Privacy Policy and any in-product plan terms form the entire
+agreement regarding Mira, superseding prior conflicting terms for the same subject.
+
+### 17. Notices
+
+We may provide notices via email to your account address or via the website. You may
+provide notices to ${ORG.email}.
+
+### 18. Company identity for these Terms
+
+${ORG.legalName} (brand ${ORG.name}), founded ${ORG.foundingDate} by ${AUTHOR.name}.
+Site ${SITE_ORIGIN}. Updated ${GUIDE_UPDATED}.
 `.trim();
 }
 
