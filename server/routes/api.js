@@ -33,7 +33,7 @@ function allowDemoHit(ip) {
   const key = String(ip || 'unknown');
   const now = Date.now();
   const windowMs = 60 * 60 * 1000;
-  const max = 8;
+  const max = 40;
   const row = demoHits.get(key) || { start: now, count: 0 };
   if (now - row.start > windowMs) {
     row.start = now;
