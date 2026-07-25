@@ -135,7 +135,8 @@ export default function ReportView({
                   name={c.name}
                   tiers={c.tiers}
                   you={c.you}
-                  loading={pending('pricing') && !(c.tiers || []).length}
+                  href={c.href}
+                  loading={pending('pricing') && !c.tiers?.some((t) => t?.price_monthly != null)}
                 />
               ))}
             </div>
@@ -545,6 +546,24 @@ function buildReviewEntries(competitors, reviews, product) {
   return entries;
 }
 
+function pricingHref(...candidates) {
+  for (const raw of candidates) {
+    const s = String(raw || '').trim();
+    if (!s) continue;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^[\w.-]+\.[a-z]{2,}/i.test(s)) return `https://${s}`;
+  }
+  return null;
+}
+
+function shortHost(href) {
+  try {
+    return new URL(href).hostname.replace(/^www\./, '');
+  } catch {
+    return 'Pricing page';
+  }
+}
+
 /** One card per product + approved rival, filled from matrix tiers when available. */
 function buildPricingEntries(product, matrix, competitors) {
   const youKey = normName(product?.name || matrix?.productName);
@@ -564,7 +583,12 @@ function buildPricingEntries(product, matrix, competitors) {
     const tiers = (product?.tiers?.length ? product.tiers : null) || fromMatrix?.tiers || [];
     const name = product?.name || fromMatrix?.name || matrix?.productName;
     if (name) {
-      entries.push({ name, tiers, you: true });
+      entries.push({
+        name,
+        tiers,
+        you: true,
+        href: pricingHref(product?.pricing_url, product?.website, fromMatrix?.pricing_url),
+      });
       seen.add(key);
     }
   }
@@ -577,7 +601,12 @@ function buildPricingEntries(product, matrix, competitors) {
         const mk = normName(m.name);
         return mk.includes(key) || key.includes(mk);
       });
-    entries.push({ name: c.name, tiers: fromMatrix?.tiers || [], you: false });
+    entries.push({
+      name: c.name,
+      tiers: fromMatrix?.tiers || [],
+      you: false,
+      href: pricingHref(c.pricing_url, c.website, fromMatrix?.pricing_url),
+    });
     seen.add(key);
   }
 
@@ -585,14 +614,19 @@ function buildPricingEntries(product, matrix, competitors) {
   for (const c of matrix?.competitors || []) {
     const key = normName(c.name);
     if (!key || seen.has(key) || key === youKey) continue;
-    entries.push({ name: c.name, tiers: c.tiers || [], you: false });
+    entries.push({
+      name: c.name,
+      tiers: c.tiers || [],
+      you: false,
+      href: pricingHref(c.pricing_url, c.website),
+    });
     seen.add(key);
   }
 
   return entries;
 }
 
-function PricingCard({ name, tiers, you, loading }) {
+function PricingCard({ name, tiers, you, href, loading }) {
   // Hide placeholder rows like "Default —" that aren't real extracted plans.
   const visible = (tiers || []).filter((t) => t?.price_monthly != null || (t?.name && !/^default$/i.test(String(t.name).trim())));
   const hasPrices = visible.some((t) => t?.price_monthly != null);
@@ -603,6 +637,18 @@ function PricingCard({ name, tiers, you, loading }) {
       <p className={`text-sm font-semibold ${you ? 'text-accent-soft' : 'text-white'}`}>
         {name}{you && <span className="text-[10px] font-normal"> (you)</span>}
       </p>
+      {href && (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-0.5 inline-flex max-w-full items-center gap-1 text-[11px] text-slate-500 transition hover:text-accent-soft"
+          title={href}
+        >
+          <span className="truncate">{shortHost(href)}</span>
+          <Icon name="external" className="h-3 w-3 shrink-0 opacity-70" />
+        </a>
+      )}
       <div className="mt-2 space-y-1.5">
         {showEmpty ? (
           <p className="text-xs text-slate-600">
