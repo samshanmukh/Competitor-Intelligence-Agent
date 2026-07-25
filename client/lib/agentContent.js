@@ -45,11 +45,11 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       url: SITE_ORIGIN,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_ORIGIN}/mira-logo.png`,
+        url: `${SITE_ORIGIN}/mira-logo.svg`,
         width: 512,
         height: 128,
       },
-      image: `${SITE_ORIGIN}/mira-logo.png`,
+      image: `${SITE_ORIGIN}/mira-logo.svg`,
       description: ORG.description,
       foundingDate: ORG.foundingDate,
       email: ORG.email,
@@ -104,7 +104,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       description: ORG.description,
       brand: { '@id': orgId },
       url: SITE_ORIGIN,
-      image: `${SITE_ORIGIN}/mira-logo.png`,
+      image: `${SITE_ORIGIN}/mira-logo.svg`,
       category: 'Competitive Intelligence Software',
       offers: {
         '@type': 'Offer',
@@ -163,7 +163,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
         dateModified: GUIDE_UPDATED,
         author: { '@id': personId },
         publisher: { '@id': orgId },
-        image: `${SITE_ORIGIN}/mira-logo.png`,
+        image: `${SITE_ORIGIN}/mira-logo.svg`,
         inLanguage: 'en-US',
         about: [
           { '@type': 'Thing', name: 'Competitive intelligence' },
@@ -199,7 +199,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
         about: { '@id': productId },
         primaryImageOfPage: {
           '@type': 'ImageObject',
-          url: `${SITE_ORIGIN}/mira-logo.png`,
+          url: `${SITE_ORIGIN}/mira-logo.svg`,
         },
         dateModified: GUIDE_UPDATED,
         breadcrumb: { '@id': `${SITE_ORIGIN}/guide#breadcrumb` },
