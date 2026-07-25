@@ -1,4 +1,4 @@
-import { getToken, getWorkspace, refreshAccessToken, forceLogout } from './auth.js';
+import { getToken, getWorkspace, refreshAccessToken, ensureFreshSession, forceLogout } from './auth.js';
 
 function getHeaders(extra = {}) {
   const headers = { 'Content-Type': 'application/json', ...extra };
@@ -19,6 +19,11 @@ const AUTH_ERROR_CODES = new Set(['INVALID_TOKEN', 'UNAUTHENTICATED']);
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
 
 async function request(path, { method = 'GET', body, headers: extraHeaders } = {}, _retried = false) {
+  // Proactively renew access token from httpOnly refresh cookie when near expiry.
+  if (typeof window !== 'undefined' && !_retried) {
+    await ensureFreshSession().catch(() => null);
+  }
+
   const headers = getHeaders(extraHeaders);
   if (!body) delete headers['Content-Type'];
   let res;

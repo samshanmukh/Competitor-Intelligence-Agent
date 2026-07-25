@@ -2,8 +2,14 @@ const TOKEN_KEY = 'cia_token';
 const WORKSPACE_KEY = 'cia_workspace';
 const RETURN_TO_KEY = 'cia_return_to';
 
+/** Keep access token available for 24h in this browser (survives tab/browser close). */
+const ACCESS_MAX_AGE = 60 * 60 * 24;
+const WORKSPACE_MAX_AGE = 60 * 60 * 24 * 7;
+
 // Match api.js: hit the backend directly in dev to bypass the Next proxy timeout.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
+
+let _refreshInflight = null;
 
 export function getToken() {
   if (typeof window === 'undefined') return null;
@@ -16,22 +22,52 @@ export function getWorkspace() {
   try { return raw ? JSON.parse(raw) : null; } catch { return null; }
 }
 
+function cookieSecureFlag() {
+  return typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+}
+
 function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
-  // Also set a non-httpOnly cookie for Next.js middleware to read.
-  document.cookie = `cia_auth=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  // Readable cookie for Next.js middleware. Refresh token stays httpOnly server-side.
+  document.cookie = `cia_auth=${token}; path=/; max-age=${ACCESS_MAX_AGE}; SameSite=Lax${cookieSecureFlag()}`;
 }
 
 function setWorkspace(ws) {
   localStorage.setItem(WORKSPACE_KEY, JSON.stringify(ws));
-  document.cookie = `cia_workspace_id=${ws.id}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  document.cookie = `cia_workspace_id=${ws.id}; path=/; max-age=${WORKSPACE_MAX_AGE}; SameSite=Lax${cookieSecureFlag()}`;
 }
 
 function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(WORKSPACE_KEY);
-  document.cookie = 'cia_auth=; path=/; max-age=0';
-  document.cookie = 'cia_workspace_id=; path=/; max-age=0';
+  document.cookie = `cia_auth=; path=/; max-age=0${cookieSecureFlag()}`;
+  document.cookie = `cia_workspace_id=; path=/; max-age=0${cookieSecureFlag()}`;
+  // Best-effort clear of httpOnly refresh cookie via API (fire-and-forget).
+  if (typeof window !== 'undefined') {
+    fetch('/api/auth/refresh', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+  }
+}
+
+function tokenExpiresAt(token) {
+  if (!token) return 0;
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return 0;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const decoded = JSON.parse(atob(padded));
+    return decoded?.exp ? decoded.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** True when access JWT is missing or within 2 minutes of expiry. */
+export function accessTokenNeedsRefresh(token = getToken()) {
+  if (!token) return true;
+  const exp = tokenExpiresAt(token);
+  if (!exp) return false; // opaque/dev tokens
+  return exp - Date.now() < 2 * 60 * 1000;
 }
 
 async function readJsonSafe(res) {
@@ -241,16 +277,17 @@ export async function isEmailVerified() {
 }
 
 export async function signOut() {
-  // Local sign-out only — avoid browser calls to InsForge.
+  // Clear local + httpOnly refresh cookie (server).
   clearAuth();
 }
 
 export async function getCurrentUser() {
-  const token = getToken();
+  const token = await ensureFreshSession();
   if (!token) return null;
   try {
     const res = await fetch('/api/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
+      credentials: 'same-origin',
     });
     if (!res.ok) return null;
     const data = await readJsonSafe(res);
@@ -260,19 +297,41 @@ export async function getCurrentUser() {
   }
 }
 
-// Best-effort session check via same-origin proxy. Returns the current token or null.
+/**
+ * Renew access token using the httpOnly refresh cookie.
+ * Safe across browser restarts for at least 24h (refresh cookie lives 7d).
+ */
 export async function refreshAccessToken() {
+  if (_refreshInflight) return _refreshInflight;
+  _refreshInflight = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const data = await readJsonSafe(res);
+      if (!res.ok || !data?.accessToken) return null;
+      setToken(data.accessToken);
+      return data.accessToken;
+    } catch {
+      return null;
+    } finally {
+      _refreshInflight = null;
+    }
+  })();
+  return _refreshInflight;
+}
+
+/** Ensure we have a non-expired access token; refresh silently when needed. */
+export async function ensureFreshSession() {
   const token = getToken();
-  if (!token) return null;
-  try {
-    const res = await fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return null;
-    return token;
-  } catch {
-    return null;
-  }
+  if (token && !accessTokenNeedsRefresh(token)) return token;
+  const renewed = await refreshAccessToken();
+  if (renewed) return renewed;
+  // Refresh failed — keep existing token if it still looks valid (opaque/dev).
+  if (token && tokenExpiresAt(token) > Date.now()) return token;
+  if (token && !tokenExpiresAt(token)) return token;
+  return null;
 }
 
 // Hard sign-out used when the session can't be recovered.

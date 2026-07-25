@@ -126,6 +126,7 @@ export function consumePendingSession(request, response) {
   if (!payload || !payload.exp || payload.exp < Date.now() || !payload.accessToken) return null;
   return {
     accessToken: payload.accessToken,
+    refreshToken: payload.refreshToken || null,
     user: payload.user || null,
     returnTo: payload.returnTo || '/app',
   };
@@ -201,7 +202,8 @@ async function signInWithPasswords(email, passwords) {
   let lastErr;
   for (const password of passwords) {
     try {
-      return await insforgeFetch('/api/auth/sessions?client_type=server', {
+      // mobile → refreshToken in JSON body (we store it httpOnly on joinmira.ai)
+      return await insforgeFetch('/api/auth/sessions?client_type=mobile', {
         body: { email, password },
       });
     } catch (err) {
@@ -219,11 +221,11 @@ async function signInWithPasswords(email, passwords) {
 
 async function signInWithGoogleIdToken(idToken) {
   try {
-    return await insforgeFetch('/api/auth/id-token?client_type=server', {
+    return await insforgeFetch('/api/auth/id-token?client_type=mobile', {
       body: { provider: 'google', token: idToken },
     });
   } catch {
-    return insforgeFetch('/api/auth/id-token?client_type=mobile', {
+    return insforgeFetch('/api/auth/id-token?client_type=server', {
       body: { provider: 'google', token: idToken },
     });
   }

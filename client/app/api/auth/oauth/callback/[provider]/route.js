@@ -73,6 +73,7 @@ export async function GET(request, context) {
     clearStateCookie(response);
     createPendingSessionCookie(response, {
       accessToken: session.accessToken,
+      refreshToken: session.refreshToken || null,
       user: session.user || null,
       returnTo: saved.returnTo || '/app',
     });

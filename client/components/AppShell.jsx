@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { consumeReturnPath } from '../lib/auth';
+import { consumeReturnPath, ensureFreshSession } from '../lib/auth';
 import Sidebar from './Sidebar';
 import SupportButton from './SupportButton';
 import ZendeskWidget, { isZendeskEnabled } from './ZendeskWidget';
@@ -20,6 +20,13 @@ export default function AppShell({ children }) {
     const returnTo = consumeReturnPath();
     if (returnTo !== '/app') router.replace(returnTo);
   }, [pathname, router]);
+
+  // Renew access token from httpOnly refresh cookie so closing the browser
+  // does not force re-login within the session window (24h+).
+  useEffect(() => {
+    if (NO_SHELL_PREFIXES.some((p) => pathname?.startsWith(p)) || pathname === '/') return;
+    ensureFreshSession().catch(() => null);
+  }, [pathname]);
 
   // Landing page (root) and auth pages render full-width without the app sidebar.
   const noShell = pathname === '/' || NO_SHELL_PREFIXES.some((p) => pathname?.startsWith(p));

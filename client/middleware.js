@@ -21,6 +21,16 @@ function tokenLooksCurrent(token) {
   }
 }
 
+/** Access JWT may be briefly expired while httpOnly refresh cookie can renew it. */
+function hasRefreshSession(request) {
+  return Boolean(request.cookies.get('cia_refresh')?.value);
+}
+
+function sessionLooksAlive(request) {
+  const token = request.cookies.get('cia_auth')?.value;
+  return tokenLooksCurrent(token) || hasRefreshSession(request);
+}
+
 export function middleware(request) {
   const { pathname } = request.nextUrl;
   const hostname = request.nextUrl.hostname;
@@ -49,19 +59,21 @@ export function middleware(request) {
 
   const isPublic =
     PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
+  const alive = sessionLooksAlive(request);
 
-  if (!tokenLooksCurrent(token) && !isPublic) {
+  if (!alive && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('from', pathname);
     const response = NextResponse.redirect(url);
     response.cookies.delete('cia_auth');
     response.cookies.delete('cia_workspace_id');
+    response.cookies.delete('cia_refresh');
     return response;
   }
 
   // Logged-in users hitting an auth page go straight to the app.
-  if (tokenLooksCurrent(token) && PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
+  if (alive && PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
     return NextResponse.redirect(new URL('/app', request.url));
   }
 
