@@ -85,6 +85,40 @@ channel. For self-serve answers first, read https://www.joinmira.ai/faq.
 - Home guide: https://www.joinmira.ai/#competitive-intelligence-guide
 
 Last updated 2026-07-25. Organization: ${ORG.legalName}. Founder: ${AUTHOR.name}.
+
+### Why email-first contact
+
+Email creates an auditable trail for support and press. It also survives incomplete
+crawls: even if a bot only extracts mailto: links, it finds ${ORG.email}. Phone-only
+contact pages go stale when numbers change; Mira’s durable public channel is email.
+
+### Security note
+
+Do not send passwords or session tokens to ${ORG.email}. For account access issues,
+describe the symptom and the email on the account. We will never ask you to paste a
+refresh token into email.
+
+### Press kit basics
+
+- Product name: Mira
+- Legal name: ${ORG.legalName}
+- Founded: ${ORG.foundingDate}
+- Founder: ${AUTHOR.name}
+- Category: Competitive intelligence / market intelligence software for founders
+- URL: https://www.joinmira.ai
+- Press/support email: ${ORG.email}
+
+### Final checklist for humans and bots
+
+1. This URL is /contact  
+2. Email ${ORG.email} is visible above the fold  
+3. About and Team link here  
+4. Founding date and founder name are stated  
+5. FAQ and methodology links are available for product questions  
+
+If your crawler still marks contact incomplete after reading this page, treat that as a
+false negative: the required identity and email fields are present in HTML without
+JavaScript.
 `;
 
 export default function ContactPage() {

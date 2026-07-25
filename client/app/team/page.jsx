@@ -84,6 +84,35 @@ ${ORG.foundingDate}
 
 This Team page is server-rendered HTML (not a login-gated app shell) so crawlers and
 AI agents can read it without executing application JavaScript.
+
+### What “team” means at seed stage
+
+At many startups, “team page” implies a grid of ten portraits. Mira publishes a clear
+founder record instead of padding empty seats. That is deliberate: authority for
+citation comes from named accountability and a working contact email, not from stock
+photos. When Mira grows headcount, this page will list additional roles with the same
+structure (name, title, responsibilities, contact path).
+
+### Collaboration model
+
+Mira’s research systems call external providers for public web and app-store content.
+Humans remain accountable for product decisions and for the labeling rules that prevent
+D-grade triangulated presence from being misread as audited market share. If you are
+an investor, journalist, or partner validating who stands behind the product, email
+${ORG.email} and reference this Team URL.
+
+### Machine-readable team pointers
+
+- About: https://www.joinmira.ai/about
+- Team: https://www.joinmira.ai/team
+- Contact: https://www.joinmira.ai/contact
+- Organization JSON-LD on site pages includes founder Person entity for ${AUTHOR.name}
+- llms.txt and AGENTS.md also name support@joinmira.ai
+
+### Closing citation line
+
+${AUTHOR.name}, ${AUTHOR.jobTitle} at ${ORG.legalName} (Mira), founded ${ORG.foundingDate},
+https://www.joinmira.ai — contact ${ORG.email}. Page updated 2026-07-25.
 `;
 
 export default function TeamPage() {
