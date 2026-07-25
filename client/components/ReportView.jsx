@@ -760,23 +760,16 @@ function MapLogoShape(props) {
   if (cx == null || cy == null || !payload) return null;
   const isYou = Boolean(payload.isYou);
   const size = isYou ? 30 : 26;
-  const r = size / 2 + 3;
   const letter = String(payload.shortName || payload.name || '?').trim().charAt(0).toUpperCase() || '?';
   const stroke = isYou ? YOU_COLOR : (payload.color || '#64748b');
+  const hasLogo = Boolean(payload.logoUrl);
 
   return (
     <g style={{ cursor: 'pointer' }}>
       {/* Invisible larger hit area */}
-      <circle cx={cx} cy={cy} r={r + 6} fill="transparent" />
-      <circle
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="#0e1014"
-        stroke={stroke}
-        strokeWidth={isYou ? 2.5 : 1.5}
-      />
-      {payload.logoUrl ? (
+      <circle cx={cx} cy={cy} r={size / 2 + 8} fill="transparent" />
+      {hasLogo ? (
+        // Clean logo only — no colored ring when the favicon/image loaded.
         <image
           href={payload.logoUrl}
           xlinkHref={payload.logoUrl}
@@ -788,17 +781,27 @@ function MapLogoShape(props) {
           style={{ pointerEvents: 'none' }}
         />
       ) : (
-        <text
-          x={cx}
-          y={cy + 4}
-          textAnchor="middle"
-          fill="#e2e8f0"
-          fontSize={12}
-          fontWeight={700}
-          style={{ pointerEvents: 'none' }}
-        >
-          {letter}
-        </text>
+        <>
+          <circle
+            cx={cx}
+            cy={cy}
+            r={size / 2 + 2}
+            fill="#0e1014"
+            stroke={stroke}
+            strokeWidth={isYou ? 2 : 1.5}
+          />
+          <text
+            x={cx}
+            y={cy + 4}
+            textAnchor="middle"
+            fill="#e2e8f0"
+            fontSize={12}
+            fontWeight={700}
+            style={{ pointerEvents: 'none' }}
+          >
+            {letter}
+          </text>
+        </>
       )}
     </g>
   );
@@ -816,12 +819,12 @@ function MapTooltip({ active, payload }) {
           <img
             src={d.logoUrl}
             alt=""
-            className="h-5 w-5 rounded bg-ink-800 object-contain p-0.5"
+            className="h-5 w-5 object-contain"
             referrerPolicy="no-referrer"
           />
         ) : (
           <span
-            className="inline-flex h-5 w-5 items-center justify-center rounded bg-ink-800 text-[10px] font-bold text-slate-300"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink-800 text-[10px] font-bold text-slate-300"
             style={{ boxShadow: `inset 0 0 0 1px ${d.isYou ? YOU_COLOR : d.color}` }}
           >
             {String(d.shortName || d.name || '?').charAt(0).toUpperCase()}
@@ -1037,7 +1040,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
         <ChartCard
           title="Positioning map"
           hint={mapData.length >= 2
-            ? 'Entry price vs. value — top-left is best value, bottom-right is overpriced. Hover a logo for details; your product has the accent ring.'
+            ? 'Entry price vs. value — top-left is best value, bottom-right is overpriced. Hover a logo for details.'
             : 'Map unlocks when at least two products have both a value score and an entry price.'}
         >
           {mapData.length >= 1 ? (
@@ -1083,8 +1086,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
                       <img
                         src={d.logoUrl}
                         alt=""
-                        className="h-4 w-4 rounded-full bg-ink-800 object-contain p-0.5"
-                        style={{ boxShadow: `0 0 0 1.5px ${d.isYou ? YOU_COLOR : '#2c3340'}` }}
+                        className="h-4 w-4 object-contain"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
