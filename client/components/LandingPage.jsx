@@ -214,25 +214,26 @@ export default function LandingPage() {
             id="get-started"
           >
             {authed ? (
-              <div className="mb-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
                   <Icon name="sparkle" className="h-4 w-4" /> Go to app
                 </Link>
                 <a href="#how" className="rounded-full border border-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">See how it works</a>
               </div>
-            ) : null}
-            <LandingPositioningDemo />
-            {!authed && (
-              <p className="mt-4 text-center text-sm text-slate-500">
-                Or{' '}
-                <Link href="/signup" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
-                  create an account
-                </Link>
-                {' · '}
-                <Link href="/login" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
-                  Sign in
-                </Link>
-              </p>
+            ) : (
+              <>
+                <LandingPositioningDemo />
+                <p className="mt-4 text-center text-sm text-slate-500">
+                  Or{' '}
+                  <Link href="/signup" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
+                    create an account
+                  </Link>
+                  {' · '}
+                  <Link href="/login" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </>
             )}
           </motion.div>
         </div>
