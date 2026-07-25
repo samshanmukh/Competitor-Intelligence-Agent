@@ -1,0 +1,23 @@
+{
+  "name": "mira",
+  "description": "Mira is competitive and market intelligence for founders — competitor discovery, pricing (web + App Store/Play Store), feature matrices, market sizing, and decision support at joinmira.ai.",
+  "version": "1.0.0",
+  "url": "https://www.joinmira.ai",
+  "documentation": "https://www.joinmira.ai/llms.txt",
+  "capabilities": {
+    "tools": [
+      {
+        "name": "get_product_overview",
+        "description": "Return Mira's public product overview from llms.txt / home Markdown (what Mira does, key pages, support contact)."
+      },
+      {
+        "name": "get_methodology",
+        "description": "Return how Mira estimates competitor presence, pricing sources (website / App Store / Play Store), and market sizing caveats."
+      },
+      {
+        "name": "get_architecture",
+        "description": "Return Mira's public architecture summary (Next.js, Render API, InsForge, research providers)."
+      }
+    ]
+  }
+}

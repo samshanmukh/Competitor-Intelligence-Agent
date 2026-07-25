@@ -145,14 +145,14 @@ export default function CompareClient() {
 
       {/* Value scores */}
       {selectedCompetitors.length >= 2 && !loading && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] max-w-4xl">
           {selectedCompetitors.map((c) => (
-            <div key={c.id} className="card p-4 text-center space-y-2">
+            <div key={c.id} className="card space-y-2 p-4 text-center">
               <div className="text-sm font-semibold text-white">{c.name}</div>
               <div className="text-2xl font-bold">
                 <ValueScore score={c.value_score} />
               </div>
-              {c.value_analysis && <p className="text-xs text-slate-500 line-clamp-3">{c.value_analysis}</p>}
+              {c.value_analysis && <p className="line-clamp-3 text-xs text-slate-500">{c.value_analysis}</p>}
               {c.value_score == null && (
                 <Link href={`/competitors/${c.id}`} className="text-xs text-accent-soft">Run analysis →</Link>
               )}

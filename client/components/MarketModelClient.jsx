@@ -670,12 +670,12 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
         <div className="space-y-3">
           {rows.map((r) => (
             <div key={r.key} className={`relative overflow-hidden rounded-xl border border-white/5 bg-gradient-to-r ${r.tone} p-4`} style={{ width: `${r.width}%`, minWidth: 260 }}>
-              <div className="flex items-baseline justify-between gap-3">
-                <div>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <div className="min-w-0">
                   <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{r.key}</span>
                   <span className="ml-2 text-[11px] text-slate-500">{r.label}</span>
                 </div>
-                <span className="text-xl font-bold text-white">{fmtUSD(r.value)}</span>
+                <span className="text-xl font-bold tabular-nums text-white">{fmtUSD(r.value)}</span>
               </div>
               {r.key === 'TAM' && (tam.low_usd || tam.high_usd) && (
                 <p className="mt-1 text-[11px] text-slate-500">Range {fmtUSD(tam.low_usd)} – {fmtUSD(tam.high_usd)}</p>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="miraGrad" x1="8" y1="4" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C4B5FD"/>
+      <stop offset="50%" stop-color="#E8B4E4"/>
+      <stop offset="100%" stop-color="#F9A8C4"/>
+    </linearGradient>
+    <linearGradient id="miraSoft" x1="6" y1="28" x2="58" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D4C4FE"/>
+      <stop offset="100%" stop-color="#FBCFE8"/>
+    </linearGradient>
+    <mask id="miraCut" maskUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="#fff"/>
+      <path d="M6.5 37.2C13 44 18.2 29.2 25.8 33C33.5 36.8 37 23.2 45.2 27.8C51.2 31.4 55.2 37.2 61.5 33.5" stroke="#000" stroke-width="5.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M47.2 10.8A23 23 0 1 0 50.2 43.2" stroke="url(#miraGrad)" stroke-width="14" stroke-linecap="round" mask="url(#miraCut)"/>
+  <path d="M6.5 37.2C13 44 18.2 29.2 25.8 33C33.5 36.8 37 23.2 45.2 27.8C51.2 31.4 55.2 37.2 61.5 33.5" stroke="url(#miraSoft)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="41.2" cy="9.2" r="1.15" fill="url(#miraGrad)"/>
+  <circle cx="45" cy="10.8" r="1.35" fill="url(#miraGrad)"/>
+  <circle cx="48.4" cy="13.2" r="1.55" fill="url(#miraGrad)"/>
+  <circle cx="51.2" cy="16.4" r="1.8" fill="url(#miraGrad)"/>
+  <circle cx="53.4" cy="20.2" r="2.05" fill="url(#miraGrad)"/>
+  <circle cx="54.8" cy="24.5" r="2.3" fill="url(#miraGrad)"/>
+  <circle cx="55.5" cy="29.2" r="2.55" fill="url(#miraGrad)"/>
+</svg>

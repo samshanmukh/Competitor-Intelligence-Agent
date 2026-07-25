@@ -3,6 +3,7 @@
 
 import { fetchContents } from '../services/youcom.js';
 import { insertSnapshot, getLatestSnapshot, hashContent } from '../db/index.js';
+import { isStoreUrl, storeSourceType } from '../services/storePricing.js';
 
 /**
  * Fetch a single competitor's pricing page and store a snapshot.
@@ -24,9 +25,15 @@ export async function fetchCompetitor(competitor) {
     return { ok: false, error: result?.error || 'No content returned (site may block scrapers).' };
   }
   // Reject blocked-page stubs so callers fall through to You.com research.
+  // Store listings are shorter; accept IAP / subscription pages more leniently.
   const trimmed = String(markdown).trim();
   const hasMoney = /\$\s?\d/.test(trimmed);
-  if (trimmed.length < 400 || (!hasMoney && trimmed.length < 800)) {
+  const store = isStoreUrl(url);
+  const hasIap = /\b(in-?app purchases?|subscription)\b/i.test(trimmed);
+  const tooThin = store
+    ? trimmed.length < 200 || (!hasMoney && !hasIap && trimmed.length < 400)
+    : trimmed.length < 400 || (!hasMoney && trimmed.length < 800);
+  if (tooThin) {
     return { ok: false, error: 'Content too thin for pricing/feature extraction (site may block scrapers).' };
   }
 
@@ -35,7 +42,8 @@ export async function fetchCompetitor(competitor) {
     return { ok: true, unchanged: true, snapshot: latest };
   }
 
-  const snapshot = await insertSnapshot(competitor.id, markdown, result.source || 'youcom');
+  const source = store ? storeSourceType(url) : (result.source || 'youcom');
+  const snapshot = await insertSnapshot(competitor.id, markdown, source);
   return { ok: true, unchanged: false, snapshot, previous: latest || null };
 }
 

@@ -1,21 +1,42 @@
 import './globals.css';
-import { Inter, Unbounded } from 'next/font/google';
+import { Inter, Nunito } from 'next/font/google';
 import { ToastProvider } from '../components/ui';
 import AppShell from '../components/AppShell';
+import JsonLd from '../components/JsonLd';
 
 const inter = Inter({ subsets: ['latin'] });
-// Brand wordmark font for BrandLogo text.
-const brand = Unbounded({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-brand' });
+// Rounded brand wordmark — matches Mira logo type.
+const brand = Nunito({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-brand' });
 
 export const metadata = {
   title: { default: 'Mira', template: '%s · Mira' },
   description: 'Competitive and market intelligence for founders, with decision support for what to do next.',
+  metadataBase: new URL('https://www.joinmira.ai'),
+  alternates: {
+    canonical: '/',
+    types: {
+      'text/markdown': [{ url: '/', title: 'Mira (Markdown)' }],
+      'text/plain': [{ url: '/llms.txt', title: 'llms.txt' }],
+    },
+  },
+  icons: {
+    icon: [{ url: '/mira-mark.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/mira-mark.svg' }],
+  },
+  openGraph: {
+    title: 'Mira · Competitive and market intelligence for founders',
+    description: 'Turn business, market, and competitor signals into decision support for your next move.',
+    url: 'https://www.joinmira.ai',
+    siteName: 'Mira',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} ${brand.variable}`}>
+        <JsonLd />
         <ToastProvider>
           <AppShell>{children}</AppShell>
         </ToastProvider>

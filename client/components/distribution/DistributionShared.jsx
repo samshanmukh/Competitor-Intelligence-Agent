@@ -36,6 +36,7 @@ export function fmtPct(v) {
 export function DistributionMetaChips({ distribution, trafficMeta, compact }) {
   if (!distribution) return null;
   const tm = trafficMeta || distribution.traffic_meta;
+  const trafficCount = Number(tm?.research || 0) + Number(tm?.relative || 0);
   return (
     <div className={`flex flex-wrap items-center gap-2 text-xs text-slate-500 ${compact ? '' : 'mt-0'}`}>
       {distribution.captured_at && (
@@ -52,14 +53,11 @@ export function DistributionMetaChips({ distribution, trafficMeta, compact }) {
       {distribution.tam_source === 'market_model' && (
         <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">TAM from market model</span>
       )}
-      {tm?.research > 0 && (
-        <span className="chip border-ink-700 bg-ink-850">Traffic signals: {tm.research}</span>
-      )}
-      {tm?.research > 0 && (
-        <span className="chip border-ink-700 bg-ink-850">Research traffic: {tm.research}</span>
-      )}
-      {tm?.relative > 0 && (
-        <span className="chip border-ink-700 bg-ink-850">Relative proxy: {tm.relative}</span>
+      {trafficCount > 0 && (
+        <span className="chip border-ink-700 bg-ink-850">
+          Traffic signals: {trafficCount}
+          {tm?.research > 0 && tm?.relative > 0 ? ` (${tm.research} research · ${tm.relative} relative)` : ''}
+        </span>
       )}
     </div>
   );
@@ -69,7 +67,7 @@ export function InsightGrid({ insights, limit = 4, compact }) {
   const list = (insights || []).slice(0, limit);
   if (!list.length) return null;
   return (
-    <div className={`grid gap-3 ${compact ? 'sm:grid-cols-2' : 'sm:grid-cols-2'}`}>
+    <div className={`grid gap-3 ${list.length > 1 ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
       {list.map((ins, i) => (
         <div key={i} className={`rounded-xl border ${compact ? 'p-3' : 'p-4'} ${INSIGHT_TONE[ins.tone] || INSIGHT_TONE.slate}`}>
           <p className={`font-semibold ${compact ? 'text-xs' : 'text-sm'}`}>{ins.title}</p>
@@ -83,16 +81,21 @@ export function InsightGrid({ insights, limit = 4, compact }) {
 export function PulseBanner({ pulse, limit = 6, compact }) {
   if (!pulse?.shifts?.length) return null;
   return (
-    <div className={`rounded-xl border border-accent/30 bg-accent/5 ${compact ? 'p-3' : 'p-4'}`}>
+    <div className={`rounded-xl border border-accent/30 bg-accent/5 ${compact ? 'mb-4 p-3' : 'p-4'}`}>
       <p className="text-[10px] font-semibold uppercase tracking-wide text-accent-soft">Market pulse</p>
       <p className={`mt-1 text-slate-300 ${compact ? 'text-xs' : 'text-sm'}`}>{pulse.summary}</p>
-      <ul className={`space-y-1.5 ${compact ? 'mt-2' : 'mt-3'}`}>
+      <ul className={`max-w-2xl divide-y divide-white/5 ${compact ? 'mt-2' : 'mt-3'}`}>
         {pulse.shifts.slice(0, limit).map((s) => (
-          <li key={s.name} className="flex items-center justify-between text-xs">
-            <span className="text-slate-300">{s.name}</span>
-            <span className={s.delta_pct > 0 ? 'text-emerald-400' : 'text-amber-400'}>
+          <li
+            key={s.name}
+            className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5 text-xs first:pt-0 last:pb-0"
+          >
+            <span className="min-w-[6.5rem] shrink-0 font-medium text-slate-200">{s.name}</span>
+            <span className={`tabular-nums ${s.delta_pct > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
               {s.prev_pct}% → {s.next_pct}% ({s.delta_pct > 0 ? '+' : ''}{s.delta_pct}pp)
-              {Math.abs(s.delta_pct) >= 5 && ' · significant'}
+              {Math.abs(s.delta_pct) >= 5 && (
+                <span className="ml-1 text-slate-500">· significant</span>
+              )}
             </span>
           </li>
         ))}
@@ -127,13 +130,12 @@ export function PresenceChart({ distribution, limit = 10, barHeight = 'h-3', nam
               <span className="w-12 shrink-0 text-right tabular-nums font-medium text-slate-200">{pct}%</span>
             </div>
             {isTriangulated && item.signals && (
-              <div className="mt-1 flex flex-wrap gap-2 pl-[8.5rem] text-[10px] text-slate-600">
+              <div className={`mt-1 flex flex-wrap gap-2 text-[10px] text-slate-600 ${nameWidth === 'w-28' ? 'sm:pl-32' : 'sm:pl-36'}`}>
                 {item.signals.revenue != null && <span>Rev {item.signals.revenue}</span>}
                 {item.signals.traffic != null && (
                   <span>
                     Traffic {item.signals.traffic}
                     {item.signals.traffic_kind === 'research' && ' (research)'}
-                    {item.signals.traffic_kind === 'research' && ' (src)'}
                     {item.signals.traffic_kind === 'relative' && ' (est)'}
                   </span>
                 )}

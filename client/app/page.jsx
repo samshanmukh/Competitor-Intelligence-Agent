@@ -1,4 +1,5 @@
 import LandingPage from '../components/LandingPage';
+import AgentReadableSummary from '../components/AgentReadableSummary';
 
 export const metadata = {
   title: { absolute: 'Mira · Competitive and market intelligence for founders' },
@@ -7,5 +8,11 @@ export const metadata = {
 };
 
 export default function Home() {
-  return <LandingPage />;
+  return (
+    <>
+      {/* Server-rendered, low-markup facts for HTML token efficiency / static crawl. */}
+      <AgentReadableSummary />
+      <LandingPage />
+    </>
+  );
 }

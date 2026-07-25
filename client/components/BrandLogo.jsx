@@ -1,30 +1,53 @@
 import Link from 'next/link';
+import MiraMark from './MiraMark';
 
 /**
- * Mira text wordmark for app chrome. No image logo.
+ * Mira brand logo — SVG mark + wordmark. Used across app chrome.
+ * variant="mark" → icon only (collapsed sidebar)
+ * variant="full" → icon + "Mira"
+ * wordmarkTone: "light" (default, dark UI) | "brand" (deep purple)
  */
 export default function BrandLogo({
   href = '/',
   className = '',
   height = 28,
   variant = 'full',
+  wordmarkTone = 'light',
+  priority: _priority,
 }) {
-  const sizeClass =
-    height >= 40 ? 'text-2xl' : height >= 32 ? 'text-xl' : height >= 26 ? 'text-base' : height <= 18 ? 'text-xs' : 'text-sm';
+  const iconPx = Math.round(height * (variant === 'mark' ? 1 : 0.95));
+  const textClass =
+    height >= 40
+      ? 'text-[1.65rem]'
+      : height >= 32
+        ? 'text-xl'
+        : height >= 26
+          ? 'text-[1.05rem]'
+          : height <= 18
+            ? 'text-xs'
+            : 'text-sm';
+  const wordColor = wordmarkTone === 'brand' ? 'text-[#2D1E4E]' : 'text-white';
 
-  const mark = (
-    <span
-      style={{ fontFamily: 'var(--font-brand)' }}
-      className={`font-semibold leading-none tracking-tight text-white ${sizeClass} ${className}`}
-    >
-      {variant === 'mark' ? 'M' : 'Mira'}
+  const logo = (
+    <span className={`inline-flex items-center ${variant === 'mark' ? '' : 'gap-2'} ${className}`}>
+      <span className="inline-flex shrink-0" style={{ width: iconPx, height: iconPx }}>
+        <MiraMark className="h-full w-full" title={variant === 'mark' ? 'Mira' : undefined} />
+      </span>
+      {variant !== 'mark' && (
+        <span
+          style={{ fontFamily: 'var(--font-brand)' }}
+          className={`font-bold leading-none tracking-tight ${textClass} ${wordColor}`}
+        >
+          Mira
+        </span>
+      )}
     </span>
   );
 
-  if (href === null || href === false) return mark;
+  if (href === null || href === false) return logo;
   return (
     <Link href={href} className="inline-flex shrink-0 items-center" aria-label="Mira home">
-      {mark}
+      {logo}
     </Link>
   );
 }

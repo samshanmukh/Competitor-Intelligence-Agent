@@ -137,6 +137,7 @@ export default function ReportView({
                   tiers={c.tiers}
                   you={c.you}
                   href={c.href}
+                  sources={c.sources}
                   loading={pending('pricing') && !c.tiers?.some((t) => t?.price_monthly != null)}
                 />
               ))}
@@ -209,25 +210,27 @@ export default function ReportView({
             title="Business value"
             skills={[{ skill: 'you-contents' }, { skill: 'grok' }]}
           >
-            <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="mb-4 grid max-w-5xl grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-2">
               {product && (product.value_score != null || product.value_analysis) && (
                 <div className="rounded-lg border border-accent/40 bg-accent/5 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-accent-soft">{product.name} <span className="text-[10px] font-normal">(you)</span></span>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="min-w-0 text-sm font-semibold text-accent-soft">
+                      {product.name} <span className="text-[10px] font-normal">(you)</span>
+                    </span>
                     <ValueScore score={product.value_score} />
                   </div>
-                  {product.value_analysis && <p className="mt-1 text-xs text-slate-400 line-clamp-3">{product.value_analysis}</p>}
+                  {product.value_analysis && <p className="mt-1 line-clamp-3 text-xs text-slate-400">{product.value_analysis}</p>}
                 </div>
               )}
               {competitors.map((c) => (
                 <div key={c.id ?? c.name} className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">{c.name}</span>
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="min-w-0 text-sm font-medium text-white">{c.name}</span>
                     {c.value_score == null && pending('value')
                       ? <Shimmer className="h-3.5 w-10 rounded-full" />
                       : <ValueScore score={c.value_score} />}
                   </div>
-                  {c.value_analysis && <p className="mt-1 text-xs text-slate-500 line-clamp-3">{c.value_analysis}</p>}
+                  {c.value_analysis && <p className="mt-1 line-clamp-3 text-xs text-slate-500">{c.value_analysis}</p>}
                 </div>
               ))}
             </div>
@@ -565,6 +568,49 @@ function shortHost(href) {
   }
 }
 
+function sourceLinkLabel(source) {
+  if (!source) return 'Source';
+  if (source.label) return source.label;
+  if (source.type === 'app-store') return 'App Store';
+  if (source.type === 'play-store') return 'Play Store';
+  if (source.type === 'research' || source.type === 'you-research' || source.type === 'store-research') {
+    return 'Research';
+  }
+  if (source.url) return shortHost(source.url);
+  return source.title || 'Source';
+}
+
+/** Normalize pricing_sources + fallback href into clickable source links. */
+function buildPricingSourceLinks(sources, href) {
+  const links = [];
+  const seen = new Set();
+  for (const s of sources || []) {
+    const url = pricingHref(s?.url);
+    if (!url) continue;
+    const key = url.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    links.push({
+      url,
+      label: sourceLinkLabel(s),
+      type: s.type || 'pricing_page',
+    });
+  }
+  const fallback = pricingHref(href);
+  if (fallback && !seen.has(fallback.toLowerCase())) {
+    links.push({
+      url: fallback,
+      label: /apps\.apple\.com/i.test(fallback)
+        ? 'App Store'
+        : /play\.google\.com/i.test(fallback)
+          ? 'Play Store'
+          : shortHost(fallback),
+      type: 'pricing_page',
+    });
+  }
+  return links;
+}
+
 /** One card per product + approved rival, filled from matrix tiers when available. */
 function buildPricingEntries(product, matrix, competitors) {
   const youKey = normName(product?.name || matrix?.productName);
@@ -589,6 +635,7 @@ function buildPricingEntries(product, matrix, competitors) {
         tiers,
         you: true,
         href: pricingHref(product?.pricing_url, product?.website, fromMatrix?.pricing_url),
+        sources: fromMatrix?.pricing_sources || product?.pricing_sources || [],
       });
       seen.add(key);
     }
@@ -607,6 +654,7 @@ function buildPricingEntries(product, matrix, competitors) {
       tiers: fromMatrix?.tiers || [],
       you: false,
       href: pricingHref(c.pricing_url, c.website, fromMatrix?.pricing_url),
+      sources: fromMatrix?.pricing_sources || [],
     });
     seen.add(key);
   }
@@ -620,6 +668,7 @@ function buildPricingEntries(product, matrix, competitors) {
       tiers: c.tiers || [],
       you: false,
       href: pricingHref(c.pricing_url, c.website),
+      sources: c.pricing_sources || [],
     });
     seen.add(key);
   }
@@ -627,28 +676,34 @@ function buildPricingEntries(product, matrix, competitors) {
   return entries;
 }
 
-function PricingCard({ name, tiers, you, href, loading }) {
+function PricingCard({ name, tiers, you, href, sources, loading }) {
   // Hide placeholder rows like "Default —" that aren't real extracted plans.
   const visible = (tiers || []).filter((t) => t?.price_monthly != null || (t?.name && !/^default$/i.test(String(t.name).trim())));
   const hasPrices = visible.some((t) => t?.price_monthly != null);
   const showEmpty = !hasPrices;
+  const links = buildPricingSourceLinks(sources, href);
 
   return (
     <div className={`rounded-lg border p-3 ${you ? 'border-accent/40 bg-accent/5' : 'border-ink-700 bg-ink-850'}`}>
       <p className={`text-sm font-semibold ${you ? 'text-accent-soft' : 'text-white'}`}>
         {name}{you && <span className="text-[10px] font-normal"> (you)</span>}
       </p>
-      {href && (
-        <a
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-0.5 inline-flex max-w-full items-center gap-1 text-[11px] text-slate-500 transition hover:text-accent-soft"
-          title={href}
-        >
-          <span className="truncate">{shortHost(href)}</span>
-          <Icon name="external" className="h-3 w-3 shrink-0 opacity-70" />
-        </a>
+      {links.length > 0 && (
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          {links.map((link) => (
+            <a
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex max-w-full items-center gap-1 text-[11px] text-slate-500 transition hover:text-accent-soft"
+              title={link.url}
+            >
+              <span className="truncate">{link.label}</span>
+              <Icon name="external" className="h-3 w-3 shrink-0 opacity-70" />
+            </a>
+          ))}
+        </div>
       )}
       <div className="mt-2 space-y-1.5">
         {showEmpty ? (
@@ -657,9 +712,11 @@ function PricingCard({ name, tiers, you, href, loading }) {
           </p>
         ) : (
           visible.map((t, i) => (
-            <div key={i} className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">{t.name}</span>
-              <span className="font-medium text-slate-200">{t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}</span>
+            <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 text-xs">
+              <span className="truncate text-slate-400">{t.name}</span>
+              <span className="shrink-0 tabular-nums font-medium text-slate-200">
+                {t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}
+              </span>
             </div>
           ))
         )}
@@ -989,8 +1046,8 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
       title="Visual analysis"
       skills={[{ skill: 'you-contents' }, { skill: 'you-research' }, { skill: 'grok' }]}
     >
-      {/* KPI strip */}
-      <div className="mb-4 grid gap-2 grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+      {/* KPI strip — denser auto-fit so empty tiles don't stretch across the page */}
+      <div className="mb-4 grid max-w-5xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6">
         <StatTile
           label="Your value"
           value={you?.value != null ? `${you.value}/10` : '—'}
@@ -1508,20 +1565,22 @@ function MarketSection({ market }) {
 
       <PulseBanner pulse={pulse} limit={4} compact />
       {/* Market size + CAGR */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        {market.size_current && (
-          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-            <p className="text-xs text-slate-500">Market size</p>
-            <p className="text-lg font-bold text-white">{market.size_current}</p>
-          </div>
-        )}
-        {market.cagr && (
-          <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-            <p className="text-xs text-slate-500">Growth</p>
-            <p className="text-lg font-bold text-emerald-400">{market.cagr}</p>
-          </div>
-        )}
-      </div>
+      {(market.size_current || market.cagr) && (
+        <div className="mb-4 grid max-w-xl gap-3 sm:grid-cols-2">
+          {market.size_current && (
+            <div className="rounded-lg border border-ink-700 bg-ink-850 px-3.5 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Market size</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-white">{market.size_current}</p>
+            </div>
+          )}
+          {market.cagr && (
+            <div className="rounded-lg border border-ink-700 bg-ink-850 px-3.5 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Growth</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-400">{market.cagr}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Market-size timeline */}
       {history.length >= 2 && (
@@ -1619,9 +1678,9 @@ function MarketSection({ market }) {
 
 function Row({ label, value }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-slate-500">{label}</span>
-      <span className="font-medium text-slate-200">{value}</span>
+    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3">
+      <span className="shrink-0 text-slate-500">{label}</span>
+      <span className="min-w-0 text-right font-medium tabular-nums text-slate-200">{value}</span>
     </div>
   );
 }

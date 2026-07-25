@@ -102,7 +102,7 @@ export async function discoverCompetitors({ description, productUrl, maxResults 
     throw new Error('Provide a market description or a product URL to discover competitors.');
   }
 
-  const query = `Top competitors for ${market}. List company names, their websites, and the URL of each company's pricing page.`;
+  const query = `Top competitors for ${market}. List company names, their websites, and each company's pricing page URL. If a product is mobile-first with no public pricing page, include its App Store (apps.apple.com) or Google Play (play.google.com/store/apps) listing URL instead.`;
   const payload = await research(query);
   const researchText = flattenResearch(payload);
 
@@ -119,7 +119,7 @@ export async function discoverCompetitors({ description, productUrl, maxResults 
 For each competitor return:
 - name: company/product name
 - website: homepage URL
-- pricing_url: the pricing page URL (prefer a URL containing "pricing" or "plans"; if none is present in the text, construct the most likely one from the homepage like https://site.com/pricing)
+- pricing_url: the pricing page URL (prefer a URL containing "pricing" or "plans"). If no web pricing page exists, use an apps.apple.com or play.google.com/store/apps listing URL when present in the research. Otherwise construct the most likely https://site.com/pricing from the homepage.
 - notes: one short phrase on why it's a competitor
 
 Only include companies that actually appear in the research text. Do not invent companies.
@@ -141,13 +141,16 @@ function normalizeCandidates(list) {
   const out = [];
   for (const c of list) {
     if (!c || typeof c !== 'object') continue;
-    let pricing_url = (c.pricing_url || c.pricingUrl || c.url || '').trim();
+    let pricing_url = (c.pricing_url || c.pricingUrl || c.url || c.app_store_url || c.play_store_url || '').trim();
     let website = (c.website || c.homepage || '').trim();
     const name = (c.name || c.company || '').trim();
     if (!name) continue;
 
+    // Prefer website /pricing; allow App Store / Play Store when no web pricing page exists.
     if (!pricing_url && website) pricing_url = joinUrl(website, '/pricing');
-    if (!website && pricing_url) website = origin(pricing_url);
+    if (!website && pricing_url && !/apps\.apple\.com|play\.google\.com/i.test(pricing_url)) {
+      website = origin(pricing_url);
+    }
     if (!pricing_url) continue;
 
     pricing_url = ensureHttp(pricing_url);
@@ -157,7 +160,8 @@ function normalizeCandidates(list) {
     if (seen.has(key)) continue;
     seen.add(key);
 
-    out.push({ name, website, pricing_url, notes: (c.notes || c.reason || '').trim() || null });
+    const notes = (c.notes || c.reason || '').trim() || null;
+    out.push({ name, website, pricing_url, notes });
   }
   return out;
 }

@@ -328,10 +328,19 @@ function SectionCard({ icon, title, loading, empty, children, hint, skills, skil
 }
 
 function Stat({ label, value, accent }) {
+  if (value == null || value === '' || value === '—') return null;
   return (
-    <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold ${accent || 'text-white'}`}>{value ?? '—'}</p>
+    <div className="rounded-lg border border-ink-700 bg-ink-850 px-3.5 py-3">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
+      <p className={`mt-0.5 text-lg font-bold tabular-nums ${accent || 'text-white'}`}>{value}</p>
+    </div>
+  );
+}
+
+function StatGrid({ children, className = '' }) {
+  return (
+    <div className={`grid max-w-3xl grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3 ${className}`}>
+      {children}
     </div>
   );
 }
@@ -357,12 +366,12 @@ function OverviewSection({ state, company }) {
       {o && (
         <div className="space-y-3">
           {o.summary && <p className="text-sm text-slate-300 leading-relaxed">{o.summary}</p>}
-          <div className="grid gap-3 sm:grid-cols-4">
+          <StatGrid>
             <Stat label="Founded" value={o.founded} />
             <Stat label="HQ" value={o.headquarters} />
             <Stat label="Employees" value={o.employees} />
             <Stat label="Model" value={o.business_model} />
-          </div>
+          </StatGrid>
           {o.products?.length > 0 && (
             <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Products</p><Chips items={o.products} /></div>
           )}
@@ -387,12 +396,12 @@ function FinancialsSection({ state }) {
       skill="you-finance">
       {f && (
         <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <StatGrid>
             <Stat label="Total funding" value={f.total_funding} accent="text-emerald-400" />
             <Stat label="Valuation" value={f.valuation} accent="text-accent-soft" />
             <Stat label="Revenue (est.)" value={f.revenue} />
             <Stat label="Employees" value={f.employees} />
-          </div>
+          </StatGrid>
           {f.investors?.length > 0 && (
             <div><p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Key investors</p><Chips items={f.investors} color="accent" /></div>
           )}
@@ -411,10 +420,10 @@ function MarketSection({ market, loading }) {
       skill="you-finance">
       {market && (
         <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <StatGrid className="max-w-xl">
             <Stat label="Market size" value={market.size_current} />
             <Stat label="Growth" value={market.cagr} accent="text-emerald-400" />
-          </div>
+          </StatGrid>
           {history.length >= 2 && (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={history} margin={{ left: 4, right: 16, top: 8 }}>
@@ -454,12 +463,12 @@ function TrafficSection({ state }) {
       skill="you-research">
       {t && (
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <StatGrid>
             <Stat label="Monthly visits" value={fmtVisits(t.total_visits)} accent="text-accent-soft" />
             <Stat label="Bounce rate" value={t.bounce_rate != null ? `${Math.round(t.bounce_rate * 100)}%` : null} />
             <Stat label="Pages / visit" value={t.pages_per_visit != null ? t.pages_per_visit.toFixed(1) : null} />
             <Stat label="Avg. visit" value={t.avg_visit_duration} />
-          </div>
+          </StatGrid>
 
           {history.length >= 2 && (
             <div>

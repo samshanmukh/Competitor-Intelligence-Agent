@@ -99,12 +99,12 @@ export default function UsageClient() {
             ) : (
               <div className="divide-y divide-ink-800">
                 {events.slice(0, 30).map((event, i) => (
-                  <div key={`${event.type || event.feature}-${event.at || i}`} className="flex items-center justify-between gap-3 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-white">{(event.type || event.feature || 'event').replace(/_/g, ' ')}</p>
+                  <div key={`${event.type || event.feature}-${event.at || i}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium capitalize text-white">{(event.type || event.feature || 'event').replace(/_/g, ' ')}</p>
                       {event.at && <p className="text-xs text-slate-500">{new Date(event.at).toLocaleString()}</p>}
                     </div>
-                    {event.count != null && <span className="chip border-ink-700 bg-ink-850 text-slate-400">{event.count}</span>}
+                    {event.count != null && <span className="chip shrink-0 border-ink-700 bg-ink-850 text-slate-400">{event.count}</span>}
                   </div>
                 ))}
               </div>

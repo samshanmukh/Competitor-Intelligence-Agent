@@ -37,9 +37,41 @@ import { sendMarketShiftWebhook } from '../services/alerts.js';
 import { getWorkspaceJson, setWorkspaceJson } from '../services/workspaceStore.js';
 import { makeAttribution } from '../services/attribution.js';
 import { fetchCompetitor } from '../agents/fetchAgent.js';
+import {
+  fetchStorePricingContent,
+  isStoreUrl,
+  storeSourceLabel,
+  storeSourceType,
+} from '../services/storePricing.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+function sourceFromUrl(url, title) {
+  if (!url) return null;
+  const type = isStoreUrl(url) ? storeSourceType(url) : 'pricing_page';
+  return {
+    type,
+    url,
+    title: title || storeSourceLabel(type, url),
+    label: storeSourceLabel(type, url),
+  };
+}
+
+function mergeSources(...lists) {
+  const out = [];
+  const seen = new Set();
+  for (const list of lists) {
+    for (const s of list || []) {
+      if (!s) continue;
+      const key = `${s.type || ''}|${s.url || s.label || s.title || ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(s);
+    }
+  }
+  return out;
+}
 
 // Price history — extract price points from all snapshots for a competitor
 router.get('/competitors/:id/price-history', requireAuth, resolveWorkspace, wrap(async (req, res) => {
@@ -90,9 +122,10 @@ async function getProductContent(product) {
 function contentUsefulForPricing(text) {
   if (!text || typeof text !== 'string') return false;
   const t = text.trim();
-  if (t.length < 400) return false;
+  if (t.length < 200) return false;
   if (/\$\s?\d/.test(t)) return true;
-  if (/\b(pricing|per month|\/mo|subscription|plan|tier)\b/i.test(t) && t.length >= 800) return true;
+  if (/\b(in-?app purchases?|subscription|weekly|monthly|yearly)\b/i.test(t) && t.length >= 350) return true;
+  if (/\b(pricing|per month|\/mo|plan|tier)\b/i.test(t) && t.length >= 800) return true;
   return t.length >= 1500;
 }
 
@@ -113,48 +146,111 @@ async function researchPricingContent(competitorOrName) {
     `${name} official pricing plans tiers monthly cost USD`,
     website ? `(${website})` : '',
     'subscription price per month',
+    'OR App Store OR Google Play in-app purchase subscription price',
   ].filter(Boolean).join(' ');
   try {
     const payload = await research(q, { effort: 'lite' });
     const text = flattenResearchPayload(payload).trim();
-    return text ? text.slice(0, 8000) : null;
+    if (!text) return null;
+    const sources = (payload?.output?.sources || [])
+      .filter((s) => s?.url)
+      .slice(0, 6)
+      .map((s) => sourceFromUrl(s.url, s.title) || {
+        type: 'research',
+        url: s.url,
+        title: s.title || 'Research',
+        label: storeSourceLabel('research', s.url),
+      });
+    return { content: text.slice(0, 8000), sources };
   } catch {
     return null;
   }
 }
 
 /**
- * Prefer a useful stored snapshot; else fetch pricing pages; else You.com research.
- * Rejects tiny/blocked scrapes so rivals don't get stuck on "Default / —".
+ * Prefer a useful stored snapshot; else fetch pricing pages; else App/Play Store;
+ * else You.com research. Returns { content, sources }.
  */
 async function ensureCompetitorContent(competitor) {
-  if (!competitor?.id) return null;
+  if (!competitor?.id) return { content: null, sources: [] };
+  const baseSources = mergeSources(
+    sourceFromUrl(competitor.pricing_url, 'Pricing page'),
+    sourceFromUrl(competitor.website, 'Website'),
+  );
+
   const snap = await getLatestSnapshot(competitor.id);
-  if (contentUsefulForPricing(snap?.content)) return snap.content;
+  if (contentUsefulForPricing(snap?.content)) {
+    const snapSource = snap.source
+      ? [{
+          type: snap.source,
+          url: isStoreUrl(competitor.pricing_url) ? competitor.pricing_url : null,
+          title: storeSourceLabel(snap.source, competitor.pricing_url),
+          label: storeSourceLabel(snap.source, competitor.pricing_url),
+        }]
+      : [];
+    return {
+      content: snap.content,
+      sources: mergeSources(baseSources, snapSource),
+    };
+  }
 
   const urls = [competitor.pricing_url, competitor.website].filter(Boolean);
   for (const url of urls) {
     try {
       const fetched = await fetchCompetitor({ ...competitor, pricing_url: url });
       const text = fetched?.snapshot?.content;
-      if (fetched?.ok && contentUsefulForPricing(text)) return text;
+      if (fetched?.ok && contentUsefulForPricing(text)) {
+        return {
+          content: text,
+          sources: mergeSources(baseSources, sourceFromUrl(url)),
+        };
+      }
     } catch {
       /* try next */
     }
   }
 
+  // No useful website pricing → App Store / Play Store IAP subscriptions.
+  try {
+    const store = await fetchStorePricingContent(competitor);
+    if (store?.content && contentUsefulForPricing(store.content)) {
+      try {
+        await insertSnapshot(competitor.id, store.content, store.kind || 'app-store');
+      } catch {
+        /* non-fatal */
+      }
+      return {
+        content: store.content,
+        sources: mergeSources(baseSources, store.sources),
+      };
+    }
+  } catch {
+    /* fall through to research */
+  }
+
   const researched = await researchPricingContent(competitor);
-  if (researched) {
+  if (researched?.content) {
     try {
-      await insertSnapshot(competitor.id, researched, 'you-research');
+      await insertSnapshot(competitor.id, researched.content, 'you-research');
     } catch {
       /* non-fatal */
     }
-    return researched;
+    return {
+      content: researched.content,
+      sources: mergeSources(baseSources, researched.sources, [{
+        type: 'research',
+        url: null,
+        title: 'Pricing research',
+        label: 'Research',
+      }]),
+    };
   }
 
   // Last resort: return whatever scrape we have (may still help features/value).
-  return snap?.content || null;
+  return {
+    content: snap?.content || null,
+    sources: baseSources,
+  };
 }
 
 // Analyze the user's OWN product (pricing tiers + value score) so it can be
@@ -168,9 +264,28 @@ router.post('/product-analysis', requireAuth, resolveWorkspace, wrap(async (req,
     return res.json({ product: { name: product.name, pricing_url: product.pricing_url, tiers: [], value_score: null } });
   }
 
+  let pricingContent = content;
+  let pricingSources = mergeSources(sourceFromUrl(product.pricing_url, 'Pricing page'));
+  if (!contentUsefulForPricing(pricingContent)) {
+    try {
+      const store = await fetchStorePricingContent({
+        name: product.name,
+        website: product.website || product.pricing_url,
+        pricing_url: product.pricing_url,
+      });
+      if (store?.content) {
+        pricingContent = `${pricingContent || ''}\n\n${store.content}`.trim();
+        pricingSources = mergeSources(pricingSources, store.sources);
+      }
+    } catch {
+      /* optional */
+    }
+  }
+
   const result = await completeJSON({
     system: "You analyze a software product's pricing and positioning. Return ONLY valid JSON.",
     user: `Analyze the product "${product.name}". Extract its pricing tiers and rate its value-for-money.
+Include App Store / Google Play subscription and in-app purchase tiers when present (convert weekly/yearly to monthly USD).
 Return:
 {
   "tiers": [ { "name": "string", "price_monthly": number|null } ],
@@ -181,7 +296,7 @@ Return:
 Use numbers only where present in the content.
 
 CONTENT:
-${content.slice(0, 5000)}`,
+${pricingContent.slice(0, 5000)}`,
     maxTokens: 700,
   });
 
@@ -193,6 +308,7 @@ ${content.slice(0, 5000)}`,
       value_score: result?.value_score ?? null,
       value_analysis: result?.value_analysis || null,
       summary: result?.summary || null,
+      pricing_sources: pricingSources,
     },
   });
 }));
@@ -204,21 +320,23 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
     return res.status(400).json({ error: 'competitorIds array required' });
   }
 
-  // Load every rival with useful pricing/feature text (scrape → research). Never
-  // let a thin blocked page leave rivals out of the matrix prompt.
+  // Load every rival with useful pricing/feature text
+  // (scrape → App/Play Store → research). Never let a thin blocked page leave
+  // rivals out of the matrix prompt.
   const snapshots = await Promise.all(
     competitorIds.map(async (id) => {
       const c = await getCompetitor(id, req.workspaceId);
-      if (!c) return { competitor: null, content: null };
-      let content = await ensureCompetitorContent(c);
+      if (!c) return { competitor: null, content: null, sources: [] };
+      let { content, sources } = await ensureCompetitorContent(c);
       if (!contentUsefulForPricing(content)) {
         const researched = await researchPricingContent(c);
-        if (researched) {
-          content = researched;
-          try { await insertSnapshot(c.id, researched, 'you-research'); } catch { /* ignore */ }
+        if (researched?.content) {
+          content = researched.content;
+          sources = mergeSources(sources, researched.sources);
+          try { await insertSnapshot(c.id, researched.content, 'you-research'); } catch { /* ignore */ }
         }
       }
-      return { competitor: c, content };
+      return { competitor: c, content, sources: sources || [] };
     })
   );
 
@@ -246,7 +364,12 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
       features: [],
       competitors: snapshots
         .filter((s) => s.competitor)
-        .map((s) => ({ name: s.competitor.name, tiers: [] })),
+        .map((s) => ({
+          name: s.competitor.name,
+          tiers: [],
+          pricing_url: s.competitor.pricing_url || null,
+          pricing_sources: s.sources || [],
+        })),
       productName,
     });
   }
@@ -301,11 +424,14 @@ ${prompt}`,
     if (!content) return [];
     try {
       const result = await completeJSON({
-        system: 'You extract pricing tiers from website or research text. Return ONLY valid JSON.',
+        system: 'You extract pricing tiers from website, App Store, Play Store, or research text. Return ONLY valid JSON.',
         user: `Extract pricing tiers for "${name}". Return:
 { "tiers": [{ "name": "string", "price_monthly": number|null }] }
-Use monthly USD when possible. If only annual is listed, divide by 12.
-Only include tiers you can support from the content. Prefer real plan names (Pro, Team, etc).
+Use monthly USD when possible.
+- If only annual/yearly is listed, divide by 12.
+- If only weekly is listed, multiply by 4.33.
+- Include App Store / Google Play subscription and in-app purchase tiers when present (use plan names like "Premium (App Store)" when helpful).
+Only include tiers you can support from the content. Prefer real plan names (Pro, Team, Premium, etc).
 Do NOT invent a "Default" tier with a null price.
 
 CONTENT:
@@ -366,24 +492,43 @@ ${String(content).slice(0, 5000)}`,
     };
   }
 
-  async function enrichEntry(name, content, entry) {
+  async function enrichEntry(name, content, entry, seedSources = [], competitor = null) {
     let next = { ...entry, name };
     let text = content;
+    let sources = mergeSources(seedSources, entry.pricing_sources);
     const priced = () => (next.tiers || []).some((t) => t?.price_monthly != null);
 
     if (!contentUsefulForPricing(text)) {
-      const researched = await researchPricingContent(name);
-      if (researched) text = researched;
+      const researched = await researchPricingContent(competitor || name);
+      if (researched?.content) {
+        text = researched.content;
+        sources = mergeSources(sources, researched.sources);
+      }
     }
 
     if (!priced()) {
       let tiers = text ? await extractTiers(name, text) : [];
       if (tiers.length) next.tiers = tiers;
       if (!priced()) {
-        const researched = await researchPricingContent(name);
-        if (researched) {
-          text = researched;
-          tiers = await extractTiers(name, researched);
+        // Website failed → try App Store / Play Store IAP subscriptions.
+        try {
+          const store = await fetchStorePricingContent(competitor || { name });
+          if (store?.content) {
+            text = store.content;
+            sources = mergeSources(sources, store.sources);
+            tiers = await extractTiers(name, store.content);
+            if (tiers.length) next.tiers = tiers;
+          }
+        } catch {
+          /* continue */
+        }
+      }
+      if (!priced()) {
+        const researched = await researchPricingContent(competitor || name);
+        if (researched?.content) {
+          text = researched.content;
+          sources = mergeSources(sources, researched.sources);
+          tiers = await extractTiers(name, researched.content);
           if (tiers.length) next.tiers = tiers;
         }
       }
@@ -395,6 +540,8 @@ ${String(content).slice(0, 5000)}`,
       if (flags) next = applyFlags(next, flags);
     }
     if (!next.tiers) next.tiers = [];
+    next.pricing_sources = sources;
+    if (competitor?.pricing_url) next.pricing_url = competitor.pricing_url;
     return next;
   }
 
@@ -411,12 +558,17 @@ ${String(content).slice(0, 5000)}`,
       || { name: productName, tiers: [] };
     const product = await getProduct(req.workspaceId);
     const pc = product ? await getProductContent(product) : productEntry;
-    entry = await enrichEntry(productName, pc, entry);
+    const productSources = mergeSources(sourceFromUrl(product?.pricing_url, 'Pricing page'));
+    entry = await enrichEntry(productName, pc, entry, productSources, product ? {
+      name: product.name,
+      website: product.website || product.pricing_url,
+      pricing_url: product.pricing_url,
+    } : { name: productName });
     merged.push(entry);
     byName.delete(key);
   }
 
-  for (const { competitor, content } of snapshots) {
+  for (const { competitor, content, sources } of snapshots) {
     if (!competitor) continue;
     const key = String(competitor.name || '').toLowerCase().trim();
     if (productName && key === productName.toLowerCase().trim()) continue;
@@ -426,7 +578,7 @@ ${String(content).slice(0, 5000)}`,
         return ck.includes(key) || key.includes(ck);
       });
     if (!entry) entry = { name: competitor.name, tiers: [] };
-    entry = await enrichEntry(competitor.name, content, entry);
+    entry = await enrichEntry(competitor.name, content, entry, sources, competitor);
     merged.push(entry);
     byName.delete(key);
   }
@@ -519,7 +671,8 @@ router.post('/competitors/:id/value-score', requireAuth, resolveWorkspace, wrap(
   const competitor = await getCompetitor(req.params.id, req.workspaceId);
   if (!competitor) return res.status(404).json({ error: 'Not found' });
 
-  const content = await ensureCompetitorContent(competitor);
+  const ensured = await ensureCompetitorContent(competitor);
+  const content = ensured?.content;
   if (!content) {
     return res.json({ score: null, reasoning: null, error: 'No pricing or research content yet' });
   }

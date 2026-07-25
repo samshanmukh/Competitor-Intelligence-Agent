@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Icon } from './ui';
+import MiraMark from './MiraMark';
 
 const KEY = process.env.NEXT_PUBLIC_ZENDESK_KEY || '';
 const SCRIPT_ID = 'ze-snippet';
@@ -146,9 +147,9 @@ export default function ZendeskWidget() {
         aria-expanded={open}
         aria-label={open ? 'Close chat' : unread > 0 ? `Open chat, ${unread} unread` : 'Open chat'}
         title="Chat with Mira"
-        className="pointer-events-auto relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_10px_30px_-12px_rgba(99,102,241,0.75)] transition duration-200 hover:bg-accent-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
+        className="pointer-events-auto relative inline-flex h-14 w-14 items-center justify-center rounded-full bg-ink-900 text-white shadow-[0_10px_30px_-12px_rgba(99,102,241,0.55)] ring-1 ring-white/10 transition duration-200 hover:bg-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950"
       >
-        <Icon name={open ? 'x' : 'mail'} className="h-5 w-5" />
+        {open ? <Icon name="x" className="h-5 w-5" /> : <MiraMark className="h-8 w-8" title="Mira chat" />}
         {!open && unread > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
             {unread > 99 ? '99+' : unread}
