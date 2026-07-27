@@ -613,15 +613,31 @@ function ReportStage({ competitors, onScored }) {
   const [progress, setProgress] = useState('');
   const [layers, setLayers] = useState({});
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [hydrating, setHydrating] = useState(true);
   const [restoredAt, setRestoredAt] = useState(null);
+  const [autoSave, setAutoSave] = useState(() => {
+    try {
+      const v = localStorage.getItem('cia_report_autosave');
+      if (v === null) return true;
+      return v !== '0' && v !== 'false';
+    } catch {
+      return true;
+    }
+  });
   /** Live score/analysis patches so Business value cards update before list reload. */
   const [scoreOverrides, setScoreOverrides] = useState({});
   const toast = useToast();
   const runIdRef = useRef(0);
   const snapshotRef = useRef({});
+  const autoSaveRef = useRef(autoSave);
+
+  useEffect(() => {
+    autoSaveRef.current = autoSave;
+    try {
+      localStorage.setItem('cia_report_autosave', autoSave ? '1' : '0');
+    } catch { /* ignore */ }
+  }, [autoSave]);
 
   const scoredCompetitors = competitors.map((c) => {
     const patch = scoreOverrides[c.id];
@@ -650,7 +666,8 @@ function ReportStage({ competitors, onScored }) {
     generatedAt: new Date().toISOString(),
   });
 
-  const persistLatest = async (extra = {}) => {
+  const persistLatest = async (extra = {}, { force = false } = {}) => {
+    if (!force && !autoSaveRef.current) return null;
     const snapshot = buildSnapshot(extra);
     const hasData = Boolean(
       snapshot.matrix || snapshot.positioning || snapshot.take || snapshot.strategy || snapshot.product
@@ -659,12 +676,57 @@ function ReportStage({ competitors, onScored }) {
     );
     if (!hasData) return null;
     try {
+      setSaving(true);
       const { result } = await api.saveAnalysisLatest(snapshot);
       setRestoredAt(result?.savedAt || snapshot.generatedAt);
       return result;
     } catch (err) {
       console.error('[analysis] persist failed:', err.message);
       return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /** Persist latest + a Reports history entry (used after regenerate when Auto save is on). */
+  const autoSaveReport = async (extra = {}) => {
+    if (!autoSaveRef.current) return null;
+    const snapshot = buildSnapshot(extra);
+    const hasData = Boolean(
+      snapshot.matrix || snapshot.positioning || snapshot.take || snapshot.strategy || snapshot.product
+      || (Array.isArray(snapshot.reviews) && snapshot.reviews.length)
+      || snapshot.market
+    );
+    if (!hasData) return null;
+    try {
+      setSaving(true);
+      const title = `Report · ${competitors.length} competitors · ${new Date().toLocaleDateString()}`;
+      await api.saveReport(title, snapshot);
+      const { result } = await api.saveAnalysisLatest(snapshot);
+      setRestoredAt(result?.savedAt || snapshot.generatedAt);
+      return result;
+    } catch (err) {
+      console.error('[analysis] auto-save failed:', err.message);
+      toast({ type: 'error', title: 'Auto save failed', message: err.message });
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleAutoSave = async () => {
+    const next = !autoSave;
+    setAutoSave(next);
+    autoSaveRef.current = next;
+    if (next && !running) {
+      const result = await persistLatest({}, { force: true });
+      if (result) {
+        toast({ type: 'success', title: 'Auto save on', message: 'Current report saved.' });
+      } else {
+        toast({ type: 'info', title: 'Auto save on', message: 'New regenerates and changes will save automatically.' });
+      }
+    } else if (!next) {
+      toast({ type: 'info', title: 'Auto save off', message: 'Regenerates will not be saved until you turn it back on.' });
     }
   };
 
@@ -808,7 +870,6 @@ function ReportStage({ competitors, onScored }) {
     const alive = () => runIdRef.current === runId;
 
     setRunning(true);
-    setSaved(false);
     setRestoredAt(null);
     setMatrix(null);
     setPositioning(null);
@@ -900,6 +961,10 @@ function ReportStage({ competitors, onScored }) {
       ];
       await Promise.all(wave1);
       if (!alive()) return;
+      if (autoSaveRef.current) {
+        snapshotRef.current = { ...collected };
+        await persistLatest(collected);
+      }
 
       // Wave 2 — narrative layers in parallel (user can already browse Wave 1 tabs)
       setProgress('Layer 2 · value narrative, strategy, reviews…');
@@ -952,6 +1017,10 @@ function ReportStage({ competitors, onScored }) {
       ];
       await Promise.all(wave2);
       if (!alive()) return;
+      if (autoSaveRef.current) {
+        snapshotRef.current = { ...collected };
+        await persistLatest(collected);
+      }
 
       // Wave 3 — analyst take (uses scores/snapshots already on the server)
       setProgress('Layer 3 · analyst take…');
@@ -967,9 +1036,21 @@ function ReportStage({ competitors, onScored }) {
 
       if (alive()) {
         snapshotRef.current = { ...collected };
-        await persistLatest(collected);
         setProgress('');
-        toast({ type: 'success', title: 'Analysis saved', message: 'It will be here next time you open this page.' });
+        if (autoSaveRef.current) {
+          await autoSaveReport(collected);
+          toast({
+            type: 'success',
+            title: 'Report auto-saved',
+            message: 'Restored next visit · also in Reports.',
+          });
+        } else {
+          toast({
+            type: 'success',
+            title: 'Analysis complete',
+            message: 'Auto save is off — turn it on to keep this report.',
+          });
+        }
       }
     } catch (err) {
       if (alive()) toast({ type: 'error', title: 'Analysis failed', message: err.message });
@@ -986,22 +1067,6 @@ function ReportStage({ competitors, onScored }) {
     || scoredCompetitors.some((c) => c.value_score != null)
     || running
   );
-
-  const saveToHistory = async () => {
-    setSaving(true);
-    try {
-      const snapshot = buildSnapshot();
-      const title = `Report · ${competitors.length} competitors · ${new Date().toLocaleDateString()}`;
-      await api.saveReport(title, snapshot);
-      await persistLatest(snapshot);
-      setSaved(true);
-      toast({ type: 'success', title: 'Saved to history', message: 'View it anytime under Reports.' });
-    } catch (err) {
-      toast({ type: 'error', title: 'Could not save', message: err.message });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const exportMarkdown = async () => {
     setExporting(true);
@@ -1039,7 +1104,7 @@ function ReportStage({ competitors, onScored }) {
           </div>
           <h2 className="text-base font-semibold text-white">Run competitive report</h2>
           <p className="mt-2 text-sm text-slate-400">
-            Research runs layer by layer — results are saved automatically so they&apos;re here next visit.
+            Research runs layer by layer. With Auto save on, the report is kept for your next visit and Reports history.
           </p>
           <button onClick={runAll} className="btn-primary mt-5">
             <Icon name="sparkle" className="h-4 w-4" /> Run full analysis
@@ -1055,21 +1120,40 @@ function ReportStage({ competitors, onScored }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2.5 sm:px-5">
-        <button onClick={runAll} disabled={running || saving || exporting} className="btn-ghost px-2.5 py-1.5 text-xs">
+        <button onClick={runAll} disabled={running || saving || exporting} className="btn-ghost h-auto px-2.5 py-1.5 text-xs">
           <Icon name="refresh" className="h-3.5 w-3.5" />
           {running ? 'Running…' : 'Regenerate'}
         </button>
-        <button onClick={exportMarkdown} disabled={exporting || running} className="btn-ghost px-2.5 py-1.5 text-xs">
+        <button onClick={exportMarkdown} disabled={exporting || running} className="btn-ghost h-auto px-2.5 py-1.5 text-xs">
           {exporting
-            ? <><Shimmer className="h-3.5 w-12 rounded-full" /> Exporting…</>
+            ? <><Shimmer className="h-3.5 w-12 rounded-md" /> Exporting…</>
             : <><Icon name="download" className="h-3.5 w-3.5" /> Export</>}
         </button>
-        <button onClick={saveToHistory} disabled={saving || saved || running} className="btn-primary px-2.5 py-1.5 text-xs">
-          {saved
-            ? <><Icon name="check" className="h-3.5 w-3.5" /> Saved</>
-            : saving
-              ? <><Shimmer className="h-3.5 w-12 rounded-full" /> Saving…</>
-              : <><Icon name="share" className="h-3.5 w-3.5" /> Save</>}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={autoSave}
+          aria-label="Auto save"
+          onClick={toggleAutoSave}
+          disabled={running}
+          className="inline-flex h-auto items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:text-white disabled:opacity-50"
+        >
+          <span
+            aria-hidden="true"
+            className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-sm border transition ${
+              autoSave
+                ? 'border-accent/50 bg-accent/30'
+                : 'border-white/15 bg-ink-900'
+            }`}
+          >
+            <span
+              className={`absolute h-2.5 w-2.5 rounded-sm bg-white transition ${
+                autoSave ? 'left-[13px]' : 'left-0.5'
+              }`}
+            />
+          </span>
+          Auto save
+          {saving ? <span className="text-slate-500">· saving…</span> : null}
         </button>
 
         {running && (
@@ -1077,13 +1161,14 @@ function ReportStage({ competitors, onScored }) {
             <span className="truncate text-xs text-slate-400">
               {progress || `Layers ${doneCount}/${LAYER_KEYS.length}`}
             </span>
-            <Shimmer className="h-1 w-full rounded-full" />
+            <Shimmer className="h-1 w-full rounded-md" />
           </div>
         )}
         {!running && doneCount > 0 && (
           <span className="text-xs text-slate-500">
             {doneCount} layers ready
-            {restoredAt && !running ? ` · saved ${new Date(restoredAt).toLocaleString()}` : ''}
+            {autoSave && restoredAt ? ` · saved ${new Date(restoredAt).toLocaleString()}` : ''}
+            {!autoSave ? ' · auto save off' : ''}
           </span>
         )}
         {!market && !marketLoading && (

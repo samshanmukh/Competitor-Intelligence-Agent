@@ -161,7 +161,7 @@ export default function ReportsClient() {
         <EmptyState icon="share" title="No saved reports yet" action={
           <a href="/app" className="btn-primary">Run an analysis</a>
         }>
-          Run a full analysis on the Analysis page, then click <strong className="text-slate-300">Save to history</strong> to keep it here.
+          Run a full analysis on the Analysis page with <strong className="text-slate-300">Auto save</strong> on to keep reports here.
         </EmptyState>
       ) : (
         <div className="space-y-2">
