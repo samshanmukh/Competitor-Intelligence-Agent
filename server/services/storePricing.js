@@ -2,12 +2,19 @@
  * App Store / Play Store pricing fallback when a competitor has no useful
  * website pricing page. Discovers store listing URLs, scrapes them, and
  * returns text + source links for tier extraction.
+ *
+ * App Store In-App Purchases are often missing from generic scrapers (You.com),
+ * so we also fetch the apps.apple.com HTML and parse the IAP text-pairs that
+ * Apple embeds server-side (visible under the In-App Purchases disclosure).
  */
 
 import { research, webSearch, fetchContents } from './youcom.js';
 
 const APPLE_RE = /https?:\/\/apps\.apple\.com\/[^\s"'<>)]+/gi;
 const PLAY_RE = /https?:\/\/play\.google\.com\/store\/apps\/[^\s"'<>)]+/gi;
+
+const APP_STORE_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
 
 function cleanUrl(raw) {
   if (!raw) return null;
@@ -214,13 +221,136 @@ export async function findStoreUrls({ name, website } = {}) {
 export function contentLooksLikeStorePricing(text) {
   if (!text || typeof text !== 'string') return false;
   const t = text.trim();
-  if (t.length < 120) return false;
+  if (t.length < 40) return false;
   if (/\$\s?\d/.test(t)) return true;
   if (/\b(in-?app purchases?|subscription|weekly|monthly|yearly|\/mo|\/yr|per week|per month|per year)\b/i.test(t)
     && t.length >= 250) {
     return true;
   }
   return t.length >= 700;
+}
+
+/**
+ * Parse In-App Purchase name/price pairs from apps.apple.com HTML.
+ * Apple embeds these as text-pair rows and as JSON `textPairs` / leadingText+trailingText.
+ */
+export function extractAppStoreIapFromHtml(html) {
+  const pairs = [];
+  const seen = new Set();
+  const add = (name, price) => {
+    const n = String(name || '').replace(/\s+/g, ' ').trim();
+    let p = String(price || '').replace(/\s+/g, ' ').trim();
+    if (!n || n.length > 120) return;
+    if (!p) return;
+    if (!/^\$/.test(p) && /^\d/.test(p)) p = `$${p}`;
+    if (!/\$\s?\d/.test(p)) return;
+    // Skip noise from SVG path coordinates accidentally matching.
+    if (/^\$?\d{2,}\.\d{3,}/.test(p)) return;
+    const key = `${n.toLowerCase()}|${p}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    pairs.push({ name: n, price: p });
+  };
+
+  const blob = String(html || '');
+
+  for (const m of blob.matchAll(/"textPairs"\s*:\s*\[([\s\S]*?)\]/g)) {
+    for (const pair of m[1].matchAll(/\[\s*"([^"]+)"\s*,\s*"(\$[^"]+)"\s*\]/g)) {
+      add(pair[1], pair[2]);
+    }
+  }
+
+  for (const m of blob.matchAll(/"leadingText"\s*:\s*"([^"]+)"\s*,\s*"trailingText"\s*:\s*"(\$[^"]+)"/g)) {
+    add(m[1], m[2]);
+  }
+
+  for (const m of blob.matchAll(
+    /class="[^"]*text-pair[^"]*"[^>]*>\s*<span>([^<]+)<\/span>\s*<span>(\$[^<]+)<\/span>/gi
+  )) {
+    add(m[1], m[2]);
+  }
+
+  // Broader fallback: <span>Name</span> <span>$X.XX</span> near In-App Purchases.
+  const iapIdx = blob.search(/In-App Purchases/i);
+  if (iapIdx >= 0) {
+    const slice = blob.slice(iapIdx, iapIdx + 12000);
+    for (const m of slice.matchAll(/<span>([^<]{2,80})<\/span>\s*<span>(\$\d[\d,]*(?:\.\d{2})?)<\/span>/gi)) {
+      add(m[1], m[2]);
+    }
+  }
+
+  return pairs;
+}
+
+async function fetchAppStorePageHtml(url) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': APP_STORE_UA,
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      redirect: 'follow',
+    });
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(to);
+  }
+}
+
+/**
+ * Fetch App Store listing HTML and return structured IAP pricing text.
+ * Returns null when no IAP / paid list price is found.
+ */
+export async function fetchAppStoreIapText(url) {
+  const pageUrl = cleanUrl(url);
+  if (!pageUrl || !isAppStoreUrl(pageUrl)) return null;
+
+  const html = await fetchAppStorePageHtml(pageUrl);
+  if (!html) return null;
+
+  const pairs = extractAppStoreIapFromHtml(html);
+  let listLine = null;
+  try {
+    const ld = html.match(/<script[^>]*id=["']?software-application["']?[^>]*>([\s\S]*?)<\/script>/i);
+    if (ld) {
+      const data = JSON.parse(ld[1]);
+      const offer = Array.isArray(data?.offers) ? data.offers[0] : data?.offers;
+      const price = offer?.price;
+      const currency = offer?.priceCurrency || 'USD';
+      if (price != null && Number(price) > 0) {
+        listLine = `List price: ${currency === 'USD' ? '$' : ''}${price}${currency !== 'USD' ? ` ${currency}` : ''}`;
+      } else if (price === 0 || price === '0') {
+        listLine = 'List price: Free';
+      }
+      if (data?.name) {
+        listLine = [`App: ${data.name}`, listLine].filter(Boolean).join('\n');
+      }
+    }
+  } catch {
+    /* ignore malformed ld+json */
+  }
+
+  if (!pairs.length && !listLine) return null;
+
+  const lines = [
+    `App Store In-App Purchases (${pageUrl})`,
+    listLine,
+    pairs.length ? 'In-App Purchases:' : null,
+    ...pairs.map((p) => `- ${p.name}: ${p.price}`),
+  ].filter(Boolean);
+
+  return {
+    text: lines.join('\n'),
+    pairs,
+    url: pageUrl,
+  };
 }
 
 /**
@@ -249,6 +379,24 @@ export async function fetchStorePricingContent(competitor = {}) {
   const parts = [];
   const sources = [];
 
+  // Direct App Store HTML parse — catches IAP that generic scrapers miss.
+  if (appStore) {
+    try {
+      const iap = await fetchAppStoreIapText(appStore);
+      if (iap?.text && /\$\s?\d/.test(iap.text)) {
+        parts.push(`== App Store In-App Purchases (${appStore}) ==\n${iap.text}`);
+        sources.push({
+          type: 'app-store',
+          url: appStore,
+          title: `${name || 'App'} · App Store`,
+          label: 'App Store',
+        });
+      }
+    } catch {
+      /* fall through to You.com / research */
+    }
+  }
+
   if (itunesMeta) {
     parts.push(`== App Store metadata (iTunes Search) ==\n${itunesMeta}`);
   }
@@ -264,15 +412,21 @@ export async function fetchStorePricingContent(competitor = {}) {
     for (const url of urls) {
       const md = map[url]?.markdown;
       if (!contentLooksLikeStorePricing(md)) continue;
+      // Skip redundant App Store scrape when we already have IAP dollars.
+      if (isAppStoreUrl(url) && parts.some((p) => p.includes('In-App Purchases') && /\$\s?\d/.test(p))) {
+        continue;
+      }
       const type = storeSourceType(url);
       const label = storeSourceLabel(type, url);
       parts.push(`== ${label} (${url}) ==\n${md.slice(0, 5000)}`);
-      sources.push({
-        type,
-        url,
-        title: `${name || 'App'} · ${label}`,
-        label,
-      });
+      if (!sources.some((s) => s.url === url)) {
+        sources.push({
+          type,
+          url,
+          title: `${name || 'App'} · ${label}`,
+          label,
+        });
+      }
     }
   }
 

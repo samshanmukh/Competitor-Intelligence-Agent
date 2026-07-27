@@ -3,7 +3,12 @@
 
 import { fetchContents } from '../services/youcom.js';
 import { insertSnapshot, getLatestSnapshot, hashContent } from '../db/index.js';
-import { isStoreUrl, storeSourceType } from '../services/storePricing.js';
+import {
+  isStoreUrl,
+  isAppStoreUrl,
+  storeSourceType,
+  fetchAppStoreIapText,
+} from '../services/storePricing.js';
 
 /**
  * Fetch a single competitor's pricing page and store a snapshot.
@@ -12,6 +17,36 @@ import { isStoreUrl, storeSourceType } from '../services/storePricing.js';
  */
 export async function fetchCompetitor(competitor) {
   const url = competitor.pricing_url;
+
+  // App Store listings: parse In-App Purchases from Apple's HTML first.
+  // Generic scrapers often miss the IAP disclosure even when the URL is correct.
+  if (isAppStoreUrl(url)) {
+    try {
+      const iap = await fetchAppStoreIapText(url);
+      if (iap?.text && /\$\s?\d/.test(iap.text)) {
+        let markdown = iap.text;
+        try {
+          const contents = await fetchContents([url]);
+          const extra = contents[url]?.markdown;
+          if (extra && extra.length > 200) {
+            markdown = `${iap.text}\n\n== App Store page ==\n${String(extra).slice(0, 4000)}`;
+          }
+        } catch {
+          /* IAP text alone is enough for pricing */
+        }
+
+        const latest = await getLatestSnapshot(competitor.id);
+        if (latest && latest.content_hash === hashContent(markdown)) {
+          return { ok: true, unchanged: true, snapshot: latest };
+        }
+        const snapshot = await insertSnapshot(competitor.id, markdown, 'app-store');
+        return { ok: true, unchanged: false, snapshot, previous: latest || null };
+      }
+    } catch {
+      /* fall through to generic scrape */
+    }
+  }
+
   let contents;
   try {
     contents = await fetchContents([url]);
