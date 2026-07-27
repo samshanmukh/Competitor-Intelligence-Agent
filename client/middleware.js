@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authBypassActiveForHost, DEV_BYPASS_TOKEN } from './lib/authBypass';
 import { countMarkdownTokens, getPageMarkdown, SITE_ORIGIN } from './lib/agentContent';
+import { shouldShowGeoCornerstone } from './lib/geoCrawler';
 
 // Public pages anyone can see without a session.
 const PUBLIC_EXACT = [
@@ -109,10 +110,28 @@ export function middleware(request) {
     if (mdRes) return mdRes;
   }
 
+  const showGeo = shouldShowGeoCornerstone({
+    ua: request.headers.get('user-agent'),
+    referer: request.headers.get('referer'),
+    searchParams: request.nextUrl.searchParams,
+  });
+
+  const withGeoHeader = (response) => {
+    if (pathname === '/' && showGeo) {
+      response.headers.set('x-mira-geo-cornerstone', '1');
+    }
+    // Prevent CDN from mixing bot vs human HTML.
+    if (pathname === '/') {
+      const vary = response.headers.get('Vary');
+      response.headers.set('Vary', vary ? `${vary}, User-Agent` : 'User-Agent, Accept');
+    }
+    return response;
+  };
+
   if (bypass) {
     if (PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
       if (pathname === '/login' || pathname === '/signup') {
-        return NextResponse.redirect(new URL('/app', request.url));
+        return withGeoHeader(NextResponse.redirect(new URL('/app', request.url)));
       }
     }
     if (!tokenLooksCurrent(token)) {
@@ -122,9 +141,9 @@ export function middleware(request) {
         maxAge: 60 * 60 * 24 * 7,
         sameSite: 'lax',
       });
-      return response;
+      return withGeoHeader(response);
     }
-    return NextResponse.next();
+    return withGeoHeader(NextResponse.next());
   }
 
   const isPublic =
@@ -140,7 +159,7 @@ export function middleware(request) {
     response.cookies.delete('cia_auth');
     response.cookies.delete('cia_workspace_id');
     response.cookies.delete('cia_refresh');
-    return response;
+    return withGeoHeader(response);
   }
 
   if (alive && PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
@@ -151,12 +170,12 @@ export function middleware(request) {
       || pathname.startsWith('/requests')
       || pathname.startsWith('/.well-known')
     ) {
-      return NextResponse.next();
+      return withGeoHeader(NextResponse.next());
     }
-    return NextResponse.redirect(new URL('/app', request.url));
+    return withGeoHeader(NextResponse.redirect(new URL('/app', request.url)));
   }
 
-  return NextResponse.next();
+  return withGeoHeader(NextResponse.next());
 }
 
 export const config = {
