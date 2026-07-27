@@ -39,8 +39,8 @@ import { getWorkspaceJson, setWorkspaceJson } from '../services/workspaceStore.j
 import { makeAttribution } from '../services/attribution.js';
 import { fetchCompetitor } from '../agents/fetchAgent.js';
 import {
-  fetchStorePricingContent,
-  contentLooksLikeStorePricing,
+  enrichWithStorePricing,
+  contentHasAppStoreIap,
   isStoreUrl,
   storeSourceLabel,
   storeSourceType,
@@ -126,8 +126,10 @@ async function getProductContent(product) {
 function contentUsefulForPricing(text) {
   if (!text || typeof text !== 'string') return false;
   const t = text.trim();
+  if (!t) return false;
+  // Short App Store IAP blocks still count when they include dollar prices.
+  if (/\$\s?\d/.test(t) && t.length >= 40) return true;
   if (t.length < 200) return false;
-  if (/\$\s?\d/.test(t)) return true;
   if (/\b(in-?app purchases?|subscription|weekly|monthly|yearly)\b/i.test(t) && t.length >= 350) return true;
   if (/\b(pricing|per month|\/mo|plan|tier)\b/i.test(t) && t.length >= 800) return true;
   return t.length >= 1500;
@@ -172,8 +174,9 @@ async function researchPricingContent(competitorOrName) {
 }
 
 /**
- * Prefer a useful stored snapshot; else fetch pricing pages; else App/Play Store;
- * else You.com research. Returns { content, sources }.
+ * Prefer a useful stored snapshot; else fetch pricing pages; always merge
+ * App/Play Store IAP when an app listing exists; else You.com research.
+ * Returns { content, sources }.
  */
 async function ensureCompetitorContent(competitor) {
   if (!competitor?.id) return { content: null, sources: [] };
@@ -182,8 +185,12 @@ async function ensureCompetitorContent(competitor) {
     sourceFromUrl(competitor.website, 'Website'),
   );
 
+  let content = null;
+  let sources = baseSources;
   const snap = await getLatestSnapshot(competitor.id);
+
   if (contentUsefulForPricing(snap?.content)) {
+    content = snap.content;
     const snapSource = snap.source
       ? [{
           type: snap.source,
@@ -192,54 +199,56 @@ async function ensureCompetitorContent(competitor) {
           label: storeSourceLabel(snap.source, competitor.pricing_url),
         }]
       : [];
-    return {
-      content: snap.content,
-      sources: mergeSources(baseSources, snapSource),
-    };
-  }
-
-  const urls = [competitor.pricing_url, competitor.website].filter(Boolean);
-  for (const url of urls) {
-    try {
-      const fetched = await fetchCompetitor({ ...competitor, pricing_url: url });
-      const text = fetched?.snapshot?.content;
-      if (fetched?.ok && contentUsefulForPricing(text)) {
-        return {
-          content: text,
-          sources: mergeSources(baseSources, sourceFromUrl(url)),
-        };
+    sources = mergeSources(baseSources, snapSource);
+  } else {
+    const urls = [competitor.pricing_url, competitor.website].filter(Boolean);
+    for (const url of urls) {
+      try {
+        const fetched = await fetchCompetitor({ ...competitor, pricing_url: url });
+        const text = fetched?.snapshot?.content;
+        if (fetched?.ok && contentUsefulForPricing(text)) {
+          content = text;
+          sources = mergeSources(baseSources, sourceFromUrl(url));
+          break;
+        }
+      } catch {
+        /* try next */
       }
-    } catch {
-      /* try next */
     }
   }
 
-  // No useful website pricing → App Store / Play Store IAP subscriptions.
-  try {
-    const store = await fetchStorePricingContent(competitor);
-    if (store?.content && contentLooksLikeStorePricing(store.content)) {
-      try {
-        await insertSnapshot(competitor.id, store.content, store.kind || 'app-store');
-      } catch {
-        /* non-fatal */
-      }
-      // Point future refreshes at the store listing when website pricing failed.
-      const storeUrl = store.appStore || store.playStore;
-      if (storeUrl && competitor.id && !isStoreUrl(competitor.pricing_url)) {
-        try {
-          await updateCompetitorPricingUrl(competitor.id, storeUrl);
-          competitor.pricing_url = storeUrl;
-        } catch {
-          /* non-fatal */
+  // Always discover App/Play Store and merge In-App Purchase prices when available.
+  if (!contentHasAppStoreIap(content)) {
+    try {
+      const enriched = await enrichWithStorePricing(competitor, content || '');
+      if (enriched?.content) {
+        content = enriched.content;
+        sources = mergeSources(sources, enriched.sources);
+        if (enriched.added) {
+          try {
+            await insertSnapshot(competitor.id, enriched.content, enriched.kind || 'app-store');
+          } catch {
+            /* non-fatal */
+          }
+          const webHadPrices = contentUsefulForPricing(snap?.content) && /\$\s?\d/.test(snap?.content || '');
+          const storeUrl = enriched.appStore || enriched.playStore;
+          if (storeUrl && !isStoreUrl(competitor.pricing_url) && !webHadPrices) {
+            try {
+              await updateCompetitorPricingUrl(competitor.id, storeUrl);
+              competitor.pricing_url = storeUrl;
+            } catch {
+              /* non-fatal */
+            }
+          }
         }
       }
-      return {
-        content: store.content,
-        sources: mergeSources(baseSources, store.sources),
-      };
+    } catch {
+      /* fall through */
     }
-  } catch {
-    /* fall through to research */
+  }
+
+  if (contentUsefulForPricing(content) || contentHasAppStoreIap(content)) {
+    return { content, sources };
   }
 
   const researched = await researchPricingContent(competitor);
@@ -251,7 +260,7 @@ async function ensureCompetitorContent(competitor) {
     }
     return {
       content: researched.content,
-      sources: mergeSources(baseSources, researched.sources, [{
+      sources: mergeSources(sources, researched.sources, [{
         type: 'research',
         url: null,
         title: 'Pricing research',
@@ -262,8 +271,8 @@ async function ensureCompetitorContent(competitor) {
 
   // Last resort: return whatever scrape we have (may still help features/value).
   return {
-    content: snap?.content || null,
-    sources: baseSources,
+    content: content || snap?.content || null,
+    sources,
   };
 }
 
@@ -280,20 +289,19 @@ router.post('/product-analysis', requireAuth, resolveWorkspace, wrap(async (req,
 
   let pricingContent = content;
   let pricingSources = mergeSources(sourceFromUrl(product.pricing_url, 'Pricing page'));
-  if (!contentUsefulForPricing(pricingContent)) {
-    try {
-      const store = await fetchStorePricingContent({
-        name: product.name,
-        website: product.website || product.pricing_url,
-        pricing_url: product.pricing_url,
-      });
-      if (store?.content && contentLooksLikeStorePricing(store.content)) {
-        pricingContent = `${pricingContent || ''}\n\n${store.content}`.trim();
-        pricingSources = mergeSources(pricingSources, store.sources);
-      }
-    } catch {
-      /* optional */
+  // Always look up App/Play Store IAP for the product when a listing exists.
+  try {
+    const enriched = await enrichWithStorePricing({
+      name: product.name,
+      website: product.website || product.pricing_url,
+      pricing_url: product.pricing_url,
+    }, pricingContent);
+    if (enriched?.content) {
+      pricingContent = enriched.content;
+      pricingSources = mergeSources(pricingSources, enriched.sources);
     }
+  } catch {
+    /* optional */
   }
 
   const result = await completeJSON({
@@ -512,7 +520,7 @@ ${String(content).slice(0, 5000)}`,
     let sources = mergeSources(seedSources, entry.pricing_sources);
     const priced = () => (next.tiers || []).some((t) => t?.price_monthly != null);
 
-    if (!contentUsefulForPricing(text)) {
+    if (!contentUsefulForPricing(text) && !contentHasAppStoreIap(text)) {
       const researched = await researchPricingContent(competitor || name);
       if (researched?.content) {
         text = researched.content;
@@ -520,29 +528,31 @@ ${String(content).slice(0, 5000)}`,
       }
     }
 
-    if (!priced()) {
-      let tiers = text ? await extractTiers(name, text) : [];
-      if (tiers.length) next.tiers = tiers;
-      if (!priced()) {
-        // Website failed → try App Store / Play Store IAP subscriptions.
-        try {
-          const store = await fetchStorePricingContent(competitor || { name });
-          if (store?.content && contentLooksLikeStorePricing(store.content)) {
-            text = store.content;
-            sources = mergeSources(sources, store.sources);
-            tiers = await extractTiers(name, store.content);
-            if (tiers.length) next.tiers = tiers;
-            const storeUrl = store.appStore || store.playStore;
-            if (storeUrl && competitor?.id && !isStoreUrl(competitor.pricing_url)) {
-              try {
-                await updateCompetitorPricingUrl(competitor.id, storeUrl);
-                competitor.pricing_url = storeUrl;
-              } catch { /* non-fatal */ }
-            }
-          }
-        } catch {
-          /* continue */
+    // Always find App/Play Store listings and merge IAP prices when an app exists.
+    let storeAdded = false;
+    try {
+      const enriched = await enrichWithStorePricing(competitor || { name }, text || '');
+      if (enriched?.content) {
+        storeAdded = Boolean(enriched.added);
+        text = enriched.content;
+        sources = mergeSources(sources, enriched.sources);
+        const storeUrl = enriched.appStore || enriched.playStore;
+        if (storeUrl && competitor?.id && !isStoreUrl(competitor.pricing_url) && !priced()) {
+          try {
+            await updateCompetitorPricingUrl(competitor.id, storeUrl);
+            competitor.pricing_url = storeUrl;
+          } catch { /* non-fatal */ }
         }
+      }
+    } catch {
+      /* continue */
+    }
+
+    if (!priced() || storeAdded) {
+      let tiers = text ? await extractTiers(name, text) : [];
+      if (tiers.length) {
+        const newPriced = tiers.some((t) => t?.price_monthly != null);
+        if (!priced() || newPriced) next.tiers = tiers;
       }
       if (!priced()) {
         const researched = await researchPricingContent(competitor || name);

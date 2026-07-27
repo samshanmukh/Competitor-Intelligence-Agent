@@ -8,6 +8,7 @@
 
 import { research, fetchContents } from '../services/youcom.js';
 import { complete, completeJSON } from '../services/ai.js';
+import { findStoreUrls, fetchAppStoreIapText, isStoreUrl } from '../services/storePricing.js';
 
 const EXTRACT_SYSTEM = `You are a market research analyst. You extract structured competitor data from web research.
 Return ONLY valid JSON. Never invent URLs — only use URLs present in the provided research text.`;
@@ -132,7 +133,74 @@ ${researchText}`,
   });
 
   const candidates = normalizeCandidates(extraction?.competitors || extraction || []);
-  return { market, candidates };
+  // For every discovered rival, find App/Play Store listings and prefer the
+  // App Store URL when In-App Purchase prices are listed there.
+  const withStores = await attachStoreListings(candidates);
+  return { market, candidates: withStores };
+}
+
+/**
+ * Look up App Store / Play Store for each candidate. When IAP prices exist on
+ * the App Store listing, use that URL as pricing_url so refresh/analysis pick them up.
+ */
+async function attachStoreListings(candidates) {
+  if (!Array.isArray(candidates) || !candidates.length) return candidates || [];
+
+  const out = new Array(candidates.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(3, candidates.length) }, async () => {
+    while (cursor < candidates.length) {
+      const i = cursor++;
+      const c = candidates[i];
+      try {
+        out[i] = await attachStoreListing(c);
+      } catch {
+        out[i] = c;
+      }
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+async function attachStoreListing(c) {
+  const found = await findStoreUrls({ name: c.name, website: c.website });
+  if (!found?.appStore && !found?.playStore) return c;
+
+  let pricing_url = c.pricing_url;
+  const noteBits = [c.notes].filter(Boolean);
+
+  if (found.appStore) {
+    let hasIap = false;
+    try {
+      const iap = await fetchAppStoreIapText(found.appStore);
+      hasIap = Boolean(iap?.pairs?.length);
+    } catch {
+      hasIap = false;
+    }
+
+    if (hasIap) {
+      // Mobile-priced product — App Store IAP is the source of truth for tiers.
+      pricing_url = found.appStore;
+      noteBits.push('App Store In-App Purchases');
+    } else if (!pricing_url || /\/pricing\/?$/i.test(pricing_url)) {
+      // Keep website pricing when present; otherwise use the store listing.
+      if (!pricing_url) pricing_url = found.appStore;
+      noteBits.push(`App Store: ${found.appStore}`);
+    } else if (!isStoreUrl(pricing_url)) {
+      noteBits.push(`App Store: ${found.appStore}`);
+    }
+  }
+
+  if (found.playStore && !isStoreUrl(pricing_url)) {
+    noteBits.push(`Play Store: ${found.playStore}`);
+  }
+
+  return {
+    ...c,
+    pricing_url: pricing_url || c.pricing_url,
+    notes: noteBits.length ? noteBits.join(' · ') : c.notes,
+  };
 }
 
 function normalizeCandidates(list) {

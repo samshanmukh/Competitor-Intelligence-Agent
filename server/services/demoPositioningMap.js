@@ -7,7 +7,7 @@
 import { discoverCompetitors } from '../agents/discoveryAgent.js';
 import { fetchContents } from './youcom.js';
 import { completeJSON } from './ai.js';
-import { fetchStorePricingContent } from './storePricing.js';
+import { enrichWithStorePricing } from './storePricing.js';
 
 const MAX_RIVALS = 6;
 
@@ -76,17 +76,16 @@ async function enrichCompany({ name, website, pricing_url }) {
     content = '';
   }
 
-  if (!contentUseful(content)) {
-    try {
-      const store = await fetchStorePricingContent({
-        name: name || hostnameOf(url),
-        website: website || originOf(url),
-        pricing_url: url,
-      });
-      if (store?.content) content = `${content}\n\n${store.content}`.trim();
-    } catch {
-      /* optional */
-    }
+  // Always discover App/Play Store and merge IAP prices when a listing exists.
+  try {
+    const enriched = await enrichWithStorePricing({
+      name: name || hostnameOf(url),
+      website: website || originOf(url),
+      pricing_url: url,
+    }, content);
+    if (enriched?.content) content = enriched.content;
+  } catch {
+    /* optional */
   }
 
   if (!contentUseful(content)) {

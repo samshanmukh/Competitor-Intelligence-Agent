@@ -485,3 +485,53 @@ export async function fetchStorePricingContent(competitor = {}) {
       : sources[0]?.type || (appStore ? 'app-store' : 'store-research'),
   };
 }
+
+/** True when content already includes our parsed App Store IAP block. */
+export function contentHasAppStoreIap(text) {
+  const t = String(text || '');
+  if (!/\$\s?\d/.test(t)) return false;
+  return /App Store In-App Purchases|In-App Purchases:\s*\n\s*-/i.test(t);
+}
+
+/**
+ * Always look up App Store / Play Store for a product and merge IAP prices
+ * into existing website/research content when an app listing exists.
+ */
+export async function enrichWithStorePricing(competitor = {}, existingContent = '') {
+  const existing = String(existingContent || '').trim();
+  if (contentHasAppStoreIap(existing)) {
+    return {
+      content: existing || null,
+      sources: [],
+      appStore: null,
+      playStore: null,
+      kind: null,
+      added: false,
+    };
+  }
+
+  const store = await fetchStorePricingContent(competitor);
+  if (!store?.content || !/\$\s?\d/.test(store.content)) {
+    return {
+      content: existing || null,
+      sources: [],
+      appStore: store?.appStore || null,
+      playStore: store?.playStore || null,
+      kind: store?.kind || null,
+      added: false,
+    };
+  }
+
+  const content = existing
+    ? `${existing}\n\n${store.content}`.slice(0, 14000)
+    : store.content;
+
+  return {
+    content,
+    sources: store.sources || [],
+    appStore: store.appStore || null,
+    playStore: store.playStore || null,
+    kind: store.kind || null,
+    added: true,
+  };
+}
