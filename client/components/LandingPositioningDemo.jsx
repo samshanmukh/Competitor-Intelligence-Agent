@@ -70,12 +70,12 @@ export default function LandingPositioningDemo() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={loading}
-            className="w-full flex-1 rounded-full border border-white/15 bg-white/5 px-5 py-3.5 text-sm text-white placeholder:text-slate-500 outline-none ring-accent/40 transition focus:border-accent/50 focus:ring-2 disabled:opacity-60"
+            className="w-full flex-1 rounded-md border border-white/15 bg-white/5 px-5 py-3.5 text-sm text-white placeholder:text-slate-500 outline-none ring-accent/40 transition focus:border-accent/50 focus:ring-2 disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim disabled:cursor-wait disabled:opacity-70"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-accent px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-accent-dim disabled:cursor-wait disabled:opacity-70"
           >
             {loading ? (
               <>
@@ -132,7 +132,7 @@ export default function LandingPositioningDemo() {
           <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
             <Link
               href="/signup"
-              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200"
             >
               Save this &amp; get the full report
               <Icon name="chevronRight" className="h-4 w-4" />
@@ -143,7 +143,7 @@ export default function LandingPositioningDemo() {
                 setResult(null);
                 setError('');
               }}
-              className="rounded-full border border-white/10 px-5 py-2.5 text-sm text-slate-300 transition hover:bg-white/5"
+              className="rounded-md border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition hover:bg-white/5"
             >
               Try another URL
             </button>

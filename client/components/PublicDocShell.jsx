@@ -22,7 +22,7 @@ export default function PublicDocShell({ title, children, updated }) {
           <nav className="flex items-center gap-4 text-sm text-slate-400">
             <Link href="/faq" className="hover:text-white">FAQ</Link>
             <Link href="/about" className="hover:text-white">About</Link>
-            <Link href="/signup" className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-ink-950 hover:bg-slate-200">
+            <Link href="/signup" className="rounded-md bg-white px-3 py-1 text-sm font-semibold text-ink-950 hover:bg-slate-200">
               Sign up
             </Link>
           </nav>

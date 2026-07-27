@@ -1,23 +1,79 @@
 // Orchestrates a refresh for one competitor: fetch -> diff -> analyze -> store -> alert.
+// When the website pricing page fails or is thin, falls back to App Store / Play Store IAP.
 
 import { fetchCompetitor } from './fetchAgent.js';
 import { buildDiff, analyzeDiff } from './analysisAgent.js';
-import { insertChange, setCompetitorChecked, getCompetitor } from '../db/index.js';
+import {
+  insertChange,
+  setCompetitorChecked,
+  getCompetitor,
+  getLatestSnapshot,
+  insertSnapshot,
+  hashContent,
+  updateCompetitorPricingUrl,
+} from '../db/index.js';
 import { sendWebhook } from '../services/alerts.js';
 import { sendPushToWorkspace } from '../services/push.js';
 import { pushNotification } from '../services/workspaceStore.js';
 import { getWorkspaceJson } from '../services/workspaceStore.js';
+import { fetchStorePricingContent, isStoreUrl, contentLooksLikeStorePricing } from '../services/storePricing.js';
+
+/**
+ * Try App Store / Play Store when website pricing scrape fails.
+ * Returns a fetchCompetitor-shaped result, or null if store also failed.
+ */
+async function tryStoreFallback(competitor) {
+  try {
+    const store = await fetchStorePricingContent(competitor);
+    if (!store?.content || !contentLooksLikeStorePricing(store.content)) return null;
+
+    const storeUrl = store.appStore || store.playStore;
+    if (storeUrl && competitor.id && !isStoreUrl(competitor.pricing_url)) {
+      try {
+        await updateCompetitorPricingUrl(competitor.id, storeUrl);
+        competitor.pricing_url = storeUrl;
+      } catch {
+        /* non-fatal */
+      }
+    }
+
+    const latest = await getLatestSnapshot(competitor.id);
+    if (latest && latest.content_hash === hashContent(store.content)) {
+      return { ok: true, unchanged: true, snapshot: latest };
+    }
+
+    const snapshot = await insertSnapshot(competitor.id, store.content, store.kind || 'app-store');
+    return { ok: true, unchanged: false, snapshot, previous: latest || null };
+  } catch (err) {
+    console.warn(`[monitor] store fallback failed for ${competitor.name}:`, err.message);
+    return null;
+  }
+}
 
 /**
  * Refresh a single competitor. Returns a result describing what happened.
  * status: 'changed' | 'unchanged' | 'first_snapshot' | 'error'
  */
-export async function refreshCompetitor(competitor) {
-  const result = await fetchCompetitor(competitor);
+function scrapeHasPrices(result) {
+  const text = result?.snapshot?.content || '';
+  return /\$\s?\d/.test(text) || contentLooksLikeStorePricing(text);
+}
 
-  if (!result.ok) {
-    await setCompetitorChecked(competitor.id, { error: result.error });
-    return { id: competitor.id, name: competitor.name, status: 'error', error: result.error };
+export async function refreshCompetitor(competitor) {
+  let result = await fetchCompetitor(competitor);
+
+  // Website pricing unavailable, blocked, or no $ prices → App Store / Play Store IAP.
+  const needsStore = !result.ok
+    || (!isStoreUrl(competitor.pricing_url) && !scrapeHasPrices(result));
+  if (needsStore) {
+    const storeResult = await tryStoreFallback(competitor);
+    if (storeResult?.ok) {
+      result = storeResult;
+    } else if (!result.ok) {
+      await setCompetitorChecked(competitor.id, { error: result.error });
+      return { id: competitor.id, name: competitor.name, status: 'error', error: result.error };
+    }
+    // If website scrape was ok but store failed, keep website result.
   }
 
   if (result.unchanged) {

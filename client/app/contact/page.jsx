@@ -127,7 +127,7 @@ export default function ContactPage() {
       <SimpleMarkdown source={`${contactBody()}\n\n${EXTRA}`} />
       <p className="mt-8 text-lg">
         <a
-          className="inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 hover:bg-slate-200"
+          className="inline-flex rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 hover:bg-slate-200"
           href={`mailto:${ORG.email}?subject=Mira%20inquiry`}
         >
           Email {ORG.email}

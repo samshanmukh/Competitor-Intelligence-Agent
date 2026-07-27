@@ -264,11 +264,11 @@ export default function ArchitecturePage() {
           </nav>
           <div className="flex items-center gap-2">
             {authed ? (
-              <Link href="/app" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
+              <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
             ) : (
               <>
-                <Link href="/login" className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
-                <Link href="/signup" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
+                <Link href="/login" className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
+                <Link href="/signup" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
               </>
             )}
           </div>
@@ -669,15 +669,15 @@ export default function ArchitecturePage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             {authed ? (
-              <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
-                <Icon name="sparkle" className="h-4 w-4" /> Open app
+              <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
+                Open app
               </Link>
             ) : (
-              <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
+              <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
                 Create account <Icon name="chevronRight" className="h-4 w-4" />
               </Link>
             )}
-            <Link href="/requests" className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/30 hover:text-white">
+            <Link href="/requests" className="rounded-md border border-white/15 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/30 hover:text-white">
               Feature requests
             </Link>
           </div>

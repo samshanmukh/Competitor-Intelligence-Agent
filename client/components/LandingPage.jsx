@@ -107,11 +107,11 @@ export default function LandingPage() {
           </nav>
           <div className="flex items-center gap-2">
             {authed ? (
-              <Link href="/app" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
+              <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
             ) : (
               <>
-                <Link href="/login" className="rounded-full px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
-                <Link href="/signup" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
+                <Link href="/login" className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
+                <Link href="/signup" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
               </>
             )}
           </div>
@@ -178,11 +178,9 @@ export default function LandingPage() {
             initial={reduceMotion ? false : { opacity: 0, y: 10 }}
             animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
             transition={reduceMotion ? undefined : { duration: 0.5, ease: EASE }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 backdrop-blur transition hover:border-white/20"
+            className="inline-block text-xs font-medium uppercase tracking-[0.16em] text-slate-400 transition hover:text-slate-200"
           >
-            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
             Built around your business
-            <Icon name="chevronRight" className="h-3 w-3 text-slate-500" />
           </motion.a>
 
           <motion.h1
@@ -214,10 +212,10 @@ export default function LandingPage() {
           >
             {authed ? (
               <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
-                  <Icon name="sparkle" className="h-4 w-4" /> Go to app
+                <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
+                  Go to app
                 </Link>
-                <a href="#how" className="rounded-full border border-white/10 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">See how it works</a>
+                <a href="#how" className="rounded-md border border-white/15 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">See how it works</a>
               </div>
             ) : (
               <>
@@ -258,7 +256,7 @@ export default function LandingPage() {
                 <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-slate-500">Market size</p>
-                    <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">+18% CAGR</span>
+                    <span className="text-xs font-medium tabular-nums text-slate-400">+18% CAGR</span>
                   </div>
                   <p className="mt-1 text-2xl font-bold text-white">$4.2B</p>
                   <div className="mt-2 h-[60px]"><GrowthMock /></div>
@@ -366,7 +364,7 @@ export default function LandingPage() {
             <div className="pointer-events-none absolute left-0 right-0 top-5 hidden h-px bg-gradient-to-r from-transparent via-white/10 to-transparent md:block" />
             {STEPS.map((s, i) => (
               <Reveal key={s.title} delay={i * 0.1} className="relative text-center md:text-left">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-accent to-violet-500 text-sm font-bold text-white shadow-[0_6px_18px_-4px_rgba(99,102,241,0.7)] md:mx-0">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-md border border-white/15 bg-white/5 text-sm font-semibold text-white md:mx-0">
                   {i + 1}
                 </div>
                 <h3 className="mt-5 text-lg font-semibold text-white">{s.title}</h3>
@@ -391,7 +389,7 @@ export default function LandingPage() {
             <ul className="mt-7 space-y-3.5">
               {OUTCOMES.map((o) => (
                 <li key={o} className="flex items-start gap-3 text-sm text-slate-200">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-slate-300">
                     <Icon name="check" className="h-3 w-3" />
                   </span>
                   {o}
@@ -417,16 +415,16 @@ export default function LandingPage() {
       <section className="px-5 pb-24">
         <Reveal className="relative mx-auto max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-b from-accent/15 to-ink-900 px-6 py-20 text-center">
           <div className="pointer-events-none absolute left-1/2 top-0 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-accent/25 blur-[120px]" />
-          <span className="chip border-emerald-500/30 bg-emerald-500/10 text-emerald-300">Open to everyone</span>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Open to everyone</p>
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">See your market clearly</h2>
           <p className="mx-auto mt-4 max-w-md text-slate-400">Create your account and start turning market signals into focused next moves.</p>
           <div className="mt-9">
             {authed ? (
-              <Link href="/app" className="inline-flex items-center gap-1.5 rounded-full bg-accent px-7 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
-                <Icon name="sparkle" className="h-4 w-4" /> Go to app
+              <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-7 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
+                Go to app
               </Link>
             ) : (
-              <Link href="/signup" className="group inline-flex items-center gap-1.5 rounded-full bg-accent px-7 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-6px_rgba(99,102,241,0.6)] transition hover:bg-accent-dim">
+              <Link href="/signup" className="group inline-flex items-center gap-1.5 rounded-md bg-accent px-7 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
                 Create your account <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
               </Link>
             )}

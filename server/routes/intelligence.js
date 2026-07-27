@@ -9,6 +9,7 @@ import insforge, {
   getSetting,
   setSetting,
   listRecentChanges,
+  updateCompetitorPricingUrl,
 } from '../db/index.js';
 import { getProduct } from '../db/products.js';
 import { getMarketModel, saveMarketModel, insertModelHistory, getModelHistory } from '../db/marketModel.js';
@@ -39,6 +40,7 @@ import { makeAttribution } from '../services/attribution.js';
 import { fetchCompetitor } from '../agents/fetchAgent.js';
 import {
   fetchStorePricingContent,
+  contentLooksLikeStorePricing,
   isStoreUrl,
   storeSourceLabel,
   storeSourceType,
@@ -215,11 +217,21 @@ async function ensureCompetitorContent(competitor) {
   // No useful website pricing → App Store / Play Store IAP subscriptions.
   try {
     const store = await fetchStorePricingContent(competitor);
-    if (store?.content && contentUsefulForPricing(store.content)) {
+    if (store?.content && contentLooksLikeStorePricing(store.content)) {
       try {
         await insertSnapshot(competitor.id, store.content, store.kind || 'app-store');
       } catch {
         /* non-fatal */
+      }
+      // Point future refreshes at the store listing when website pricing failed.
+      const storeUrl = store.appStore || store.playStore;
+      if (storeUrl && competitor.id && !isStoreUrl(competitor.pricing_url)) {
+        try {
+          await updateCompetitorPricingUrl(competitor.id, storeUrl);
+          competitor.pricing_url = storeUrl;
+        } catch {
+          /* non-fatal */
+        }
       }
       return {
         content: store.content,
@@ -275,7 +287,7 @@ router.post('/product-analysis', requireAuth, resolveWorkspace, wrap(async (req,
         website: product.website || product.pricing_url,
         pricing_url: product.pricing_url,
       });
-      if (store?.content) {
+      if (store?.content && contentLooksLikeStorePricing(store.content)) {
         pricingContent = `${pricingContent || ''}\n\n${store.content}`.trim();
         pricingSources = mergeSources(pricingSources, store.sources);
       }
@@ -515,11 +527,18 @@ ${String(content).slice(0, 5000)}`,
         // Website failed → try App Store / Play Store IAP subscriptions.
         try {
           const store = await fetchStorePricingContent(competitor || { name });
-          if (store?.content) {
+          if (store?.content && contentLooksLikeStorePricing(store.content)) {
             text = store.content;
             sources = mergeSources(sources, store.sources);
             tiers = await extractTiers(name, store.content);
             if (tiers.length) next.tiers = tiers;
+            const storeUrl = store.appStore || store.playStore;
+            if (storeUrl && competitor?.id && !isStoreUrl(competitor.pricing_url)) {
+              try {
+                await updateCompetitorPricingUrl(competitor.id, storeUrl);
+                competitor.pricing_url = storeUrl;
+              } catch { /* non-fatal */ }
+            }
           }
         } catch {
           /* continue */

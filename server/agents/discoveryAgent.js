@@ -119,7 +119,7 @@ export async function discoverCompetitors({ description, productUrl, maxResults 
 For each competitor return:
 - name: company/product name
 - website: homepage URL
-- pricing_url: the pricing page URL (prefer a URL containing "pricing" or "plans"). If no web pricing page exists, use an apps.apple.com or play.google.com/store/apps listing URL when present in the research. Otherwise construct the most likely https://site.com/pricing from the homepage.
+- pricing_url: the pricing page URL (prefer a URL containing "pricing" or "plans"). If the product is mobile-first or has no public web pricing, prefer the apps.apple.com or play.google.com/store/apps listing URL (in-app purchase / subscription prices are listed there). Otherwise construct the most likely https://site.com/pricing from the homepage.
 - notes: one short phrase on why it's a competitor
 
 Only include companies that actually appear in the research text. Do not invent companies.

@@ -89,6 +89,18 @@ export async function updateCompetitorStatus(id, status, workspaceId = null) {
   return data;
 }
 
+/** Persist a discovered App Store / Play Store URL as the pricing source. */
+export async function updateCompetitorPricingUrl(id, pricing_url, workspaceId = null) {
+  if (!id || !pricing_url) return null;
+  let query = insforge.database
+    .from('competitors')
+    .update({ pricing_url })
+    .eq('id', id);
+  if (workspaceId != null) query = query.eq('workspace_id', workspaceId);
+  const { data } = await query.select().maybeSingle();
+  return data;
+}
+
 export async function setCompetitorChecked(id, { error = null, changed = false } = {}) {
   const updateData = {
     last_checked_at: new Date().toISOString(),

@@ -71,21 +71,101 @@ function pickFromSources(sources = []) {
   return { appStore, playStore };
 }
 
+function namesLooselyMatch(a, b) {
+  const norm = (s) => String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  const left = norm(a);
+  const right = norm(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (left.includes(right) || right.includes(left)) return true;
+  const aTokens = left.split(/\s+/).filter((t) => t.length > 2);
+  const bTokens = new Set(right.split(/\s+/).filter((t) => t.length > 2));
+  if (!aTokens.length) return false;
+  const overlap = aTokens.filter((t) => bTokens.has(t)).length;
+  return overlap / aTokens.length >= 0.5;
+}
+
 /**
- * Find App Store / Play Store listing URLs for a product via search + research.
+ * Apple's free Search API — reliable App Store listing URLs (and list price).
+ */
+async function findAppStoreViaItunes(name, website) {
+  if (!name && !website) return null;
+  const term = name || website;
+  try {
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=software&limit=8`;
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
+    clearTimeout(to);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const results = Array.isArray(data?.results) ? data.results : [];
+    if (!results.length) return null;
+
+    let best = results.find((r) => namesLooselyMatch(r.trackName, name));
+    if (!best && website) {
+      try {
+        const host = new URL(website.startsWith('http') ? website : `https://${website}`).hostname.replace(/^www\./, '');
+        best = results.find((r) => String(r.sellerUrl || r.artistViewUrl || '').includes(host));
+      } catch { /* ignore */ }
+    }
+    best = best || results[0];
+    const view = cleanUrl(best?.trackViewUrl);
+    if (!view) return null;
+
+    // Include list price / IAP hints from the lookup payload when present.
+    const priceBits = [];
+    if (best.formattedPrice) priceBits.push(`List price: ${best.formattedPrice}`);
+    if (best.price != null) priceBits.push(`price_usd: ${best.price}`);
+    if (Array.isArray(best.genres)) priceBits.push(`genres: ${best.genres.join(', ')}`);
+
+    return {
+      appStore: view,
+      metaText: [
+        `App Store: ${best.trackName || name}`,
+        best.sellerName ? `Seller: ${best.sellerName}` : null,
+        ...priceBits,
+        best.description ? `Description: ${String(best.description).slice(0, 1200)}` : null,
+      ].filter(Boolean).join('\n'),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find App Store / Play Store listing URLs for a product via iTunes + search + research.
  */
 export async function findStoreUrls({ name, website } = {}) {
-  if (!name && !website) return { appStore: null, playStore: null, sources: [] };
+  if (!name && !website) return { appStore: null, playStore: null, sources: [], itunesMeta: null };
+
+  let appStore = null;
+  let playStore = null;
+  let itunesMeta = null;
+  const foundSources = [];
+
+  const itunes = await findAppStoreViaItunes(name, website);
+  if (itunes?.appStore) {
+    appStore = itunes.appStore;
+    itunesMeta = itunes.metaText || null;
+    foundSources.push({
+      type: 'app-store',
+      url: appStore,
+      title: `${name || 'App'} · App Store`,
+      label: 'App Store',
+    });
+  }
+
   const brand = name || website;
   const queries = [
     `"${brand}" site:apps.apple.com`,
     `"${brand}" site:play.google.com/store/apps`,
-    `${brand} app store subscription in-app purchase pricing`,
+    `${brand} app store in-app purchases subscription price`,
+    `${brand} google play in-app purchases subscription`,
   ];
-
-  let appStore = null;
-  let playStore = null;
-  const foundSources = [];
 
   for (const q of queries) {
     if (appStore && playStore) break;
@@ -108,7 +188,7 @@ export async function findStoreUrls({ name, website } = {}) {
   if (!appStore || !playStore) {
     try {
       const payload = await research(
-        `${brand}${website ? ` (${website})` : ''} official iOS App Store and Google Play Store listing URLs. Prefer apps.apple.com and play.google.com/store/apps links. Also note subscription / in-app purchase prices if listed.`,
+        `${brand}${website ? ` (${website})` : ''} official iOS App Store and Google Play Store listing URLs. Prefer apps.apple.com and play.google.com/store/apps links. Also note subscription / in-app purchase prices if listed on those pages.`,
         { effort: 'lite' }
       );
       const blob = [
@@ -127,18 +207,20 @@ export async function findStoreUrls({ name, website } = {}) {
     }
   }
 
-  return { appStore, playStore, sources: foundSources };
+  return { appStore, playStore, sources: foundSources, itunesMeta };
 }
 
-function contentLooksLikeStorePricing(text) {
+/** Lenient gate for App Store / Play Store / IAP research text. */
+export function contentLooksLikeStorePricing(text) {
   if (!text || typeof text !== 'string') return false;
   const t = text.trim();
-  if (t.length < 200) return false;
+  if (t.length < 120) return false;
   if (/\$\s?\d/.test(t)) return true;
-  if (/\b(in-?app purchases?|subscription|weekly|monthly|yearly|\/mo|\/yr)\b/i.test(t) && t.length >= 350) {
+  if (/\b(in-?app purchases?|subscription|weekly|monthly|yearly|\/mo|\/yr|per week|per month|per year)\b/i.test(t)
+    && t.length >= 250) {
     return true;
   }
-  return t.length >= 900;
+  return t.length >= 700;
 }
 
 /**
@@ -154,61 +236,67 @@ export async function fetchStorePricingContent(competitor = {}) {
 
   let appStore = known.find(isAppStoreUrl) || null;
   let playStore = known.find(isPlayStoreUrl) || null;
+  let itunesMeta = null;
 
   if (!appStore || !playStore) {
     const found = await findStoreUrls({ name, website });
     appStore = appStore || found.appStore;
     playStore = playStore || found.playStore;
+    itunesMeta = found.itunesMeta || null;
   }
 
   const urls = [appStore, playStore].filter(Boolean);
-  if (!urls.length) return null;
-
-  let map = {};
-  try {
-    map = await fetchContents(urls);
-  } catch {
-    return null;
-  }
-
   const parts = [];
   const sources = [];
 
-  for (const url of urls) {
-    const md = map[url]?.markdown;
-    if (!contentLooksLikeStorePricing(md)) continue;
-    const type = storeSourceType(url);
-    const label = storeSourceLabel(type, url);
-    parts.push(`== ${label} (${url}) ==\n${md.slice(0, 5000)}`);
-    sources.push({
-      type,
-      url,
-      title: `${name || 'App'} · ${label}`,
-      label,
-    });
+  if (itunesMeta) {
+    parts.push(`== App Store metadata (iTunes Search) ==\n${itunesMeta}`);
   }
 
-  if (!parts.length) {
-    // Research fallback specifically about store IAP pricing (no listing scrape).
+  if (urls.length) {
+    let map = {};
+    try {
+      map = await fetchContents(urls);
+    } catch {
+      map = {};
+    }
+
+    for (const url of urls) {
+      const md = map[url]?.markdown;
+      if (!contentLooksLikeStorePricing(md)) continue;
+      const type = storeSourceType(url);
+      const label = storeSourceLabel(type, url);
+      parts.push(`== ${label} (${url}) ==\n${md.slice(0, 5000)}`);
+      sources.push({
+        type,
+        url,
+        title: `${name || 'App'} · ${label}`,
+        label,
+      });
+    }
+  }
+
+  // Prefer scraped store pages; if thin, research IAP prices explicitly.
+  if (!parts.some((p) => /\$\s?\d/.test(p)) || !sources.length) {
     try {
       const payload = await research(
-        `${name || website} App Store and Google Play subscription prices in-app purchases tiers weekly monthly yearly USD`,
-        { effort: 'lite' }
+        `${name || website} App Store and Google Play in-app purchase and subscription prices. List every tier with weekly/monthly/yearly USD when shown on the store listing. Include plan names.`,
+        { effort: 'medium' }
       );
       const text = [
         payload?.output?.content,
-        ...(payload?.output?.sources || []).slice(0, 8).map((s) => (
+        ...(payload?.output?.sources || []).slice(0, 10).map((s) => (
           [s.title, s.url, (s.snippets || []).join(' ')].filter(Boolean).join(' — ')
         )),
       ].filter(Boolean).join('\n').trim();
       if (contentLooksLikeStorePricing(text)) {
+        parts.push(`== Store pricing research ==\n${text.slice(0, 6000)}`);
         const fromSrc = pickFromSources(payload?.output?.sources || []);
         const fromText = extractStoreUrlsFromText(text);
-        const storeUrls = [
-          fromSrc.appStore || fromText.appStore,
-          fromSrc.playStore || fromText.playStore,
-        ].filter(Boolean);
-        for (const url of storeUrls) {
+        appStore = appStore || fromSrc.appStore || fromText.appStore;
+        playStore = playStore || fromSrc.playStore || fromText.playStore;
+        for (const url of [appStore, playStore].filter(Boolean)) {
+          if (sources.some((s) => s.url === url)) continue;
           sources.push({
             type: storeSourceType(url),
             url,
@@ -224,27 +312,22 @@ export async function fetchStorePricingContent(competitor = {}) {
             label: 'Store research',
           });
         }
-        return {
-          content: text.slice(0, 8000),
-          sources,
-          appStore: storeUrls.find(isAppStoreUrl) || null,
-          playStore: storeUrls.find(isPlayStoreUrl) || null,
-          kind: 'store-research',
-        };
       }
     } catch {
-      return null;
+      /* optional */
     }
-    return null;
   }
 
+  const content = parts.join('\n\n').trim();
+  if (!contentLooksLikeStorePricing(content)) return null;
+
   return {
-    content: parts.join('\n\n').slice(0, 10000),
+    content: content.slice(0, 12000),
     sources,
     appStore,
     playStore,
     kind: sources.some((s) => s.type === 'app-store') && sources.some((s) => s.type === 'play-store')
       ? 'app-store+play-store'
-      : sources[0]?.type || 'app-store',
+      : sources[0]?.type || (appStore ? 'app-store' : 'store-research'),
   };
 }
