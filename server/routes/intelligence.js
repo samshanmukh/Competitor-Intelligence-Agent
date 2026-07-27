@@ -62,7 +62,9 @@ function mergeSources(...lists) {
   const out = [];
   const seen = new Set();
   for (const list of lists) {
-    for (const s of list || []) {
+    // Call sites pass either an array, a single source object, or null.
+    const items = Array.isArray(list) ? list : (list ? [list] : []);
+    for (const s of items) {
       if (!s) continue;
       const key = `${s.type || ''}|${s.url || s.label || s.title || ''}`;
       if (seen.has(key)) continue;

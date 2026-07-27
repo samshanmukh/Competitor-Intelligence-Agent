@@ -41,6 +41,8 @@ services:
         value: Mira <noreply@joinmira.ai>
       - key: APP_URL
         value: https://www.joinmira.ai
+      - key: ADMIN_EMAILS
+        value: shanmukhsain@gmail.com
 
   # ── Next.js frontend ──
   - type: web
