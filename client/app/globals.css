@@ -247,26 +247,6 @@
   animation: tab-ready-pulse 1.2s ease-out 1;
 }
 
-/*
- * GEO / GeoTest cornerstone copy: keep in the HTML (first in DOM) so crawlers
- * that truncate still see FAQ/facts, but hide from sighted users.
- * Do NOT use opacity:0 — GeoTest treats that as empty text.
- * Avoid white-space:nowrap — the guide is thousands of words.
- */
-.geo-crawler-only {
-  position: absolute !important;
-  left: -10000px !important;
-  top: 0 !important;
-  width: 1px !important;
-  height: 1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  border: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  pointer-events: none !important;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

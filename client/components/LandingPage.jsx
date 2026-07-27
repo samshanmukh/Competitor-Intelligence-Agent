@@ -85,7 +85,7 @@ function PositioningMock() {
   );
 }
 
-export default function LandingPage() {
+export default function LandingPage({ children } = {}) {
   const [authed, setAuthed] = useState(false);
   const reduceMotion = useReducedMotion();
   // Never SSR opacity:0 on hero copy — crawlers treat it as empty text.
@@ -437,6 +437,8 @@ export default function LandingPage() {
           </div>
         </Reveal>
       </section>
+
+      {children}
 
       {/* Footer */}
       <footer className="border-t border-white/5">
