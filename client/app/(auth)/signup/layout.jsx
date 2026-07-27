@@ -1,9 +1,11 @@
-import { NOINDEX } from '../../../lib/seo';
+import { NOINDEX, pageMetadata } from '../../../lib/seo';
 
 export const metadata = {
-  title: 'Create account',
-  description: 'Create a Mira AI account and workspace.',
-  alternates: { canonical: '/signup' },
+  ...pageMetadata({
+    title: 'Create account',
+    description: 'Create a Mira AI account and workspace.',
+    path: '/signup',
+  }),
   ...NOINDEX,
 };
 

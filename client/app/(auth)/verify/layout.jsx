@@ -1,9 +1,11 @@
-import { NOINDEX } from '../../../lib/seo';
+import { NOINDEX, pageMetadata } from '../../../lib/seo';
 
 export const metadata = {
-  title: 'Verify email',
-  description: 'Verify your email address to continue to Mira AI.',
-  alternates: { canonical: '/verify' },
+  ...pageMetadata({
+    title: 'Verify email',
+    description: 'Verify your email address to continue to Mira AI.',
+    path: '/verify',
+  }),
   ...NOINDEX,
 };
 
