@@ -41,10 +41,13 @@ import { fetchCompetitor } from '../agents/fetchAgent.js';
 import {
   enrichWithStorePricing,
   contentHasAppStoreIap,
+  extractStructuredIapTiers,
+  mergePricingTiers,
   isStoreUrl,
   storeSourceLabel,
   storeSourceType,
 } from '../services/storePricing.js';
+import { buildPricingResearchQuery, TIER_EXTRACTION_RULES } from '../services/pricingResearchPrompt.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -148,26 +151,27 @@ async function researchPricingContent(competitorOrName) {
   const name = typeof competitorOrName === 'string' ? competitorOrName : competitorOrName?.name;
   if (!name) return null;
   const website = typeof competitorOrName === 'object' ? competitorOrName.website : null;
-  const q = [
-    `${name} official pricing plans tiers monthly cost USD`,
-    website ? `(${website})` : '',
-    'subscription price per month',
-    'OR App Store OR Google Play in-app purchase subscription price',
-  ].filter(Boolean).join(' ');
+  const q = buildPricingResearchQuery({
+    name,
+    website,
+    region: process.env.PRICING_REGION || 'US',
+    currency: process.env.PRICING_CURRENCY || 'USD',
+    focus: 'all',
+  });
   try {
-    const payload = await research(q, { effort: 'lite' });
+    const payload = await research(q, { effort: 'medium' });
     const text = flattenResearchPayload(payload).trim();
     if (!text) return null;
     const sources = (payload?.output?.sources || [])
       .filter((s) => s?.url)
-      .slice(0, 6)
+      .slice(0, 8)
       .map((s) => sourceFromUrl(s.url, s.title) || {
         type: 'research',
         url: s.url,
         title: s.title || 'Research',
         label: storeSourceLabel('research', s.url),
       });
-    return { content: text.slice(0, 8000), sources };
+    return { content: text.slice(0, 10000), sources };
   } catch {
     return null;
   }
@@ -307,10 +311,10 @@ router.post('/product-analysis', requireAuth, resolveWorkspace, wrap(async (req,
   const result = await completeJSON({
     system: "You analyze a software product's pricing and positioning. Return ONLY valid JSON.",
     user: `Analyze the product "${product.name}". Extract its pricing tiers and rate its value-for-money.
-Include App Store / Google Play subscription and in-app purchase tiers when present (convert weekly/yearly to monthly USD).
+${TIER_EXTRACTION_RULES}
 Return:
 {
-  "tiers": [ { "name": "string", "price_monthly": number|null } ],
+  "tiers": [ { "name": "string", "price_monthly": number|null, "billing_period": "weekly"|"monthly"|"yearly"|"one_time"|null, "channel": "website"|"app-store"|"play-store"|"other"|null } ],
   "value_score": number,        // 1-10 value for money
   "value_analysis": "2-3 sentences on its value vs price",
   "summary": "one line on how it's positioned"
@@ -318,7 +322,7 @@ Return:
 Use numbers only where present in the content.
 
 CONTENT:
-${pricingContent.slice(0, 5000)}`,
+${pricingContent.slice(0, 6000)}`,
     maxTokens: 700,
   });
 
@@ -444,30 +448,28 @@ ${prompt}`,
 
   async function extractTiers(name, content) {
     if (!content) return [];
+    // Prefer every distinct App Store IAP row (same name + different $ = separate tiers).
+    const storeTiers = extractStructuredIapTiers(content);
     try {
       const result = await completeJSON({
         system: 'You extract pricing tiers from website, App Store, Play Store, or research text. Return ONLY valid JSON.',
         user: `Extract pricing tiers for "${name}". Return:
-{ "tiers": [{ "name": "string", "price_monthly": number|null }] }
-Use monthly USD when possible.
-- If only annual/yearly is listed, divide by 12.
-- If only weekly is listed, multiply by 4.33.
-- Include App Store / Google Play subscription and in-app purchase tiers when present (use plan names like "Premium (App Store)" when helpful).
-Only include tiers you can support from the content. Prefer real plan names (Pro, Team, Premium, etc).
-Do NOT invent a "Default" tier with a null price.
+{ "tiers": [{ "name": "string", "price_monthly": number|null, "amount": number|null, "billing_period": "weekly"|"monthly"|"yearly"|"one_time"|null, "currency": "USD", "channel": "website"|"app-store"|"play-store"|"other"|null }] }
+${TIER_EXTRACTION_RULES}
+CRITICAL: Include EVERY distinct price row. If the same plan name appears with different amounts (common on App Store In-App Purchases), keep each amount as its own tier — do not collapse to one entry price.
 
 CONTENT:
-${String(content).slice(0, 5000)}`,
-        maxTokens: 500,
+${String(content).slice(0, 8000)}`,
+        maxTokens: 1200,
       });
-      const tiers = Array.isArray(result?.tiers) ? result.tiers : [];
-      // Drop worthless placeholders that render as "Default —" in the UI.
-      return tiers.filter((t) => {
+      const llmTiers = (Array.isArray(result?.tiers) ? result.tiers : []).filter((t) => {
         const nameEmpty = !t?.name || /^default$/i.test(String(t.name).trim());
-        return !(nameEmpty && t?.price_monthly == null);
+        return !(nameEmpty && t?.price_monthly == null && t?.amount == null);
       });
+      // Structured IAP rows win; LLM fills website / other channels.
+      return mergePricingTiers(storeTiers, llmTiers);
     } catch {
-      return [];
+      return storeTiers;
     }
   }
 
@@ -529,13 +531,13 @@ ${String(content).slice(0, 5000)}`,
     }
 
     // Always find App/Play Store listings and merge IAP prices when an app exists.
-    let storeAdded = false;
+    let storeTiers = extractStructuredIapTiers(text || '');
     try {
       const enriched = await enrichWithStorePricing(competitor || { name }, text || '');
       if (enriched?.content) {
-        storeAdded = Boolean(enriched.added);
         text = enriched.content;
         sources = mergeSources(sources, enriched.sources);
+        if (enriched.tiers?.length) storeTiers = mergePricingTiers(storeTiers, enriched.tiers);
         const storeUrl = enriched.appStore || enriched.playStore;
         if (storeUrl && competitor?.id && !isStoreUrl(competitor.pricing_url) && !priced()) {
           try {
@@ -548,18 +550,17 @@ ${String(content).slice(0, 5000)}`,
       /* continue */
     }
 
-    if (!priced() || storeAdded) {
+    // Always re-extract when we have structured IAP rows so all prices show (not one entry).
+    if (!priced() || storeTiers.length) {
       let tiers = text ? await extractTiers(name, text) : [];
-      if (tiers.length) {
-        const newPriced = tiers.some((t) => t?.price_monthly != null);
-        if (!priced() || newPriced) next.tiers = tiers;
-      }
+      tiers = mergePricingTiers(storeTiers, tiers);
+      if (tiers.length) next.tiers = tiers;
       if (!priced()) {
         const researched = await researchPricingContent(competitor || name);
         if (researched?.content) {
           text = researched.content;
           sources = mergeSources(sources, researched.sources);
-          tiers = await extractTiers(name, researched.content);
+          tiers = mergePricingTiers(storeTiers, await extractTiers(name, researched.content));
           if (tiers.length) next.tiers = tiers;
         }
       }

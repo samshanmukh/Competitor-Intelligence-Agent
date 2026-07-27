@@ -676,10 +676,28 @@ function buildPricingEntries(product, matrix, competitors) {
   return entries;
 }
 
+function formatTierPrice(t) {
+  const amount = typeof t?.amount === 'number' ? t.amount
+    : typeof t?.price_monthly === 'number' ? t.price_monthly
+      : null;
+  if (amount == null) return '—';
+  const n = Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace(/\.00$/, '');
+  const period = t?.billing_period;
+  if (period === 'monthly') return `$${n}/mo`;
+  if (period === 'yearly') return `$${n}/yr`;
+  if (period === 'weekly') return `$${n}/wk`;
+  if (period === 'one_time') return `$${n}`;
+  // App Store often lists multiple IAPs without a period label — don't invent /mo.
+  return `$${n}`;
+}
+
 function PricingCard({ name, tiers, you, href, sources, loading }) {
   // Hide placeholder rows like "Default —" that aren't real extracted plans.
-  const visible = (tiers || []).filter((t) => t?.price_monthly != null || (t?.name && !/^default$/i.test(String(t.name).trim())));
-  const hasPrices = visible.some((t) => t?.price_monthly != null);
+  // Keep every distinct IAP amount (same plan name + different $ = separate rows).
+  const visible = (tiers || []).filter((t) => (
+    t?.price_monthly != null || t?.amount != null || (t?.name && !/^default$/i.test(String(t.name).trim()))
+  ));
+  const hasPrices = visible.some((t) => t?.price_monthly != null || t?.amount != null);
   const showEmpty = !hasPrices;
   const links = buildPricingSourceLinks(sources, href);
 
@@ -705,17 +723,20 @@ function PricingCard({ name, tiers, you, href, sources, loading }) {
           ))}
         </div>
       )}
-      <div className="mt-2 space-y-1.5">
+      <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-0.5">
         {showEmpty ? (
           <p className="text-xs text-slate-600">
             {loading ? 'Extracting pricing…' : 'No pricing extracted'}
           </p>
         ) : (
           visible.map((t, i) => (
-            <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 text-xs">
-              <span className="truncate text-slate-400">{t.name}</span>
+            <div
+              key={`${t.name || 'plan'}-${t.amount ?? t.price_monthly ?? i}`}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 text-xs"
+            >
+              <span className="truncate text-slate-400" title={t.name}>{t.name}</span>
               <span className="shrink-0 tabular-nums font-medium text-slate-200">
-                {t.price_monthly != null ? `$${t.price_monthly}/mo` : '—'}
+                {formatTierPrice(t)}
               </span>
             </div>
           ))
