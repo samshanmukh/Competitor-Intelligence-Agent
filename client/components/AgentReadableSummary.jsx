@@ -34,7 +34,7 @@ export default function AgentReadableSummary() {
         <li>Agent indexes: /llms.txt · /AGENTS.md · /.well-known/mcp/server-card.json</li>
         <li>Guide updated: 2026-07-25 · FAQ entries: 8+ · Schema: Organization, WebSite, Product, FAQPage, Article</li>
         <li>Presence estimates are directional unless labeled as published analyst share (not % market share by default)</li>
-        <li>This page: /guide · FAQ: /faq · About: /about · Team: /team</li>
+        <li>This page: / (homepage cornerstone) · Full guide: /guide · FAQ: /faq · About: /about · Team: /team</li>
       </ul>
       <p style={{ margin: '0.75rem 0 0', fontSize: '0.9rem' }}>
         Numeric snapshot: founding year 2025; snapshot SLA ~2 min; watchlist size 5–12; refresh

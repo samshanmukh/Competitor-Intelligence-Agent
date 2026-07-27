@@ -2,6 +2,7 @@ import './globals.css';
 import { Inter, Nunito } from 'next/font/google';
 import { ToastProvider } from '../components/ui';
 import AppShell from '../components/AppShell';
+import JsonLd from '../components/JsonLd';
 import { DEFAULT_OG_IMAGE } from '../lib/seo';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -50,6 +51,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark">
       <head>
+        {/* Explicit <head> JSON-LD — GeoTest Quick Scan checks homepage <head> for Organization/WebSite. */}
+        <JsonLd pathname="/" />
         <link rel="help" href="https://www.joinmira.ai/faq" title="FAQ" />
         <link rel="author" href="https://www.joinmira.ai/about" title="About Mira" />
         {/* GeoTest domain verification (from geotest.ai ownership challenge). */}

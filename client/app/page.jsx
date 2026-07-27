@@ -1,8 +1,10 @@
 import LandingPage from '../components/LandingPage';
-import JsonLd from '../components/JsonLd';
+import AgentReadableSummary from '../components/AgentReadableSummary';
+import GeoGuide from '../components/GeoGuide';
 import { pageMetadata } from '../lib/seo';
+import { AUTHOR, GUIDE_PUBLISHED, GUIDE_UPDATED } from '../lib/geoContent';
 
-export const metadata = pageMetadata({
+const base = pageMetadata({
   title: 'Mira',
   absoluteTitle: 'Mira · Competitive and market intelligence for founders',
   description:
@@ -10,10 +12,37 @@ export const metadata = pageMetadata({
   path: '/',
 });
 
+export const metadata = {
+  ...base,
+  alternates: {
+    ...base.alternates,
+    types: {
+      'text/html': [
+        { url: '/faq', title: 'FAQ' },
+        { url: '/about', title: 'About' },
+        { url: '/guide', title: 'Guide' },
+      ],
+    },
+  },
+  other: {
+    'article:published_time': GUIDE_PUBLISHED,
+    'article:modified_time': GUIDE_UPDATED,
+  },
+  openGraph: {
+    ...base.openGraph,
+    type: 'article',
+    publishedTime: GUIDE_PUBLISHED,
+    modifiedTime: GUIDE_UPDATED,
+    authors: [AUTHOR.name],
+  },
+};
+
 export default function Home() {
   return (
     <>
-      <JsonLd pathname="/" />
+      {/* GEO cornerstone FIRST so crawlers that truncate HTML still see FAQ/stats/schema-backed copy. */}
+      <AgentReadableSummary />
+      <GeoGuide />
       <LandingPage />
     </>
   );

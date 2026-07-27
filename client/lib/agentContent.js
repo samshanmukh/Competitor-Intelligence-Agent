@@ -141,7 +141,8 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
     },
   ];
 
-  if (pathname === '/faq' || pathname === '/guide') {
+  // Homepage Quick Scan needs FAQPage on "/" (not only /faq). Guide/FAQ pages keep their own.
+  if (pathname === '/' || pathname === '/faq' || pathname === '/guide') {
     graph.push({
       '@type': 'FAQPage',
       '@id': `${pageUrl}#faq`,
@@ -152,18 +153,22 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
     });
   }
 
-  if (pathname === '/guide') {
+  // GeoTest Structured Data audits Article + Breadcrumb (+ FAQPage above). Homepage hosts the cornerstone guide SSR.
+  if (pathname === '/' || pathname === '/guide') {
+    const articleUrl = pathname === '/' ? SITE_ORIGIN : `${SITE_ORIGIN}/guide`;
+    const breadcrumbId = `${articleUrl}#breadcrumb`;
+    const webpageId = `${articleUrl}#webpage`;
     graph.push(
       {
         '@type': 'Article',
-        '@id': articleId,
+        '@id': pathname === '/' ? articleId : `${SITE_ORIGIN}/guide#article`,
         headline: 'Competitive intelligence for founders: how Mira turns market signals into next moves',
         description:
           'A practical guide to competitive and market intelligence for startups — definitions, comparison of CI tools, pricing research methods, and how Mira works.',
-        url: `${SITE_ORIGIN}/guide`,
+        url: articleUrl,
         mainEntityOfPage: {
           '@type': 'WebPage',
-          '@id': `${SITE_ORIGIN}/guide`,
+          '@id': articleUrl,
         },
         datePublished: GUIDE_PUBLISHED,
         dateModified: GUIDE_UPDATED,
@@ -179,27 +184,40 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       },
       {
         '@type': 'BreadcrumbList',
-        '@id': `${SITE_ORIGIN}/guide#breadcrumb`,
-        itemListElement: [
-          {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: SITE_ORIGIN,
-          },
-          {
-            '@type': 'ListItem',
-            position: 2,
-            name: 'Competitive intelligence guide',
-            item: `${SITE_ORIGIN}/guide`,
-          },
-        ],
+        '@id': breadcrumbId,
+        itemListElement:
+          pathname === '/'
+            ? [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'Home',
+                  item: SITE_ORIGIN,
+                },
+              ]
+            : [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'Home',
+                  item: SITE_ORIGIN,
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: 'Competitive intelligence guide',
+                  item: `${SITE_ORIGIN}/guide`,
+                },
+              ],
       },
       {
         '@type': 'WebPage',
-        '@id': `${SITE_ORIGIN}/guide#webpage`,
-        url: `${SITE_ORIGIN}/guide`,
-        name: 'Competitive intelligence guide · Mira',
+        '@id': webpageId,
+        url: articleUrl,
+        name:
+          pathname === '/'
+            ? 'Mira · Competitive and market intelligence for founders'
+            : 'Competitive intelligence guide · Mira',
         description: ORG.description,
         isPartOf: { '@id': websiteId },
         about: { '@id': productId },
@@ -208,7 +226,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
           url: `${SITE_ORIGIN}/mira-logo.svg`,
         },
         dateModified: GUIDE_UPDATED,
-        breadcrumb: { '@id': `${SITE_ORIGIN}/guide#breadcrumb` },
+        breadcrumb: { '@id': breadcrumbId },
         speakable: {
           '@type': 'SpeakableSpecification',
           cssSelector: ['#mira-definition', '#competitive-intelligence-guide h2'],
