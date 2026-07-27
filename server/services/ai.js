@@ -25,11 +25,29 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function complete({ system, user, temperature = 0.2, maxTokens = 1500, json = false }) {
+export async function complete({
+  system,
+  user,
+  messages: priorMessages,
+  temperature = 0.2,
+  maxTokens = 1500,
+  json = false,
+}) {
   const client = createClient();
   const messages = [];
   if (system) messages.push({ role: 'system', content: system });
-  messages.push({ role: 'user', content: user });
+  if (Array.isArray(priorMessages) && priorMessages.length) {
+    for (const m of priorMessages) {
+      if (!m?.role || !m?.content) continue;
+      if (m.role !== 'user' && m.role !== 'assistant') continue;
+      messages.push({ role: m.role, content: String(m.content) });
+    }
+  } else if (user) {
+    messages.push({ role: 'user', content: user });
+  }
+  if (!messages.some((m) => m.role === 'user')) {
+    throw Object.assign(new Error('complete() requires a user message'), { code: 'BAD_REQUEST', status: 400 });
+  }
 
   const params = {
     model: model(),
@@ -64,6 +82,47 @@ export async function completeJSON(opts) {
   return parseJSONLoose(raw);
 }
 
+/**
+ * Stream chat completion deltas. Yields string chunks.
+ * Same message shape as complete().
+ */
+export async function* streamComplete({
+  system,
+  user,
+  messages: priorMessages,
+  temperature = 0.2,
+  maxTokens = 1500,
+}) {
+  const client = createClient();
+  const messages = [];
+  if (system) messages.push({ role: 'system', content: system });
+  if (Array.isArray(priorMessages) && priorMessages.length) {
+    for (const m of priorMessages) {
+      if (!m?.role || !m?.content) continue;
+      if (m.role !== 'user' && m.role !== 'assistant') continue;
+      messages.push({ role: m.role, content: String(m.content) });
+    }
+  } else if (user) {
+    messages.push({ role: 'user', content: user });
+  }
+  if (!messages.some((m) => m.role === 'user')) {
+    throw Object.assign(new Error('streamComplete() requires a user message'), { code: 'BAD_REQUEST', status: 400 });
+  }
+
+  const stream = await client.chat.completions.create({
+    model: model(),
+    messages,
+    temperature,
+    max_tokens: maxTokens,
+    stream: true,
+  });
+
+  for await (const part of stream) {
+    const delta = part.choices?.[0]?.delta?.content;
+    if (delta) yield delta;
+  }
+}
+
 
 export function parseJSONLoose(raw) {
   if (!raw) return null;
@@ -88,4 +147,4 @@ export function parseJSONLoose(raw) {
   }
 }
 
-export const ai = { complete, completeJSON };
+export const ai = { complete, completeJSON, streamComplete };

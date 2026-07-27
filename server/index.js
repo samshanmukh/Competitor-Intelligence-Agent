@@ -14,6 +14,7 @@ import productsRouter from './routes/products.js';
 import reportsRouter from './routes/reports.js';
 import companyRouter from './routes/company.js';
 import featuresRouter from './routes/features.js';
+import analystRouter from './routes/analyst.js';
 import { listCompetitors } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
 import { reconcileStaleJobs } from './services/jobs.js';
@@ -39,6 +40,7 @@ app.use('/api/products', productsRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/company', companyRouter);
 app.use('/api/features', featuresRouter);
+app.use('/api/analyst', analystRouter);
 
 // Centralized error handler — turns thrown errors into JSON with sensible codes.
 app.use((err, req, res, _next) => {

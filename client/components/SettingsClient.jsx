@@ -64,7 +64,18 @@ export default function SettingsClient() {
   useEffect(() => {
     const ws = getWorkspace();
     setWorkspace(ws);
-    getCurrentUser().then((u) => u && setUser(u)).catch(() => {});
+    api.me()
+      .then((data) => {
+        if (data?.user) {
+          setUser({
+            ...data.user,
+            accountTier: data.entitlements?.tier || data.user.accountTier,
+          });
+        }
+      })
+      .catch(() => {
+        getCurrentUser().then((u) => u && setUser(u)).catch(() => {});
+      });
     (async () => {
       try {
         const [s, h] = await Promise.all([api.getSettings(), api.health()]);
@@ -262,7 +273,9 @@ export default function SettingsClient() {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">{workspace?.name || 'My Workspace'}</p>
-                <p className="text-xs capitalize text-slate-500">{workspace?.plan || 'free'} plan</p>
+                <p className="text-xs capitalize text-slate-500">
+                  Workspace {(workspace?.plan || 'free')} · Account {user?.accountTier?.replace('_', ' ') || '…'}
+                </p>
               </div>
             </div>
           </section>

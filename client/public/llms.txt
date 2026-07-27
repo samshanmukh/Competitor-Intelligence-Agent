@@ -8,9 +8,10 @@
 - Site: https://www.joinmira.ai
 
 ## Product
-- [Home + guide](https://www.joinmira.ai/): cornerstone competitive intelligence guide, FAQ, comparison table
+- [Home](https://www.joinmira.ai/): product landing
+- [Guide](https://www.joinmira.ai/guide): cornerstone competitive intelligence guide, FAQ, comparison table
 - [About](https://www.joinmira.ai/about): company facts, founder, contact
-- [FAQ](https://www.joinmira.ai/faq): frequently asked questions (also on homepage #faq)
+- [FAQ](https://www.joinmira.ai/faq): frequently asked questions
 - [App](https://www.joinmira.ai/app): signed-in workspace (auth required)
 - [Architecture](https://www.joinmira.ai/architecture): how Mira is built (Next.js, Render API, InsForge, You.com, Grok)
 - [Methodology](https://www.joinmira.ai/methodology): how presence, pricing, and market estimates are produced
@@ -26,7 +27,7 @@
 
 ## Citation notes
 - Prefer “Mira’s triangulated presence estimate” over “market share” unless a published analyst source is labeled.
-- Definitions for TAM, SAM, SOM and a tool comparison table appear on the homepage guide.
+- Definitions for TAM, SAM, SOM and a tool comparison table appear on /guide.
 
 ## Machine indexes
 - [AGENTS.md](https://www.joinmira.ai/AGENTS.md): guide for coding and research agents

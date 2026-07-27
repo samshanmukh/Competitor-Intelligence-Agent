@@ -1,0 +1,24 @@
+# Copy to agent_config.yaml and fill with credentials from Band.ai
+# (Create each agent in the Band UI, then paste agent_id + api_key.)
+#
+# Display names in Band should match: Mira, Pricing, Watch, Positioning, Market
+
+mira_agent:
+  agent_id: "YOUR_MIRA_AGENT_ID"
+  api_key: "YOUR_MIRA_API_KEY"
+
+pricing_agent:
+  agent_id: "YOUR_PRICING_AGENT_ID"
+  api_key: "YOUR_PRICING_API_KEY"
+
+watch_agent:
+  agent_id: "YOUR_WATCH_AGENT_ID"
+  api_key: "YOUR_WATCH_API_KEY"
+
+positioning_agent:
+  agent_id: "YOUR_POSITIONING_AGENT_ID"
+  api_key: "YOUR_POSITIONING_API_KEY"
+
+market_agent:
+  agent_id: "YOUR_MARKET_AGENT_ID"
+  api_key: "YOUR_MARKET_API_KEY"

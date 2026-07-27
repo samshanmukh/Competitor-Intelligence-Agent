@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { getWorkspace, fetchWorkspaces, signOut, switchWorkspace } from '../lib/auth';
+import { canAccessPath, tierLabel } from '../lib/entitlements';
 import { Icon, WorkspaceSwitcher, Modal } from './ui';
 import BrandLogo from './BrandLogo';
 
@@ -58,6 +59,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [newWsModal, setNewWsModal] = useState(false);
   const [newWsName, setNewWsName] = useState('');
+  const [entitlements, setEntitlements] = useState(null);
 
   useEffect(() => {
     setWorkspace(getWorkspace());
@@ -65,7 +67,12 @@ export default function Sidebar() {
       setWorkspaces(ws);
       if (ws.length > 0 && !getWorkspace()) setWorkspace(ws[0]);
     });
+    api.me().then((data) => {
+      if (data?.entitlements) setEntitlements(data.entitlements);
+    }).catch(() => null);
   }, []);
+
+  const allow = (href) => canAccessPath(entitlements, href);
 
   const refreshUnseen = async () => {
     try {
@@ -100,36 +107,44 @@ export default function Sidebar() {
   const renderNav = (isCollapsed = false, onNavigate) => (
     <>
       <NavGroup label="Workspace" collapsed={isCollapsed}>
-        <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/market" icon="bar" label="Market model" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/distribution" icon="trending" label="Distribution" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/competitors" icon="users" label="Competitors" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/compare" icon="grid" label="Compare" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/company" icon="map" label="Deep dive" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/moves" icon="zap" label="Next moves" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/changes" icon="activity" label="Changes" badge={unseen} collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/notifications" icon="bell" label="Alerts" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/reports" icon="share" label="History" collapsed={isCollapsed} onNavigate={onNavigate} />
+        {allow('/app') && <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/analyst') && <NavItem href="/analyst" icon="zap" label="Ask Mira analyst" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/market') && <NavItem href="/market" icon="bar" label="Market model" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/distribution') && <NavItem href="/distribution" icon="trending" label="Distribution" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/competitors') && <NavItem href="/competitors" icon="users" label="Competitors" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/compare') && <NavItem href="/compare" icon="grid" label="Compare" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/company') && <NavItem href="/company" icon="map" label="Deep dive" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/moves') && <NavItem href="/moves" icon="zap" label="Next moves" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/changes') && <NavItem href="/changes" icon="activity" label="Changes" badge={unseen} collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/notifications') && <NavItem href="/notifications" icon="bell" label="Alerts" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/reports') && <NavItem href="/reports" icon="share" label="History" collapsed={isCollapsed} onNavigate={onNavigate} />}
       </NavGroup>
 
-      <NavGroup label="Labs" collapsed={isCollapsed}>
-        <NavItem href="/positioning" icon="sparkle" label="Positioning lab" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/pricing-lab" icon="card" label="Pricing simulator" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/gaps" icon="radar" label="Feature gaps" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/evidence" icon="check" label="Evidence" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/war-room" icon="shield" label="War room" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/win-loss" icon="trending" label="Win / loss" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/market-entry" icon="map" label="Market entry" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/investor" icon="bar" label="Investor one-pager" collapsed={isCollapsed} onNavigate={onNavigate} />
-      </NavGroup>
+      {(allow('/positioning') || allow('/pricing-lab') || allow('/gaps')) && (
+        <NavGroup label="Labs" collapsed={isCollapsed}>
+          {allow('/positioning') && <NavItem href="/positioning" icon="sparkle" label="Positioning lab" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/pricing-lab') && <NavItem href="/pricing-lab" icon="card" label="Pricing simulator" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/gaps') && <NavItem href="/gaps" icon="radar" label="Feature gaps" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/evidence') && <NavItem href="/evidence" icon="check" label="Evidence" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/war-room') && <NavItem href="/war-room" icon="shield" label="War room" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/win-loss') && <NavItem href="/win-loss" icon="trending" label="Win / loss" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/market-entry') && <NavItem href="/market-entry" icon="map" label="Market entry" collapsed={isCollapsed} onNavigate={onNavigate} />}
+          {allow('/investor') && <NavItem href="/investor" icon="bar" label="Investor one-pager" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        </NavGroup>
+      )}
 
       <NavGroup label="Account" collapsed={isCollapsed}>
-        <NavItem href="/my-product" icon="card" label="My product" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/discover" icon="plus" label="Discover" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/usage" icon="bar" label="Usage" collapsed={isCollapsed} onNavigate={onNavigate} />
-        <NavItem href="/settings" icon="settings" label="Settings" collapsed={isCollapsed} onNavigate={onNavigate} />
+        {allow('/my-product') && <NavItem href="/my-product" icon="card" label="My product" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/discover') && <NavItem href="/discover" icon="plus" label="Discover" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/methodology') && <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/usage') && <NavItem href="/usage" icon="bar" label="Usage" collapsed={isCollapsed} onNavigate={onNavigate} />}
+        {allow('/settings') && <NavItem href="/settings" icon="settings" label="Settings" collapsed={isCollapsed} onNavigate={onNavigate} />}
       </NavGroup>
+      {!isCollapsed && entitlements?.tier && (
+        <p className="px-2.5 pt-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
+          Plan · {tierLabel(entitlements.tier)}
+        </p>
+      )}
     </>
   );
 

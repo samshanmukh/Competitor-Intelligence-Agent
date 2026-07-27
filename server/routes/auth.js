@@ -15,6 +15,7 @@ import {
   getWorkspaceMember,
 } from '../db/workspace.js';
 import { sendEmail, emailConfigured } from '../services/email.js';
+import { resolveEntitlements } from '../services/entitlements.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -40,14 +41,24 @@ async function authorizeWorkspace(req, res, { admin = false } = {}) {
   return { ws, member, isOwner };
 }
 
-// Current user + workspaces
+// Current user + workspaces + account entitlements (free_user / pro_user / admin)
 router.get('/me', requireAuth, wrap(async (req, res) => {
   // Claim any pending email invites when the user hits /me.
   if (req.user?.email) {
     await claimPendingInvites(req.user.id, req.user.email).catch(() => {});
   }
   const workspaces = await getUserWorkspaces(req.user.id);
-  res.json({ user: req.user, workspaces });
+  const headerWs = Number(req.headers['x-workspace-id']);
+  const active =
+    (Number.isFinite(headerWs) && workspaces.find((w) => Number(w.id) === headerWs))
+    || workspaces[0]
+    || null;
+  const entitlements = resolveEntitlements(req.user?.email, active?.plan || 'free');
+  res.json({
+    user: { ...req.user, accountTier: entitlements.tier },
+    workspaces,
+    entitlements,
+  });
 }));
 
 // List user's workspaces
