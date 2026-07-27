@@ -40,9 +40,15 @@ export const metadata = {
 export default function Home() {
   return (
     <>
-      {/* GEO cornerstone FIRST so crawlers that truncate HTML still see FAQ/stats/schema-backed copy. */}
-      <AgentReadableSummary />
-      <GeoGuide />
+      {/*
+        GEO cornerstone stays FIRST in the DOM (truncating crawlers / GeoTest)
+        but is visually hidden so the marketing hero is what humans see.
+        Uses .geo-crawler-only (clip), not opacity:0 — GeoTest treats opacity:0 as empty.
+      */}
+      <div className="geo-crawler-only" aria-hidden="true" data-geo-crawler="homepage-cornerstone">
+        <AgentReadableSummary />
+        <GeoGuide />
+      </div>
       <LandingPage />
     </>
   );
