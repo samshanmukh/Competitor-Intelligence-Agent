@@ -119,20 +119,20 @@ export default function CompareClient() {
                   <td className="px-4 py-3 text-slate-300 text-xs">{feature}</td>
                   {matrix.competitors?.map((comp) => {
                     const tier = comp.tiers?.[0];
-                    const has = tier?.features?.[fi];
+                    const cell = tier?.features?.[fi];
+                    const status = cell === true || cell?.status === 'included' ? 'included'
+                      : cell === false || cell?.status === 'absent' ? 'absent'
+                        : cell?.status === 'limited' ? 'limited'
+                          : 'unverified';
+                    const mark = status === 'included' ? '✓' : status === 'limited' ? '△' : status === 'absent' ? '×' : '?';
+                    const color = status === 'included' ? 'text-emerald-400'
+                      : status === 'limited' ? 'text-amber-300'
+                        : status === 'absent' ? 'text-slate-500'
+                          : 'text-slate-600';
+                    const tip = [cell?.evidence, cell?.plan && `Plan: ${cell.plan}`, cell?.source_url].filter(Boolean).join('\n');
                     return (
                       <td key={comp.name} className="px-4 py-3 text-center">
-                        {has === true ? (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-950/40 text-emerald-400">
-                            <Icon name="check" className="h-3 w-3" />
-                          </span>
-                        ) : has === false ? (
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink-800 text-slate-600">
-                            <Icon name="x" className="h-3 w-3" />
-                          </span>
-                        ) : (
-                          <span className="text-slate-700 text-xs">–</span>
-                        )}
+                        <span className={`text-sm font-semibold ${color}`} title={tip || undefined}>{mark}</span>
                       </td>
                     );
                   })}

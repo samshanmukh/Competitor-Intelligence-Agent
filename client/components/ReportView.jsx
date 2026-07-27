@@ -158,14 +158,25 @@ export default function ReportView({
             title="Feature matrix"
             skills={[{ skill: 'you-contents' }, { skill: 'grok' }]}
           >
+            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+              <span><span className="text-emerald-400">✓</span> Included</span>
+              <span><span className="text-amber-300">△</span> Limited / add-on / requires coach or plan</span>
+              <span><span className="text-slate-400">×</span> Not available</span>
+              <span><span className="text-slate-500">?</span> Not verified</span>
+            </div>
+            <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
+              Hover a cell for evidence, plan, and source. Marks are inferred from scraped pages — verify before decisions.
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink-700">
                     <th className="py-2 pr-4 text-left text-xs font-medium uppercase text-slate-500">Feature</th>
                     {matrixColumns.map((c) => (
-                      <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium ${c.you ? 'text-accent-soft' : 'text-slate-300'}`}>
-                        {c.name}{c.you && <span className="block text-[9px] font-normal text-accent-soft/70">you</span>}
+                      <th key={c.name} className={`px-3 py-2 text-center text-xs font-medium align-bottom ${c.you ? 'text-accent-soft' : 'text-slate-300'}`}>
+                        <div>{c.name}</div>
+                        {c.you && <span className="block text-[9px] font-normal text-accent-soft/70">you</span>}
+                        <ColumnSourceLinks sources={c.sources} href={c.href} className="mt-1.5" />
                       </th>
                     ))}
                   </tr>
@@ -174,21 +185,16 @@ export default function ReportView({
                   {(matrix?.features || []).map((f, fi) => (
                     <tr key={fi}>
                       <td className="py-2 pr-4 text-xs text-slate-300">{f}</td>
-                      {matrixColumns.map((c) => {
-                        const has = c.flags?.[fi];
-                        return (
-                          <td key={c.name} className={`px-3 py-2 text-center ${c.you ? 'bg-accent/5' : ''}`}>
-                            {has === true ? <Icon name="check" className="mx-auto h-3.5 w-3.5 text-emerald-400" />
-                              : has === false ? <Icon name="x" className="mx-auto h-3.5 w-3.5 text-slate-700" />
-                              : <span className="text-slate-700">–</span>}
-                          </td>
-                        );
-                      })}
+                      {matrixColumns.map((c) => (
+                        <td key={c.name} className={`px-3 py-2 text-center ${c.you ? 'bg-accent/5' : ''}`}>
+                          <FeatureCellMark cell={c.flags?.[fi]} fallbackHref={c.href} />
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {matrixColumns.some((c) => !c.you && !(c.flags || []).some((x) => x === true || x === false)) && (
+              {matrixColumns.some((c) => !c.you && !(c.flags || []).some((x) => featureCellHasJudgment(x))) && (
                 <p className="mt-3 text-[11px] text-slate-500">
                   Rival columns still empty — hit Regenerate to pull You.com pricing/feature research for each competitor.
                 </p>
@@ -467,9 +473,7 @@ function buildMatrixColumns(product, matrix, competitors) {
   const pickFlags = (entry) => {
     const flags = entry?.tiers?.[0]?.features;
     if (!Array.isArray(flags) || !featureCount) return [];
-    return Array.from({ length: featureCount }, (_, i) => (
-      flags[i] === true ? true : flags[i] === false ? false : null
-    ));
+    return Array.from({ length: featureCount }, (_, i) => normalizeFeatureCell(flags[i]));
   };
 
   const columns = [];
@@ -480,7 +484,14 @@ function buildMatrixColumns(product, matrix, competitors) {
     const fromMatrix = byName.get(key);
     const name = product?.name || fromMatrix?.name || matrix?.productName;
     if (name) {
-      columns.push({ name, you: true, flags: pickFlags(fromMatrix), tiers: fromMatrix?.tiers || product?.tiers || [] });
+      columns.push({
+        name,
+        you: true,
+        flags: pickFlags(fromMatrix),
+        tiers: fromMatrix?.tiers || product?.tiers || [],
+        href: pricingHref(product?.pricing_url, product?.website, fromMatrix?.pricing_url),
+        sources: fromMatrix?.pricing_sources || product?.pricing_sources || [],
+      });
       seen.add(key);
     }
   }
@@ -498,6 +509,8 @@ function buildMatrixColumns(product, matrix, competitors) {
       you: false,
       flags: pickFlags(fromMatrix),
       tiers: fromMatrix?.tiers || [],
+      href: pricingHref(c.pricing_url, c.website, fromMatrix?.pricing_url),
+      sources: fromMatrix?.pricing_sources || [],
     });
     seen.add(key);
   }
@@ -505,11 +518,135 @@ function buildMatrixColumns(product, matrix, competitors) {
   for (const c of matrix?.competitors || []) {
     const key = normName(c.name);
     if (!key || seen.has(key) || key === youKey) continue;
-    columns.push({ name: c.name, you: false, flags: pickFlags(c), tiers: c.tiers || [] });
+    columns.push({
+      name: c.name,
+      you: false,
+      flags: pickFlags(c),
+      tiers: c.tiers || [],
+      href: pricingHref(c.pricing_url, c.website),
+      sources: c.pricing_sources || [],
+    });
     seen.add(key);
   }
 
   return columns;
+}
+
+/** Compact source links under a company column (feature / pricing verification). */
+function ColumnSourceLinks({ sources, href, className = '' }) {
+  const links = buildPricingSourceLinks(sources, href).slice(0, 3);
+  if (!links.length) return null;
+  return (
+    <div className={`flex flex-col items-center gap-0.5 ${className}`}>
+      {links.map((link) => (
+        <a
+          key={link.url}
+          href={link.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex max-w-[7.5rem] items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal text-slate-500 transition hover:text-accent-soft"
+          title={link.url}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="truncate">{link.label}</span>
+          <Icon name="external" className="h-2.5 w-2.5 shrink-0 opacity-70" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function normalizeFeatureStatus(raw) {
+  if (raw === true || raw === 'included' || raw === 'yes') return 'included';
+  if (raw === false || raw === 'absent' || raw === 'no') return 'absent';
+  if (raw === 'limited' || raw === 'partial' || raw === 'delta') return 'limited';
+  if (raw && typeof raw === 'object') {
+    return normalizeFeatureStatus(raw.status ?? raw.value ?? raw.state ?? raw.flag);
+  }
+  return 'unverified';
+}
+
+function normalizeFeatureCell(raw) {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    return {
+      status: normalizeFeatureStatus(raw.status ?? raw.value ?? raw.state ?? raw.flag),
+      evidence: raw.evidence || raw.note || raw.quote || null,
+      source_url: raw.source_url || raw.source || raw.url || null,
+      plan: raw.plan || raw.tier || null,
+      verified_at: raw.verified_at || raw.verifiedAt || null,
+    };
+  }
+  return {
+    status: normalizeFeatureStatus(raw),
+    evidence: null,
+    source_url: null,
+    plan: null,
+    verified_at: null,
+  };
+}
+
+function featureCellHasJudgment(cell) {
+  const status = normalizeFeatureStatus(cell);
+  return status === 'included' || status === 'limited' || status === 'absent';
+}
+
+function featurePresentScore(cell) {
+  const status = normalizeFeatureStatus(cell);
+  if (status === 'included') return 1;
+  if (status === 'limited') return 0.5;
+  return 0;
+}
+
+function FeatureCellMark({ cell, fallbackHref }) {
+  const c = normalizeFeatureCell(cell);
+  const mark = c.status === 'included' ? '✓'
+    : c.status === 'limited' ? '△'
+      : c.status === 'absent' ? '×'
+        : '?';
+  const color = c.status === 'included' ? 'text-emerald-400'
+    : c.status === 'limited' ? 'text-amber-300'
+      : c.status === 'absent' ? 'text-slate-500'
+        : 'text-slate-600';
+  const source = c.source_url || fallbackHref || null;
+  const when = c.verified_at
+    ? (() => {
+        try { return new Date(c.verified_at).toLocaleDateString(); } catch { return null; }
+      })()
+    : null;
+  const tip = [
+    c.status === 'included' ? 'Included'
+      : c.status === 'limited' ? 'Limited / add-on / requires coach or plan'
+        : c.status === 'absent' ? 'Not available'
+          : 'Not verified',
+    c.plan ? `Plan: ${c.plan}` : null,
+    c.evidence ? c.evidence : null,
+    source ? `Source: ${source}` : null,
+    when ? `Checked: ${when}` : null,
+  ].filter(Boolean).join('\n');
+
+  const body = (
+    <span
+      className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center text-sm font-semibold ${color}`}
+      title={tip}
+    >
+      {mark}
+    </span>
+  );
+
+  if (source) {
+    return (
+      <a
+        href={source}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex justify-center hover:opacity-80"
+        title={tip}
+      >
+        {body}
+      </a>
+    );
+  }
+  return body;
 }
 
 /** Reviews cards for you (optional) + every approved rival. */
@@ -941,8 +1078,8 @@ function tierStats(tiers) {
 function featureCoverage(matrixComp, featureCount) {
   if (!featureCount || !matrixComp?.tiers?.[0]?.features) return null;
   const feats = matrixComp.tiers[0].features;
-  const yes = feats.filter((f) => f === true).length;
-  return Math.round((yes / featureCount) * 100);
+  const score = feats.reduce((sum, f) => sum + featurePresentScore(f), 0);
+  return Math.round((score / featureCount) * 100);
 }
 
 function ChartsSection({ competitors, matrix, reviews, product }) {

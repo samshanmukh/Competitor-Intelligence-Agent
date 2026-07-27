@@ -48,6 +48,11 @@ import {
   storeSourceType,
 } from '../services/storePricing.js';
 import { buildPricingResearchQuery, TIER_EXTRACTION_RULES } from '../services/pricingResearchPrompt.js';
+import {
+  FEATURE_ROW_GUIDANCE,
+  normalizeFeatureCells,
+  featureCellFilled,
+} from '../services/featureMatrix.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -406,16 +411,17 @@ router.post('/feature-matrix', requireAuth, resolveWorkspace, wrap(async (req, r
   ].filter(Boolean);
 
   const matrix = await completeJSON({
-    system: 'You build cross-product feature comparison matrices for software. Return ONLY valid JSON.',
+    system: 'You build evidence-backed cross-product feature matrices. Return ONLY valid JSON.',
     user: `Compare these products and extract a feature matrix.
 Products that MUST appear as competitors[] entries (exact names): ${JSON.stringify(namedProducts)}
 ${productName ? `"${productName}" is the user's own product.` : ''}
 
+${FEATURE_ROW_GUIDANCE}
+
 Rules:
-- features[] must be comparable across ALL products (e.g. "Cloud agents", "Team SSO", "Usage analytics", "Privacy mode"). Prefer 12-18 generic capabilities.
-- Do NOT use single-vendor brand names (no "Bugbot", no product-codename features) unless the capability is industry-standard.
-- For EVERY product, fill tiers[0].features as a boolean array the SAME length as features[].
-- Use true/false only. Prefer false over null when the product does not offer an equivalent. Avoid null.
+- features[]: 12–18 precise, comparable capabilities (not vague mega-labels).
+- Do NOT use single-vendor brand names unless industry-standard.
+- For EVERY product, fill tiers[0].features as an array of CELL OBJECTS the SAME length as features[].
 - Also extract pricing tiers with monthly USD when present.
 
 Return:
@@ -425,7 +431,18 @@ Return:
     {
       "name": "string",
       "tiers": [
-        { "name": "string", "price_monthly": number|null, "features": [true, false, ...] }
+        {
+          "name": "string",
+          "price_monthly": number|null,
+          "features": [
+            {
+              "status": "included"|"limited"|"absent"|"unverified",
+              "evidence": "short supporting statement",
+              "source_url": "https://... or null",
+              "plan": "plan name or null"
+            }
+          ]
+        }
       ]
     }
   ]
@@ -433,7 +450,7 @@ Return:
 
 SOURCE TEXT:
 ${prompt}`,
-    maxTokens: 3500,
+    maxTokens: 5000,
   });
 
   // Merge: ensure every requested rival (+ product) appears, and backfill missing
@@ -473,24 +490,42 @@ ${String(content).slice(0, 8000)}`,
     }
   }
 
-  async function extractFeatureFlags(name, content, features) {
+  async function extractFeatureFlags(name, content, features, sourceUrls = []) {
     if (!content || !features.length) return null;
+    const urlHint = (sourceUrls || []).filter(Boolean).slice(0, 6);
     try {
       const result = await completeJSON({
-        system: 'You map product capabilities to a fixed feature list. Return ONLY valid JSON.',
-        user: `For "${name}", mark each capability true or false from the content.
-Map EQUIVALENT capabilities (e.g. "cloud agents" ≈ hosted/async agents; "team SSO" ≈ SAML/OIDC).
+        system: 'You map product capabilities to a fixed feature list with evidence. Use only the provided source content. Return ONLY valid JSON.',
+        user: `For "${name}", score each capability from the content below (website, App Store, Play Store, research).
+
+${FEATURE_ROW_GUIDANCE}
+
 Features (in order): ${JSON.stringify(features)}
-Return: { "flags": [true|false, ...] } with exactly ${features.length} entries.
-Rules: use true/false only (no null). If content is substantial and a capability is not offered, use false.
+Known source URLs (prefer citing these when evidence comes from them): ${JSON.stringify(urlHint)}
+
+Return:
+{
+  "cells": [
+    {
+      "status": "included"|"limited"|"absent"|"unverified",
+      "evidence": "short quote or paraphrase from the content",
+      "source_url": "https://... or null",
+      "plan": "plan/tier name or null"
+    }
+  ]
+}
+Exactly ${features.length} cells, same order as features[].
+Map EQUIVALENT capabilities carefully. Do not invent from brand reputation outside this content.
+If the public web presence looks stale or silent, use "unverified" — not "absent".
 
 CONTENT:
-${String(content).slice(0, 5000)}`,
-        maxTokens: 500,
+${String(content).slice(0, 7000)}`,
+        maxTokens: 2200,
       });
-      const flags = result?.flags;
-      if (!Array.isArray(flags) || flags.length !== features.length) return null;
-      return flags.map((f) => (f === true ? true : false));
+      const cells = result?.cells || result?.flags;
+      if (!Array.isArray(cells) || cells.length !== features.length) return null;
+      const fallback = urlHint[0] || null;
+      return normalizeFeatureCells(cells, features.length, fallback);
     } catch {
       return null;
     }
@@ -499,20 +534,30 @@ ${String(content).slice(0, 5000)}`,
   function flagCoverage(entry, n) {
     const flags = entry?.tiers?.[0]?.features;
     if (!Array.isArray(flags) || !n) return 0;
-    const filled = flags.filter((f) => f === true || f === false).length;
+    const filled = flags.filter((f) => featureCellFilled(f)).length;
     return filled / n;
   }
 
+  function cellsNeedEvidence(entry, n) {
+    const flags = entry?.tiers?.[0]?.features;
+    if (!Array.isArray(flags) || !n) return true;
+    if (flags.length < n) return true;
+    // Re-extract when still booleans or missing evidence on most cells.
+    const withEvidence = flags.filter((f) => f && typeof f === 'object' && f.evidence).length;
+    return withEvidence < Math.ceil(n * 0.4);
+  }
+
   function applyFlags(entry, flags) {
+    const cells = normalizeFeatureCells(flags, flags?.length || 0);
     if ((entry.tiers || []).length) {
       return {
         ...entry,
-        tiers: [{ ...entry.tiers[0], features: flags }, ...entry.tiers.slice(1)],
+        tiers: [{ ...entry.tiers[0], features: cells }, ...entry.tiers.slice(1)],
       };
     }
     return {
       ...entry,
-      tiers: [{ name: 'Plans', price_monthly: null, features: flags }],
+      tiers: [{ name: 'Plans', price_monthly: null, features: cells }],
     };
   }
 
@@ -566,10 +611,21 @@ ${String(content).slice(0, 5000)}`,
       }
     }
 
-    // Always fill sparse/empty rival feature columns when we have source text.
-    if (featureList.length && text && flagCoverage(next, featureList.length) < 0.6) {
-      const flags = await extractFeatureFlags(name, text, featureList);
+    // Fill or upgrade feature cells (4-state + evidence) whenever source text exists.
+    if (
+      featureList.length && text
+      && (flagCoverage(next, featureList.length) < 0.6 || cellsNeedEvidence(next, featureList.length))
+    ) {
+      const sourceUrls = [
+        competitor?.pricing_url,
+        competitor?.website,
+        ...(sources || []).map((s) => s?.url),
+      ].filter(Boolean);
+      const flags = await extractFeatureFlags(name, text, featureList, sourceUrls);
       if (flags) next = applyFlags(next, flags);
+    } else if (featureList.length && next?.tiers?.[0]?.features) {
+      // Normalize any boolean legacy cells from the first-pass matrix.
+      next = applyFlags(next, next.tiers[0].features);
     }
     if (!next.tiers) next.tiers = [];
     next.pricing_sources = sources;
@@ -617,10 +673,25 @@ ${String(content).slice(0, 5000)}`,
 
   for (const c of byName.values()) merged.push(c);
 
+  // Normalize every column to 4-state evidence cells (legacy booleans → cells).
+  const competitorsOut = featureList.length
+    ? merged.map((entry) => {
+        const feats = entry?.tiers?.[0]?.features;
+        if (!Array.isArray(feats)) return entry;
+        return applyFlags(entry, feats);
+      })
+    : merged;
+
   res.json({
     features: featureList,
-    competitors: merged,
+    competitors: competitorsOut,
     productName,
+    feature_legend: {
+      included: 'Included',
+      limited: 'Limited, add-on, or requires another plan/coach',
+      absent: 'Not available',
+      unverified: 'Not verified',
+    },
   });
 }));
 
