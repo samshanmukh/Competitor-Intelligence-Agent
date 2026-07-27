@@ -3,6 +3,10 @@ import BrandLogo from './BrandLogo';
 
 const FOOTER_LINKS = [
   { href: '/guide', label: 'Guide' },
+  { href: '/competitive-intelligence-software', label: 'CI software' },
+  { href: '/competitor-pricing-analysis', label: 'Pricing analysis' },
+  { href: '/tam-sam-som', label: 'TAM/SAM/SOM' },
+  { href: '/find-saas-competitors', label: 'Find competitors' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Team' },
   { href: '/contact', label: 'Contact' },

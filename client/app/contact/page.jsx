@@ -2,13 +2,14 @@ import PublicDocShell from '../../components/PublicDocShell';
 import SimpleMarkdown from '../../components/SimpleMarkdown';
 import { contactBody } from '../../lib/publicPageCopy';
 import { AUTHOR, ORG, SITE_ORIGIN } from '../../lib/geoContent';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'Contact',
   description:
     'Contact Mira — email support@joinmira.ai for product, press, and partnership questions about competitive intelligence software.',
-  alternates: { canonical: '/contact' },
-};
+  path: '/contact',
+});
 
 const EXTRA = `
 

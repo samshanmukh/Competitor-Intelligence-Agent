@@ -10,6 +10,10 @@
 ## Product
 - [Home](https://www.joinmira.ai/): product landing
 - [Guide](https://www.joinmira.ai/guide): cornerstone competitive intelligence guide, FAQ, comparison table
+- [Competitive intelligence software](https://www.joinmira.ai/competitive-intelligence-software): category lander for startup CI tools
+- [Competitor pricing analysis](https://www.joinmira.ai/competitor-pricing-analysis): web + App Store / Play pricing analysis
+- [TAM SAM SOM](https://www.joinmira.ai/tam-sam-som): market sizing for founders
+- [Find SaaS competitors](https://www.joinmira.ai/find-saas-competitors): URL-driven competitor discovery
 - [About](https://www.joinmira.ai/about): company facts, founder, contact
 - [FAQ](https://www.joinmira.ai/faq): frequently asked questions
 - [App](https://www.joinmira.ai/app): signed-in workspace (auth required)

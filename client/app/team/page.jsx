@@ -2,13 +2,14 @@ import PublicDocShell from '../../components/PublicDocShell';
 import SimpleMarkdown from '../../components/SimpleMarkdown';
 import { teamBody } from '../../lib/publicPageCopy';
 import { AUTHOR, ORG } from '../../lib/geoContent';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'Team',
   description:
     'Mira team — founder Sam Karri, roles, and how to contact support@joinmira.ai for competitive intelligence software.',
-  alternates: { canonical: '/team' },
-};
+  path: '/team',
+});
 
 const EXTRA = `
 

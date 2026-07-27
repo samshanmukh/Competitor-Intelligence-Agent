@@ -1,12 +1,13 @@
 import ArchitecturePage from '../../components/ArchitecturePage';
 import SsrDocPreamble from '../../components/SsrDocPreamble';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'Architecture',
   description:
     'How Mira is built — Next.js on Vercel, InsForge auth/DB, Render intelligence API, You.com research, and OpenRouter extraction.',
-  alternates: { canonical: '/architecture' },
-};
+  path: '/architecture',
+});
 
 export default function ArchitectureRoute() {
   return (

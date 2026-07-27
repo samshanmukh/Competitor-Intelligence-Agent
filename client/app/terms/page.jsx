@@ -2,12 +2,14 @@ import PublicDocShell from '../../components/PublicDocShell';
 import SimpleMarkdown from '../../components/SimpleMarkdown';
 import { termsBody } from '../../lib/publicPageCopy';
 import { ORG } from '../../lib/geoContent';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'Terms of Service',
-  description: 'Terms of service for Mira competitive intelligence software at joinmira.ai.',
-  alternates: { canonical: '/terms' },
-};
+  description:
+    'Terms of service for Mira competitive intelligence software at joinmira.ai.',
+  path: '/terms',
+});
 
 export default function TermsPage() {
   return (

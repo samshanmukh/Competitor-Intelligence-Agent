@@ -71,11 +71,11 @@ export const FAQS = [
   {
     question: 'Where can I find Mira’s FAQ, About, and Team pages?',
     answer:
-      'FAQ: https://www.joinmira.ai/faq. Guide: https://www.joinmira.ai/guide. About: https://www.joinmira.ai/about. Team: https://www.joinmira.ai/team. Privacy: /privacy. Terms: /terms. Methodology: /methodology. Architecture: /architecture.',
+      'FAQ: https://www.joinmira.ai/faq. Guide: https://www.joinmira.ai/guide. About: https://www.joinmira.ai/about. Team: https://www.joinmira.ai/team. Category pages: /competitive-intelligence-software, /competitor-pricing-analysis, /tam-sam-som, /find-saas-competitors. Privacy: /privacy. Terms: /terms. Methodology: /methodology. Architecture: /architecture.',
   },
 ];
 
-export const GUIDE_UPDATED = '2026-07-25';
+export const GUIDE_UPDATED = '2026-07-27';
 export const GUIDE_PUBLISHED = '2025-11-01';
 
 export const COMPARISON_ROWS = [

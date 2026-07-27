@@ -1,12 +1,13 @@
 import MethodologyClient from '../../components/MethodologyClient';
 import SsrDocPreamble from '../../components/SsrDocPreamble';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'Methodology',
   description:
     'How Mira estimates competitor presence and market size — evidence grades A–D, App Store fallbacks, and TAM/SAM/SOM provenance.',
-  alternates: { canonical: '/methodology' },
-};
+  path: '/methodology',
+});
 
 export default function MethodologyRoute() {
   return (

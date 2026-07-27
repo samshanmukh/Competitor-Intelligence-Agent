@@ -28,12 +28,12 @@ export default function GeoGuide() {
             Founder guide · Last updated{' '}
             <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time>
           </p>
-          <h2
+          <h1
             className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl"
             itemProp="headline"
           >
             Competitive intelligence for founders: how Mira turns market signals into next moves
-          </h2>
+          </h1>
           <p
             id="mira-definition"
             className="mt-5 text-base leading-relaxed text-slate-300"

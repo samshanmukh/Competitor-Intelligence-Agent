@@ -2,12 +2,14 @@ import PublicDocShell from '../../components/PublicDocShell';
 import SimpleMarkdown from '../../components/SimpleMarkdown';
 import { privacyBody } from '../../lib/publicPageCopy';
 import { ORG } from '../../lib/geoContent';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'Privacy Policy',
-  description: 'Privacy policy for Mira (joinmira.ai) — how we handle account and product data.',
-  alternates: { canonical: '/privacy' },
-};
+  description:
+    'Privacy policy for Mira (joinmira.ai) — how we handle account and product data.',
+  path: '/privacy',
+});
 
 export default function PrivacyPage() {
   return (

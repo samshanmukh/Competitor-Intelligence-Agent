@@ -45,9 +45,9 @@ export default function SimpleMarkdown({ source }) {
 }
 
 function inline(text) {
-  // Split bold + bare URLs
+  // Split bold, markdown links, and bare URLs
   const parts = [];
-  const re = /(\*\*[^*]+\*\*|https?:\/\/[^\s)]+)/g;
+  const re = /(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s)]+)/g;
   let last = 0;
   let m;
   while ((m = re.exec(text))) {
@@ -59,6 +59,21 @@ function inline(text) {
           {token.slice(2, -2)}
         </strong>,
       );
+    } else if (token.startsWith('[')) {
+      const link = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (link) {
+        parts.push(
+          <a
+            key={`${m.index}-md`}
+            href={link[2]}
+            className="text-indigo-300 underline-offset-2 hover:underline"
+          >
+            {link[1]}
+          </a>,
+        );
+      } else {
+        parts.push(token);
+      }
     } else {
       parts.push(
         <a

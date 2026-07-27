@@ -1,12 +1,20 @@
 import LandingPage from '../components/LandingPage';
+import JsonLd from '../components/JsonLd';
+import { pageMetadata } from '../lib/seo';
 
-export const metadata = {
-  title: { absolute: 'Mira · Competitive and market intelligence for founders' },
+export const metadata = pageMetadata({
+  title: 'Mira',
+  absoluteTitle: 'Mira · Competitive and market intelligence for founders',
   description:
-    'Competitive and market intelligence for founders, turning business and competitor signals into decision support for the next move.',
-  alternates: { canonical: '/' },
-};
+    'Competitive and market intelligence for founders — discover competitors, analyze pricing (web + App Store / Play), size TAM/SAM/SOM, and get next-move decision support in about 2 minutes.',
+  path: '/',
+});
 
 export default function Home() {
-  return <LandingPage />;
+  return (
+    <>
+      <JsonLd pathname="/" />
+      <LandingPage />
+    </>
+  );
 }

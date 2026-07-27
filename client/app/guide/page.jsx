@@ -3,16 +3,22 @@ import GeoGuide from '../../components/GeoGuide';
 import JsonLd from '../../components/JsonLd';
 import Link from 'next/link';
 import BrandLogo from '../../components/BrandLogo';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+const GUIDE_META = pageMetadata({
   title: 'Competitive intelligence guide',
   description:
     'Founder guide to competitive and market intelligence — definitions, Mira vs enterprise CI tools, pricing research, TAM/SAM/SOM, and FAQ.',
-  alternates: { canonical: '/guide' },
+  path: '/guide',
+  type: 'article',
+});
+
+export const metadata = {
+  ...GUIDE_META,
   openGraph: {
-    type: 'article',
+    ...GUIDE_META.openGraph,
     publishedTime: '2025-11-01',
-    modifiedTime: '2026-07-25',
+    modifiedTime: '2026-07-27',
     authors: ['Sam Karri'],
   },
 };
@@ -28,6 +34,7 @@ export default function GuidePage() {
             <nav className="flex items-center gap-4 text-sm text-slate-400">
               <Link href="/faq" className="hover:text-white">FAQ</Link>
               <Link href="/about" className="hover:text-white">About</Link>
+              <Link href="/competitive-intelligence-software" className="hover:text-white">CI software</Link>
               <Link href="/" className="hover:text-white">Home</Link>
             </nav>
           </div>

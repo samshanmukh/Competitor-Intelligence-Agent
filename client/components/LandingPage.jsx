@@ -88,6 +88,12 @@ function PositioningMock() {
 export default function LandingPage() {
   const [authed, setAuthed] = useState(false);
   const reduceMotion = useReducedMotion();
+  // Never SSR opacity:0 on hero copy — crawlers treat it as empty text.
+  const [heroReady, setHeroReady] = useState(false);
+  useEffect(() => {
+    setHeroReady(true);
+  }, []);
+  const heroAnimate = heroReady && !reduceMotion;
   useEffect(() => {
     setAuthed(Boolean(typeof window !== 'undefined' && localStorage.getItem('cia_token')));
   }, []);
@@ -101,9 +107,9 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
             <a href="#features" className="transition hover:text-white">Features</a>
             <a href="#how" className="transition hover:text-white">How it works</a>
-            <a href="https://www.joinmira.ai/faq" className="transition hover:text-white">FAQ</a>
-            <a href="https://www.joinmira.ai/about" className="transition hover:text-white">About</a>
-            <a href="https://www.joinmira.ai/team" className="transition hover:text-white">Team</a>
+            <Link href="/guide" className="transition hover:text-white">Guide</Link>
+            <Link href="/faq" className="transition hover:text-white">FAQ</Link>
+            <Link href="/about" className="transition hover:text-white">About</Link>
           </nav>
           <div className="flex items-center gap-2">
             {authed ? (
@@ -175,18 +181,18 @@ export default function LandingPage() {
         <div className="mx-auto max-w-4xl px-5 pt-20 pb-14 text-center md:pt-28">
           <motion.a
             href="#why"
-            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            transition={reduceMotion ? undefined : { duration: 0.5, ease: EASE }}
+            initial={heroAnimate ? { opacity: 0, y: 10 } : false}
+            animate={heroAnimate ? { opacity: 1, y: 0 } : undefined}
+            transition={heroAnimate ? { duration: 0.5, ease: EASE } : undefined}
             className="inline-block text-xs font-medium uppercase tracking-[0.16em] text-slate-400 transition hover:text-slate-200"
           >
             Built around your business
           </motion.a>
 
           <motion.h1
-            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.06, ease: EASE }}
+            initial={heroAnimate ? { opacity: 0, y: 18 } : false}
+            animate={heroAnimate ? { opacity: 1, y: 0 } : undefined}
+            transition={heroAnimate ? { duration: 0.6, delay: 0.06, ease: EASE } : undefined}
             className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl md:text-7xl"
           >
             <span className="bg-gradient-to-r from-accent-soft via-indigo-300 to-violet-300 bg-clip-text text-transparent">Competitive and market intelligence</span>
@@ -194,9 +200,9 @@ export default function LandingPage() {
           </motion.h1>
 
           <motion.p
-            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.12, ease: EASE }}
+            initial={heroAnimate ? { opacity: 0, y: 18 } : false}
+            animate={heroAnimate ? { opacity: 1, y: 0 } : undefined}
+            transition={heroAnimate ? { duration: 0.6, delay: 0.12, ease: EASE } : undefined}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
             Mira turns business, market, and competitor signals into decision support in ~2 minutes:
@@ -204,9 +210,9 @@ export default function LandingPage() {
           </motion.p>
 
           <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            transition={reduceMotion ? undefined : { duration: 0.6, delay: 0.18, ease: EASE }}
+            initial={heroAnimate ? { opacity: 0, y: 18 } : false}
+            animate={heroAnimate ? { opacity: 1, y: 0 } : undefined}
+            transition={heroAnimate ? { duration: 0.6, delay: 0.18, ease: EASE } : undefined}
             className="mx-auto mt-9 max-w-3xl"
             id="get-started"
           >
@@ -238,9 +244,9 @@ export default function LandingPage() {
         {/* Product preview */}
         <div className="mx-auto max-w-5xl px-5 pb-20">
           <motion.div
-            initial={reduceMotion ? false : { opacity: 0, y: 40 }}
-            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-            transition={reduceMotion ? undefined : { duration: 0.8, delay: 0.24, ease: EASE }}
+            initial={heroAnimate ? { opacity: 0, y: 40 } : false}
+            animate={heroAnimate ? { opacity: 1, y: 0 } : undefined}
+            transition={heroAnimate ? { duration: 0.8, delay: 0.24, ease: EASE } : undefined}
             className="relative"
           >
             <div className="absolute -inset-x-10 -top-8 bottom-0 -z-10 rounded-[40px] bg-accent/10 blur-3xl" />
@@ -438,14 +444,18 @@ export default function LandingPage() {
           <BrandLogo href="/" height={28} />
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <Link href="/guide" className="transition hover:text-slate-300">Guide</Link>
-            <a href="https://www.joinmira.ai/faq" className="transition hover:text-slate-300">FAQ</a>
-            <a href="https://www.joinmira.ai/about" className="transition hover:text-slate-300">About</a>
-            <a href="https://www.joinmira.ai/team" className="transition hover:text-slate-300">Team</a>
-            <a href="https://www.joinmira.ai/contact" className="transition hover:text-slate-300">Contact</a>
+            <Link href="/competitive-intelligence-software" className="transition hover:text-slate-300">CI software</Link>
+            <Link href="/competitor-pricing-analysis" className="transition hover:text-slate-300">Pricing analysis</Link>
+            <Link href="/tam-sam-som" className="transition hover:text-slate-300">TAM/SAM/SOM</Link>
+            <Link href="/find-saas-competitors" className="transition hover:text-slate-300">Find competitors</Link>
+            <Link href="/faq" className="transition hover:text-slate-300">FAQ</Link>
+            <Link href="/about" className="transition hover:text-slate-300">About</Link>
+            <Link href="/team" className="transition hover:text-slate-300">Team</Link>
+            <Link href="/contact" className="transition hover:text-slate-300">Contact</Link>
             <Link href="/methodology" className="transition hover:text-slate-300">Methodology</Link>
             <Link href="/privacy" className="transition hover:text-slate-300">Privacy</Link>
             <Link href="/terms" className="transition hover:text-slate-300">Terms</Link>
-            <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">Contact</a>
+            <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">Email</a>
             {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
             {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}
           </div>

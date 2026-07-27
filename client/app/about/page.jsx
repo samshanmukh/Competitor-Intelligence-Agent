@@ -3,13 +3,14 @@ import PublicDocShell from '../../components/PublicDocShell';
 import SimpleMarkdown from '../../components/SimpleMarkdown';
 import { aboutBody } from '../../lib/publicPageCopy';
 import { AUTHOR, ORG, SITE_ORIGIN } from '../../lib/geoContent';
+import { pageMetadata } from '../../lib/seo';
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: 'About Mira',
   description:
     'About Mira AI — founding date, founder Sam Karri, mission, team links, and contact for competitive intelligence software.',
-  alternates: { canonical: '/about' },
-};
+  path: '/about',
+});
 
 const EXTRA = `
 

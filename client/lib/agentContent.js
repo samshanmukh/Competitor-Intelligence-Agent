@@ -12,6 +12,7 @@ import {
   ORG,
   SITE_ORIGIN as GEO_ORIGIN,
 } from './geoContent';
+import { getSeoLander } from './seoLanders';
 
 export const SITE_ORIGIN = GEO_ORIGIN;
 
@@ -58,6 +59,11 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
         `${SITE_ORIGIN}/about`,
         `${SITE_ORIGIN}/team`,
         `${SITE_ORIGIN}/faq`,
+        `${SITE_ORIGIN}/guide`,
+        `${SITE_ORIGIN}/competitive-intelligence-software`,
+        `${SITE_ORIGIN}/competitor-pricing-analysis`,
+        `${SITE_ORIGIN}/tam-sam-som`,
+        `${SITE_ORIGIN}/find-saas-competitors`,
         `${SITE_ORIGIN}/architecture`,
         `${SITE_ORIGIN}/methodology`,
       ],
@@ -274,6 +280,10 @@ ${FAQS.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
 ## Key public pages
 - [${SITE_ORIGIN}/](${SITE_ORIGIN}/) — product home
 - [${SITE_ORIGIN}/guide](${SITE_ORIGIN}/guide) — competitive intelligence guide (cornerstone)
+- [${SITE_ORIGIN}/competitive-intelligence-software](${SITE_ORIGIN}/competitive-intelligence-software) — CI software for startups
+- [${SITE_ORIGIN}/competitor-pricing-analysis](${SITE_ORIGIN}/competitor-pricing-analysis) — competitor pricing analysis
+- [${SITE_ORIGIN}/tam-sam-som](${SITE_ORIGIN}/tam-sam-som) — TAM / SAM / SOM
+- [${SITE_ORIGIN}/find-saas-competitors](${SITE_ORIGIN}/find-saas-competitors) — find SaaS competitors
 - [${SITE_ORIGIN}/about](${SITE_ORIGIN}/about) — company & contact
 - [${SITE_ORIGIN}/faq](${SITE_ORIGIN}/faq) — frequently asked questions
 - [${SITE_ORIGIN}/architecture](${SITE_ORIGIN}/architecture) — how Mira is built
@@ -351,6 +361,15 @@ Long-form founder guide: ${SITE_ORIGIN}/guide
 ${HOME_MD}
 `;
 
+function landerMarkdown(slug) {
+  const lander = getSeoLander(slug);
+  if (!lander) return null;
+  const body = lander.sections
+    .map((s) => `## ${s.heading}\n\n${s.body}`)
+    .join('\n\n');
+  return `# ${lander.h1}\n\n${lander.description}\n\n${body}\n\nSite: ${SITE_ORIGIN}/${slug}\n`;
+}
+
 export function getPageMarkdown(pathname) {
   const path = pathname === '' ? '/' : pathname;
   if (path === '/') return HOME_MD;
@@ -359,6 +378,11 @@ export function getPageMarkdown(pathname) {
   if (path === '/methodology') return METHODOLOGY_MD;
   if (path === '/about') return ABOUT_MD;
   if (path === '/faq') return FAQ_MD;
+  if (path.startsWith('/')) {
+    const slug = path.slice(1);
+    const md = landerMarkdown(slug);
+    if (md) return md;
+  }
   return null;
 }
 
