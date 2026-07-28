@@ -45,7 +45,7 @@ export default function AgentReadableSummary() {
           {' · /architecture · /methodology · /privacy · /terms'}
         </li>
         <li>Agent indexes: /llms.txt · /AGENTS.md · /.well-known/mcp/server-card.json</li>
-        <li>Guide updated: 2026-07-27 · FAQ entries: 10 · Schema: Organization, WebSite, Product, FAQPage, Article</li>
+        <li>Guide updated: 2026-07-27 · FAQ entries: 12 · Schema: Organization, WebSite, Product, FAQPage, Article</li>
         <li>Presence estimates are directional unless labeled as published analyst share (not % market share by default)</li>
         <li>This page: / (homepage cornerstone) · Full guide: /guide · FAQ: /faq · About: /about · Team: /team</li>
       </ul>

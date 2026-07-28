@@ -140,8 +140,9 @@ export default function LandingProductDocs() {
           <p className={p}>
             Early-stage teams often under-invest in competitive intelligence because traditional
             tools assume a dedicated research function — and multi-week analyst retainers can run{' '}
-            <strong className={strong}>$5,000–$25,000+</strong>. The cost of that gap shows up as
-            mistimed pricing, vague positioning, and feature roadmaps that chase anecdotes. A
+            <strong className={strong}>$5,000–$25,000+</strong> (often <strong className={strong}>$150–$400/hour</strong>{' '}
+            billed across <strong className={strong}>20–60 hours</strong>). The cost of that gap shows
+            up as mistimed pricing, vague positioning, and feature roadmaps that chase anecdotes. A
             lightweight CI loop answers four recurring questions: Who else solves this job? What do
             they charge? Where are we stronger or weaker on capabilities buyers notice? What should
             we do next this quarter?
@@ -244,6 +245,44 @@ export default function LandingProductDocs() {
             published as a public guide on{' '}
             <time dateTime={GUIDE_PUBLISHED}>{GUIDE_PUBLISHED}</time>.
           </p>
+          <dl className="mt-6 grid gap-3 text-[14px] leading-relaxed text-slate-400 sm:grid-cols-2">
+            <div>
+              <dt className="text-slate-500">Founding date</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">
+                <time dateTime={ORG.foundingDate}>{ORG.foundingDate}</time>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">First snapshot target</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">~2 min (~120 s)</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">vs. analyst sprint</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">~90%+ faster than ~40 hrs</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Watchlist default</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">5–12 rivals · 52×/year</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Consumer SaaS list prices</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">$0–$99/mo · annual −17% to −20%</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Illustrative TAM → SOM</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">$1B vs $10M (100×)</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Worked TAM / SAM / SOM</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">
+                $4.2B · $420M (10%) · $12.6M (3%)
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Evidence scale</dt>
+              <dd className="mt-0.5 font-medium text-slate-200">4 grades · 3 market layers</dd>
+            </div>
+          </dl>
 
           <h2 className={h2}>Core workflow inside Mira</h2>
           <ol className="mt-4 list-decimal space-y-3 pl-5 text-[15px] leading-[1.75] text-slate-400">
@@ -570,9 +609,9 @@ export default function LandingProductDocs() {
             <div className="mt-8 space-y-8">
               {FAQS.map((item) => (
                 <div key={item.question} itemScope itemType="https://schema.org/Question">
-                  <h3 className="text-base font-semibold text-slate-100" itemProp="name">
+                  <h2 className="text-base font-semibold text-slate-100 md:text-lg" itemProp="name">
                     {item.question}
-                  </h3>
+                  </h2>
                   <div itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
                     <p className="mt-2 text-[15px] leading-[1.75] text-slate-400" itemProp="text">
                       {item.answer}
@@ -581,6 +620,45 @@ export default function LandingProductDocs() {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section className="mt-16 border-t border-white/5 pt-10" aria-labelledby="company-contact">
+            <h2 id="company-contact" className="text-xl font-semibold tracking-tight text-slate-100">
+              Company and contact
+            </h2>
+            <p className={p}>
+              Organization: <strong className={strong}>{ORG.legalName}</strong> (brand:{' '}
+              {ORG.name}). Founded <time dateTime={ORG.foundingDate}>{ORG.foundingDate}</time>.
+              Founder: {AUTHOR.name}, {AUTHOR.jobTitle}. Website:{' '}
+              <a href={SITE_ORIGIN} className={a}>
+                {SITE_ORIGIN}
+              </a>
+              . Support email:{' '}
+              <a className={a} href={`mailto:${ORG.email}`}>
+                {ORG.email}
+              </a>
+              . Public pages:{' '}
+              <Link href="/about" className={a}>
+                About
+              </Link>
+              ,{' '}
+              <Link href="/team" className={a}>
+                Team
+              </Link>
+              ,{' '}
+              <Link href="/faq" className={a}>
+                FAQ
+              </Link>
+              ,{' '}
+              <Link href="/contact" className={a}>
+                Contact
+              </Link>
+              ,{' '}
+              <Link href="/guide" className={a}>
+                Guide
+              </Link>
+              .
+            </p>
           </section>
         </div>
       </div>

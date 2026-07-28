@@ -73,6 +73,16 @@ export const FAQS = [
     answer:
       'FAQ: https://www.joinmira.ai/faq. Guide: https://www.joinmira.ai/guide. About: https://www.joinmira.ai/about. Team: https://www.joinmira.ai/team. Category pages: /competitive-intelligence-software, /competitor-pricing-analysis, /tam-sam-som, /find-saas-competitors. Privacy: /privacy. Terms: /terms. Methodology: /methodology. Architecture: /architecture.',
   },
+  {
+    question: 'How many evidence grades does Mira use?',
+    answer:
+      'Four: A (official pricing / primary filings), B (App Store and Google Play listings), C (named secondary research), and D (triangulated models). Mira prefers A→B→C and labels D-grade presence as directional so it is never presented as audited % market share.',
+  },
+  {
+    question: 'What SLA should founders expect for a first Mira snapshot?',
+    answer:
+      'About 2 minutes (~120 seconds) after you paste a product URL — roughly 90%+ faster than a week-long (~40 hour) analyst sprint for the same founder questions. Support: support@joinmira.ai.',
+  },
 ];
 
 export const GUIDE_UPDATED = '2026-07-27';
