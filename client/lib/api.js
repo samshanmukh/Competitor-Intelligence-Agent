@@ -68,6 +68,84 @@ export const api = {
   demoPositioningMap: (pricingUrl) =>
     request('/demo/positioning-map', { method: 'POST', body: { pricingUrl } }),
 
+  /** Fast public landing demo (JSON). Prefer demoCompetitorsFastStream for progressive UI. */
+  demoCompetitorsFast: (url) =>
+    request('/demo/competitors-fast', { method: 'POST', body: { url } }),
+
+  /**
+   * Fast public landing demo (SSE). Calls onEvent(event, data) for:
+   * status | competitors | pricing | rival | done | error
+   */
+  demoCompetitorsFastStream: async (url, onEvent) => {
+    const headers = { 'Content-Type': 'application/json', Accept: 'text/event-stream' };
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/api/demo/competitors-fast/stream`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ url }),
+      });
+    } catch {
+      const err = new Error('Could not reach Mira AI. Check your connection and try again.');
+      err.code = 'NETWORK_ERROR';
+      throw err;
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      let data;
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
+      const err = new Error(data?.error || `Request failed (${res.status})`);
+      err.code = data?.code;
+      err.status = res.status;
+      throw err;
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) {
+      const err = new Error('Streaming not supported in this browser.');
+      err.code = 'NO_STREAM';
+      throw err;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let donePayload = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let sep;
+      while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        const raw = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+
+        let event = 'message';
+        let dataLine = '';
+        for (const line of raw.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) dataLine += line.slice(5).trim();
+        }
+        if (!dataLine) continue;
+
+        let data;
+        try { data = JSON.parse(dataLine); } catch { continue; }
+
+        if (event === 'error') {
+          const err = new Error(data?.error || 'Demo failed');
+          err.code = data?.code || 'ERROR';
+          throw err;
+        }
+        if (event === 'done') donePayload = data;
+        onEvent?.(event, data);
+      }
+    }
+
+    return donePayload;
+  },
+
   /** In-app analyst chat, Mira orchestrates; Pricing is auto-consulted when needed. */
   analystChat: (messages) =>
     request('/analyst/chat', { method: 'POST', body: { messages } }),

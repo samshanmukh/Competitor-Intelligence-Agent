@@ -24,6 +24,7 @@ import { sendPushToWorkspace } from '../services/push.js';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { METHODOLOGY } from '../services/marketInsights.js';
 import { buildDemoPositioningMap } from '../services/demoPositioningMap.js';
+import { buildDemoCompetitorsFast } from '../services/demoCompetitorsFast.js';
 
 const router = Router();
 
@@ -42,6 +43,16 @@ function allowDemoHit(ip) {
   row.count += 1;
   demoHits.set(key, row);
   return row.count <= max;
+}
+
+function demoClientIp(req) {
+  return req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
+    || req.socket?.remoteAddress
+    || 'unknown';
+}
+
+function sseWrite(res, event, data) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 // Small async wrapper so route handlers can throw.
@@ -90,13 +101,12 @@ router.get('/methodology', (_req, res) => {
  * Public landing demo — no auth.
  * Body: { pricingUrl }
  * Discovers competitors and returns entry price + value scores for a positioning map.
+ * (Slower full path; kept as fallback. Landing UI prefers /demo/competitors-fast.)
  */
 router.post(
   '/demo/positioning-map',
   wrap(async (req, res) => {
-    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
-      || req.socket?.remoteAddress
-      || 'unknown';
+    const ip = demoClientIp(req);
     if (!allowDemoHit(ip)) {
       return res.status(429).json({
         error: 'Demo limit reached for this hour. Create a free account for unlimited runs.',
@@ -115,6 +125,75 @@ router.post(
         code: err?.code || 'DEMO_FAILED',
       });
     }
+  })
+);
+
+/**
+ * Fast public landing demo — no auth. Target <20s.
+ * Body: { url | pricingUrl | productUrl }
+ * 1× webSearch + 1× Grok extract + 1× batched contents (+ optional Grok prices).
+ */
+router.post(
+  '/demo/competitors-fast',
+  wrap(async (req, res) => {
+    const ip = demoClientIp(req);
+    if (!allowDemoHit(ip)) {
+      return res.status(429).json({
+        error: 'Demo limit reached for this hour. Create a free account for unlimited runs.',
+        code: 'RATE_LIMITED',
+      });
+    }
+
+    const pricingUrl = req.body?.pricingUrl || req.body?.url || req.body?.productUrl;
+    try {
+      const result = await buildDemoCompetitorsFast(pricingUrl);
+      res.json(result);
+    } catch (err) {
+      const status = err?.code === 'INVALID_URL' ? 400 : 502;
+      res.status(status).json({
+        error: err?.message || 'Could not find competitors',
+        code: err?.code || 'DEMO_FAILED',
+      });
+    }
+  })
+);
+
+/**
+ * Fast public landing demo (SSE) — events: status, competitors, pricing|rival, done, error
+ */
+router.post(
+  '/demo/competitors-fast/stream',
+  wrap(async (req, res) => {
+    const ip = demoClientIp(req);
+    if (!allowDemoHit(ip)) {
+      return res.status(429).json({
+        error: 'Demo limit reached for this hour. Create a free account for unlimited runs.',
+        code: 'RATE_LIMITED',
+      });
+    }
+
+    const pricingUrl = req.body?.pricingUrl || req.body?.url || req.body?.productUrl;
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    try {
+      await buildDemoCompetitorsFast(pricingUrl, {
+        onEvent: async (event, data) => {
+          sseWrite(res, event, data);
+          if (typeof res.flush === 'function') res.flush();
+        },
+      });
+    } catch (err) {
+      sseWrite(res, 'error', {
+        error: err?.message || 'Could not find competitors',
+        code: err?.code || 'DEMO_FAILED',
+      });
+    }
+    res.end();
   })
 );
 

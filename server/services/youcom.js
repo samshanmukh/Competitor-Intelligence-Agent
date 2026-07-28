@@ -43,9 +43,18 @@ function enqueue(fn) {
   return run;
 }
 
-async function request(path, body, { timeoutMs = 120000, retries = MAX_RETRIES } = {}) {
+/**
+ * @param {string} path
+ * @param {object} body
+ * @param {{ timeoutMs?: number, retries?: number, skipQueue?: boolean }} [opts]
+ * skipQueue: for latency-sensitive demo paths — bypass MIN_INTERVAL spacing
+ * (and the shared queue wait) for this call only. Authenticated heavy jobs
+ * should keep the default (false).
+ */
+async function request(path, body, { timeoutMs = 120000, retries = MAX_RETRIES, skipQueue = false } = {}) {
   const key = apiKey();
-  return enqueue(async () => {
+
+  const run = async () => {
     let attempt = 0;
     while (true) {
       let res;
@@ -71,7 +80,7 @@ async function request(path, body, { timeoutMs = 120000, retries = MAX_RETRIES }
         clearTimeout(to);
       }
 
-      if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
         const retryAfter = Number(res.headers.get('retry-after'));
         const backoff = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 2 ** attempt * 1000;
         await sleep(backoff);
@@ -94,7 +103,17 @@ async function request(path, body, { timeoutMs = 120000, retries = MAX_RETRIES }
 
       return json;
     }
-  });
+  };
+
+  if (skipQueue) {
+    try {
+      return await run();
+    } finally {
+      lastCallAt = Date.now();
+    }
+  }
+
+  return enqueue(run);
 }
 
 /**
@@ -107,10 +126,17 @@ export async function research(query, { effort = 'standard' } = {}) {
 
 /**
  * Cheap web search (you-web) — faster than research / finance_research.
- * Tries POST /search; callers should fall back to research() if this fails.
+ * Tries POST /search; by default falls back to research() if search fails.
+ * Pass noResearchFallback: true for latency-sensitive demo paths that must
+ * never call research().
  * Returns a normalized { text, sources: [{title,url,snippet}] }.
  */
-export async function webSearch(query, { count = 8 } = {}) {
+export async function webSearch(query, {
+  count = 8,
+  timeoutMs = 25000,
+  skipQueue = false,
+  noResearchFallback = false,
+} = {}) {
   const q = String(query || '').trim();
   if (!q) return { text: '', sources: [] };
 
@@ -118,7 +144,7 @@ export async function webSearch(query, { count = 8 } = {}) {
     const json = await request(
       '/search',
       { query: q, count },
-      { timeoutMs: 25000, retries: 1 }
+      { timeoutMs, retries: 1, skipQueue }
     );
     const raw = json?.results;
     const hits = Array.isArray(raw)
@@ -144,7 +170,13 @@ export async function webSearch(query, { count = 8 } = {}) {
     }
     const text = parts.join('\n').trim();
     if (text || sources.length) return { text, sources: sources.slice(0, count), engine: 'youcom-search' };
-  } catch {
+    if (noResearchFallback) return { text: '', sources: [], engine: 'youcom-search' };
+  } catch (err) {
+    if (noResearchFallback) {
+      const empty = new Error(err?.message || 'webSearch failed');
+      empty.code = err?.code || 'SEARCH_FAILED';
+      throw empty;
+    }
     /* fall through to research lite */
   }
 
@@ -212,8 +244,10 @@ function htmlToText(html) {
  * Contents API — fetch clean text for one or more URLs.
  * Returns a map of { url -> { markdown, error } }.
  * (field kept as `markdown` for backwards compat with callers)
+ * @param {string|string[]} urls
+ * @param {{ skipQueue?: boolean, timeoutMs?: number }} [opts]
  */
-export async function fetchContents(urls) {
+export async function fetchContents(urls, { skipQueue = false, timeoutMs = 120000 } = {}) {
   const list = Array.isArray(urls) ? urls : [urls];
 
   const map = {};
@@ -221,7 +255,7 @@ export async function fetchContents(urls) {
 
   // 1) Try the You.com Contents API (don't let a failure block the Apify fallback).
   try {
-    const json = await request('/contents', { urls: list });
+    const json = await request('/contents', { urls: list }, { skipQueue, timeoutMs, retries: skipQueue ? 1 : MAX_RETRIES });
     const results = Array.isArray(json) ? json : json.results || json.contents || json.data || [];
     for (const item of results) {
       const url = item.url || item.source || item.link;
