@@ -267,11 +267,15 @@ function ProductStage({ product, onSaved, compact }) {
     if (!form.pricing_url) return;
     setInferring(true);
     try {
-      const { description } = await api.inferProduct(form.pricing_url);
-      if (description) setForm((f) => ({ ...f, description }));
-      toast({ type: 'success', title: 'Read your site' });
+      const { name, description } = await api.inferProduct(form.pricing_url);
+      setForm((f) => ({
+        ...f,
+        ...(name && !f.name.trim() ? { name } : {}),
+        ...(description ? { description } : {}),
+      }));
+      toast({ type: 'success', title: 'Found your product' });
     } catch (err) {
-      toast({ type: 'error', title: 'Could not read URL', message: err.message });
+      toast({ type: 'error', title: 'Could not find company info', message: err.message });
     } finally {
       setInferring(false);
     }

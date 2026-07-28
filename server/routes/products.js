@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { getProduct, upsertProduct } from '../db/products.js';
-import { inferMarketFromUrl } from '../agents/discoveryAgent.js';
+import { inferProductFromUrl } from '../agents/discoveryAgent.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -19,13 +19,14 @@ router.post('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   res.json({ product });
 }));
 
-// Read a product URL and infer a market description (used for the optional auto-fill).
+// Search-first company identity from a product URL (sparkle auto-fill).
+// WebSearch is the source of truth; does not depend on Contents/SPA scrapes.
 router.post('/infer', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const { url } = req.body || {};
   if (!url) return res.status(400).json({ error: 'url required' });
   const normalized = /^https?:\/\//i.test(url) ? url : `https://${url.replace(/^\/+/, '')}`;
-  const description = await inferMarketFromUrl(normalized);
-  res.json({ description });
+  const { name, description, source } = await inferProductFromUrl(normalized);
+  res.json({ name, description, source });
 }));
 
 export default router;

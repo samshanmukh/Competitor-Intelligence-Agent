@@ -338,19 +338,18 @@ export function markdownFromSearchSources(url, sources = []) {
 }
 
 /**
- * Cheap search about a URL/hostname when Contents + direct fetch return SPA stubs.
- * Uses /search only — never falls through to research().
+ * Company-identity lookup via You.com webSearch (source of truth for "what is this company?").
+ * Uses /search only — never falls through to research(). Prefer same-host title/snippets.
  */
-async function searchAboutUrl(url, {
+export async function searchAboutUrl(url, {
   timeoutMs = 15000,
   skipQueue = false,
   count = 6,
 } = {}) {
-  const host = hostnameOf(url);
-  const query = host
-    ? `${url} OR site:${host}`
-    : String(url || '').trim();
-  if (!query) return { markdown: null, error: 'Empty search query' };
+  const normalized = String(url || '').trim();
+  // Match You.com playground: "find something about https://…"
+  const query = normalized ? `find something about ${normalized}` : '';
+  if (!query) return { markdown: null, sources: [], error: 'Empty search query' };
 
   try {
     const hit = await webSearch(query, {
@@ -363,12 +362,38 @@ async function searchAboutUrl(url, {
     const text = markdownFromSearchSources(url, hit.sources)
       || String(hit.text || '').trim();
     if (!isThinText(text)) {
-      return { markdown: text, error: null, source: 'youcom-search' };
+      return {
+        markdown: text,
+        sources: hit.sources || [],
+        error: null,
+        source: 'youcom-search',
+      };
     }
-    return { markdown: null, error: 'Web search returned no usable product details' };
+    return {
+      markdown: null,
+      sources: hit.sources || [],
+      error: 'Web search returned no usable product details',
+    };
   } catch (err) {
-    return { markdown: null, error: err?.message || 'Web search failed' };
+    return {
+      markdown: null,
+      sources: [],
+      error: err?.message || 'Web search failed',
+    };
   }
+}
+
+/**
+ * Rare last-resort HTML fetch for company identity when search returns nothing.
+ * Not the primary path — SPA marketing sites are better served by webSearch.
+ */
+export async function directFetchPageText(url, { timeoutMs = DIRECT_FETCH_TIMEOUT_MS } = {}) {
+  const html = await directFetchHtml(url, { timeoutMs });
+  const text = htmlToText(html);
+  if (isThinText(text)) {
+    return { markdown: null, error: 'Could not extract readable content from URL' };
+  }
+  return { markdown: text, error: null, source: 'direct' };
 }
 
 /** True when Contents returned a bot/SPA stub (empty body, generic title). */
@@ -483,24 +508,22 @@ async function mapPool(items, concurrency, worker) {
 }
 
 /**
- * Contents API — fetch clean text for one or more URLs.
- * Returns a map of { url -> { markdown, error, source? } }.
- * (field kept as `markdown` for backwards compat with callers)
+ * Contents API — fetch clean page body text for one or more URLs.
+ * Use this for pricing/feature page scrapes (dollars, plan tables), not company identity.
  *
- * Resilience for modern marketing sites:
- *   1) You.com Contents
- *   2) Meta/og/title salvage from returned HTML
- *   3) Direct browser-UA HTML fetch when Contents returns an empty SPA shell
- *   4) You.com webSearch about the URL/hostname (title + snippets) — no research()
+ * Company identity ("what is this product?") belongs on searchAboutUrl / webSearch.
+ *
+ * Resilience for page-body scrapes:
+ *   1) You.com Contents (+ meta/og salvage from returned HTML)
+ *   2) Rare direct browser-UA HTML fetch when Contents returns an empty SPA shell
  *
  * @param {string|string[]} urls
- * @param {{ skipQueue?: boolean, timeoutMs?: number, allowDirectFetch?: boolean, allowSearchFallback?: boolean }} [opts]
+ * @param {{ skipQueue?: boolean, timeoutMs?: number, allowDirectFetch?: boolean }} [opts]
  */
 export async function fetchContents(urls, {
   skipQueue = false,
   timeoutMs = 120000,
   allowDirectFetch = true,
-  allowSearchFallback = true,
 } = {}) {
   const list = Array.isArray(urls) ? urls : [urls];
 
@@ -542,7 +565,7 @@ export async function fetchContents(urls, {
     }
   }
 
-  // 2) Direct fetch fallback for empty / SPA-shell results only.
+  // 2) Rare direct fetch for empty / SPA-shell page bodies (pricing scrapes).
   if (allowDirectFetch) {
     const needFallback = list.filter((url) => isThinText(map[url]?.markdown));
     if (needFallback.length) {
@@ -573,35 +596,6 @@ export async function fetchContents(urls, {
     }
   }
 
-  // 3) WebSearch about URL/hostname when Contents + direct fetch are still thin.
-  //    Search often has title/description for SPAs that return empty crawler shells.
-  if (allowSearchFallback) {
-    const needSearch = list.filter((url) => isThinText(map[url]?.markdown));
-    if (needSearch.length) {
-      const searchTimeout = Math.min(15000, Math.max(6000, timeoutMs));
-      await mapPool(needSearch, Math.min(2, DIRECT_FETCH_CONCURRENCY), async (url) => {
-        const prior = map[url]?.error;
-        const found = await searchAboutUrl(url, {
-          timeoutMs: searchTimeout,
-          skipQueue,
-          count: 6,
-        });
-        if (!isThinText(found.markdown)) {
-          map[url] = {
-            markdown: found.markdown,
-            error: null,
-            source: found.source || 'youcom-search',
-          };
-        } else if (!map[url].markdown) {
-          map[url] = {
-            markdown: null,
-            error: prior || found.error || 'Could not extract readable content from URL',
-          };
-        }
-      });
-    }
-  }
-
   return map;
 }
 
@@ -609,6 +603,8 @@ export const youcom = {
   research,
   fetchContents,
   webSearch,
+  searchAboutUrl,
+  directFetchPageText,
   financeResearch,
   flattenYouPayload,
   htmlToText,

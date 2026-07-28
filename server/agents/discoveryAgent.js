@@ -2,34 +2,110 @@
 // structured list of candidate competitors with pricing page URLs.
 //
 // Flow:
-//   1. (optional) If a product URL is given, fetch it and let Grok infer the market.
+//   1. (optional) If a product URL is given, webSearch for company identity
+//      (title/snippets), then Grok → name + market description. Contents is
+//      NOT used for identity — only for later pricing-page scrapes.
 //   2. Query the You.com Research API for competitors with pricing pages.
 //   3. Use Grok to extract clean, structured {name, website, pricing_url, notes}.
 
-import { research, fetchContents } from '../services/youcom.js';
-import { complete, completeJSON } from '../services/ai.js';
+import { research, searchAboutUrl, directFetchPageText } from '../services/youcom.js';
+import { completeJSON } from '../services/ai.js';
 import { findStoreUrls, fetchAppStoreIapText, isStoreUrl } from '../services/storePricing.js';
 
 const EXTRACT_SYSTEM = `You are a market research analyst. You extract structured competitor data from web research.
 Return ONLY valid JSON. Never invent URLs — only use URLs present in the provided research text.`;
 
+const IDENTITY_SYSTEM = `You extract a product/company identity from web search results.
+Return ONLY valid JSON: { "name": string, "description": string }.
+- name: short product or company name (not a full sentence)
+- description: 1-2 sentences on what it does, category, and target user
+Use only facts present in the evidence. If the name is unclear, use the best short label from the title.`;
+
 /**
- * Infer a concise market description from a product website's content.
+ * Search-first company identity for a product URL.
+ * Primary: You.com webSearch about the URL. Rare last resort: direct HTML meta.
+ * Returns { name, description, source }.
  */
-export async function inferMarketFromUrl(productUrl) {
-  const contents = await fetchContents([productUrl]);
-  const md = contents[productUrl]?.markdown;
-  if (!md) {
+export async function inferProductFromUrl(productUrl) {
+  const url = String(productUrl || '').trim();
+  if (!url) throw new Error('Product URL required');
+
+  let evidence = '';
+  let source = null;
+  let searchError = null;
+
+  const found = await searchAboutUrl(url, {
+    skipQueue: true,
+    timeoutMs: 15000,
+    count: 6,
+  });
+  if (found.markdown) {
+    evidence = found.markdown;
+    source = found.source || 'youcom-search';
+  } else {
+    searchError = found.error;
+  }
+
+  // Rare last resort only — do not block identity on Contents/SPA scrapes.
+  if (!evidence) {
+    try {
+      const direct = await directFetchPageText(url, { timeoutMs: 12000 });
+      if (direct.markdown) {
+        evidence = direct.markdown;
+        source = direct.source || 'direct';
+      }
+    } catch {
+      /* keep search error */
+    }
+  }
+
+  if (!evidence) {
     throw new Error(
-      contents[productUrl]?.error || `Could not read ${productUrl} (the site may block scrapers).`
+      searchError
+        || `Could not find company info for ${url}. Try another URL or describe the product manually.`
     );
   }
-  const summary = await complete({
-    system: 'You summarize what a company does in one or two sentences for competitor research.',
-    user: `Here is the markdown of a company's website. In 1-2 sentences, describe the product/market so I can find competitors. Be specific about the category and target user.\n\n${md.slice(0, 8000)}`,
-    maxTokens: 200,
-  });
-  return summary.trim();
+
+  let name = '';
+  let description = '';
+  try {
+    const extracted = await completeJSON({
+      system: IDENTITY_SYSTEM,
+      user: `Product URL: ${url}\n\nSearch / page evidence:\n${evidence.slice(0, 6000)}`,
+      maxTokens: 300,
+    });
+    name = String(extracted?.name || '').trim();
+    description = String(extracted?.description || '').trim();
+  } catch {
+    /* fall through to title/snippet heuristic */
+  }
+
+  if (!description) {
+    // Heuristic: first non-URL line as title, second as blurb.
+    const lines = evidence.split('\n').map((l) => l.trim()).filter(Boolean)
+      .filter((l) => !/^https?:\/\//i.test(l));
+    const title = lines[0] || '';
+    const blurb = lines.find((l, i) => i > 0 && l.length > 40) || lines.slice(1).join(' ');
+    if (!name && title) {
+      name = title.split(/[–—|:·-]/)[0].trim().slice(0, 80);
+    }
+    description = [title, blurb].filter(Boolean).join(' — ').slice(0, 500);
+  }
+
+  if (!description) {
+    throw new Error(`Could not find company info for ${url}. Try another URL or describe the product manually.`);
+  }
+
+  return { name: name || null, description, source, evidence };
+}
+
+/**
+ * Infer a concise market description from a product URL (search-first).
+ * Kept for discoverCompetitors and older callers that expect a string.
+ */
+export async function inferMarketFromUrl(productUrl) {
+  const { description } = await inferProductFromUrl(productUrl);
+  return description;
 }
 
 /**
@@ -255,4 +331,4 @@ function joinUrl(base, path) {
   }
 }
 
-export const discoveryAgent = { discoverCompetitors, inferMarketFromUrl };
+export const discoveryAgent = { discoverCompetitors, inferMarketFromUrl, inferProductFromUrl };

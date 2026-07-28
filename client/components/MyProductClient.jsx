@@ -25,12 +25,16 @@ export default function MyProductClient() {
     if (!form.pricing_url) return;
     setExtracting(true);
     try {
-      // Use the discover endpoint to extract product info from the URL
-      const { market } = await api.discover({ productUrl: form.pricing_url });
-      if (market) setForm((f) => ({ ...f, description: market }));
-      toast({ type: 'success', title: 'Extracted info from URL' });
+      // Search-first company identity (same path as Analysis sparkle).
+      const { name, description } = await api.inferProduct(form.pricing_url);
+      setForm((f) => ({
+        ...f,
+        ...(name && !f.name.trim() ? { name } : {}),
+        ...(description ? { description } : {}),
+      }));
+      toast({ type: 'success', title: 'Found your product' });
     } catch (err) {
-      toast({ type: 'error', title: 'Extraction failed', message: err.message });
+      toast({ type: 'error', title: 'Could not find company info', message: err.message });
     } finally {
       setExtracting(false);
     }
