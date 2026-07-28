@@ -450,6 +450,8 @@ export default function LandingPage() {
             <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <a href="#features" className="transition hover:text-slate-300">Features</a>
+            <a href="#how" className="transition hover:text-slate-300">How it works</a>
             <Link href="/guide" className="transition hover:text-slate-300">Product guide</Link>
             <Link href="/competitive-intelligence-software" className="transition hover:text-slate-300">CI software</Link>
             <Link href="/competitor-pricing-analysis" className="transition hover:text-slate-300">Pricing analysis</Link>
