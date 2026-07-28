@@ -10,6 +10,7 @@ const {
   buildCompetitorQueries,
   rivalEvidenceLooksUseful,
   knownWebsiteForName,
+  scrapeEntryPrice,
 } = __demoFastInternals;
 
 describe('demoCompetitorsFast identity helpers', () => {
@@ -78,5 +79,25 @@ describe('demoCompetitorsFast identity helpers', () => {
     assert.equal(knownWebsiteForName('Bolt.new'), 'https://bolt.new');
     assert.equal(knownWebsiteForName('Replit Agent'), 'https://replit.com');
     assert.equal(knownWebsiteForName('v0'), 'https://v0.dev');
+  });
+
+  it('scrapeEntryPrice keeps $/mo billed annually and converts periods', () => {
+    // Do not divide "$19.99/mo billed annually" by 12 again.
+    assert.equal(
+      scrapeEntryPrice('Turbo $19.99/mo billed annually'),
+      19.99
+    );
+    assert.equal(
+      scrapeEntryPrice('weekly $17.99/week monthly $39.99 quarterly $89.99/3mo'),
+      30 // 89.99/3
+    );
+    assert.equal(
+      scrapeEntryPrice(
+        'Jobright Free $0. Turbo weekly $14.99–$17.99/week; monthly $29.99–$39.99; quarterly $69.99–$89.99/3mo; annual $19.99/mo billed annually.'
+      ),
+      19.99
+    );
+    assert.equal(scrapeEntryPrice('Free plan $0 forever'), 0);
+    assert.equal(scrapeEntryPrice('No dollars here'), null);
   });
 });

@@ -21,7 +21,7 @@ const WALL_MS = 19000;
 const SEARCH_TIMEOUT_MS = 6500;
 const RESEARCH_LITE_TIMEOUT_MS = 8000;
 const MAX_RIVALS = 4;
-const CACHE_PREFIX = 'demo:fast:v5:';
+const CACHE_PREFIX = 'demo:fast:v6:';
 
 /** Well-known product domains so named peers plot even when search only cites listicles. */
 const KNOWN_PRODUCT_DOMAINS = {
@@ -96,44 +96,76 @@ function setCached(key, payload) {
 }
 
 /**
- * Prefer the lowest plausible monthly entry price from markdown/snippets.
- * Returns a number (USD/mo) or null.
+ * Prefer the lowest plausible paid monthly entry price from markdown/snippets.
+ * Converts weekly×4.33, quarterly÷3, yearly÷12. Keeps "$X/mo billed annually" as X
+ * (do not divide again). Returns 0 only when Free/$0 is present and no paid tier.
  */
 export function scrapeEntryPrice(markdown) {
   const text = String(markdown || '');
   if (!text.trim()) return null;
 
-  const prices = [];
+  const paid = [];
+  let hasFree = /\bfree\b(?:\s+(?:plan|tier|forever|version))?|\b\$\s*0(?:\.0+)?\b/i.test(text);
+
   const re = /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)/g;
   let m;
   while ((m = re.exec(text)) !== null) {
     const amount = Number(String(m[1]).replace(/,/g, ''));
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 50000) continue;
+    if (!Number.isFinite(amount) || amount < 0 || amount > 50000) continue;
+    if (amount === 0) {
+      hasFree = true;
+      continue;
+    }
 
-    const after = text.slice(m.index, m.index + m[0].length + 48).toLowerCase();
+    // Tight suffix so the next plan's label ("… $39.99 quarterly $89…") does not
+    // attach to this amount. For ranges ("$14.99–$17.99/week"), inherit the
+    // period from after the range end.
+    const rawSuffix = text.slice(m.index + m[0].length, m.index + m[0].length + 36).toLowerCase();
+    const rangeSkip = rawSuffix.match(/^\s*[-–—]\s*\$?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?/);
+    const suffix = rangeSkip ? rawSuffix.slice(rangeSkip[0].length) : rawSuffix;
+    const billedTail = text.slice(m.index + m[0].length, m.index + m[0].length + 48).toLowerCase();
     const before = text.slice(Math.max(0, m.index - 40), m.index).toLowerCase();
-    const ctx = `${before} ${after}`;
+    const ctx = `${before} ${suffix}`;
 
     if (/\/\s*user|per\s+seat|seat|employee|mau|credit/i.test(ctx) && !/\/\s*mo|month|\/mo\b/i.test(ctx)) {
       if (!/month|\/\s*mo|\/mo\b|billed/i.test(ctx)) continue;
     }
 
+    // Period labels must sit on this price (suffix, or immediately before).
+    const labeledMonthly = /^\s*(\/\s*mo\b|\/mo\b|per\s+month|\/month|\ba month\b)/i.test(suffix)
+      || /\b(monthly|per\s+month)\s*[-–:]?\s*$/i.test(before);
+    const labeledWeekly = /^\s*(\/\s*wk|\/\s*week|per\s+week|\ba week\b)/i.test(suffix)
+      || /\b(weekly|per\s+week)\s*[-–:]?\s*$/i.test(before);
+    const labeledQuarterly = /^\s*(\/\s*3\s*mo|per\s+quarter|\/quarter|every\s+3\s+months|\/\s*3\s*months)/i.test(suffix)
+      || /\b(quarterly|per\s+quarter)\s*[-–:]?\s*$/i.test(before);
+    // Yearly *amount* only — not "billed annually" on an already-monthly figure.
+    const labeledYearlyAmount = (
+      /^\s*(\/\s*yr\b|\/\s*year|per\s+year|\/year\b|\/yr\b|\ba year\b)/i.test(suffix)
+      || (
+        /\b(yearly|annual)\s*(?:price|fee|cost|plan|subscription)?\s*[-–:]?\s*$/i.test(before)
+        && !labeledMonthly
+        && !/\bbilled\s+annual/i.test(billedTail)
+      )
+    );
+
     let monthly = amount;
-    if (/\/\s*yr|\/\s*year|per\s+year|annually|\/year\b/i.test(after) || /\/yr\b/i.test(after)) {
-      monthly = Math.round((amount / 12) * 100) / 100;
-    } else if (/\/\s*wk|\/\s*week|per\s+week|weekly/i.test(after)) {
+    if (labeledWeekly) {
       monthly = Math.round((amount * 4.33) * 100) / 100;
-    } else if (/\/\s*mo|\/mo\b|per\s+month|monthly|\/month/i.test(after)) {
-      monthly = amount;
-    } else if (amount >= 200 && /year|annual|billed yearly/i.test(ctx)) {
+    } else if (labeledQuarterly) {
+      monthly = Math.round((amount / 3) * 100) / 100;
+    } else if (labeledYearlyAmount) {
       monthly = Math.round((amount / 12) * 100) / 100;
+    } else {
+      // Monthly label, "billed annually", or bare SaaS-looking amount.
+      monthly = amount;
     }
 
-    if (monthly > 0 && monthly <= 2000) prices.push(monthly);
+    if (monthly > 0 && monthly <= 2000) paid.push(monthly);
   }
 
-  if (!prices.length) return null;
-  return Math.min(...prices);
+  if (paid.length) return Math.min(...paid);
+  if (hasFree) return 0;
+  return null;
 }
 
 /**
@@ -365,7 +397,7 @@ function mergeRivals(primary, fallback, host) {
       website: originOf(website) || website,
       pricing_url: normalizeUrl(r.pricing_url) || originOf(website) || website,
       ...(statement ? { statement } : {}),
-      ...(entry != null && entry > 0 && entry <= 2000 ? { entry_price: Math.round(entry * 100) / 100 } : {}),
+      ...(entry != null && entry >= 0 && entry <= 2000 ? { entry_price: Math.round(entry * 100) / 100 } : {}),
     });
     if (out.length >= MAX_RIVALS) break;
   }
@@ -602,7 +634,7 @@ ${String(searchText || '').slice(0, 9000)}`,
       );
       const p = r?.entry_price;
       const n = typeof p === 'number' ? p : Number(p);
-      const entry_price = Number.isFinite(n) && n > 0 && n <= 2000 ? Math.round(n * 100) / 100 : null;
+      const entry_price = Number.isFinite(n) && n >= 0 && n <= 2000 ? Math.round(n * 100) / 100 : null;
       const scraped = entry_price ?? scrapeEntryPrice([r?.statement, r?.notes, r?.pricing].filter(Boolean).join(' '));
       return {
         name,
@@ -618,66 +650,117 @@ ${String(searchText || '').slice(0, 9000)}`,
   return { rivals };
 }
 
+function escapeRegExp(s) {
+  return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function priceChunksNearTarget(text, { name, host }) {
+  const chunks = [];
+  if (name) {
+    const re = new RegExp(`.{0,100}\\b${escapeRegExp(name)}\\b.{0,180}`, 'gi');
+    let m;
+    while ((m = re.exec(text)) !== null && chunks.length < 4) chunks.push(m[0]);
+  }
+  if (host) {
+    const reH = new RegExp(`.{0,80}${escapeRegExp(host)}.{0,140}`, 'gi');
+    let mh;
+    while ((mh = reH.exec(text)) !== null && chunks.length < 6) chunks.push(mh[0]);
+  }
+  return chunks;
+}
+
+async function runPriceSearch(query, remainingMs) {
+  const budget = Math.min(SEARCH_TIMEOUT_MS, Math.max(2000, remainingMs() - 600));
+  const hit = await withTimeout(
+    webSearch(query, {
+      count: 10,
+      timeoutMs: budget,
+      skipQueue: true,
+      noResearchFallback: true,
+    }),
+    budget + 400,
+    'priceSearch'
+  );
+  let text = flattenYouPayload(hit) || hit?.text || '';
+  for (const s of hit?.sources || []) {
+    text += `\n${s.title || ''} ${s.snippet || ''}`;
+  }
+  return text;
+}
+
 /**
- * Optional snippet-only price pass: one webSearch for "X pricing" of unpriced peers.
- * Avoids Contents entirely.
+ * Snippet-only price pass (no Contents — SPAs often have no public /pricing page).
+ * Uses the You.com-winning query shape: `what is {url} prices`, plus a small
+ * rival batch when wall-clock allows.
  */
 async function enrichPricesFromSearch({ you, rivals, remainingMs }) {
-  const targets = [
-    { key: 'you', name: you.name, host: hostnameOf(you.website || you.url), current: you.entry_price },
-    ...rivals.map((r, i) => ({
+  const youUnpriced = you?.entry_price == null;
+  const rivalTargets = rivals
+    .map((r, i) => ({
       key: `rival:${i}`,
       name: r.name,
       host: hostnameOf(r.website),
       current: r.entry_price,
-    })),
-  ].filter((t) => t.current == null && t.name);
+    }))
+    .filter((t) => t.current == null && t.name);
 
-  if (!targets.length || remainingMs() < 2500) {
+  if ((!youUnpriced && !rivalTargets.length) || remainingMs() < 2500) {
     return { youPrice: you.entry_price, rivalPrices: {} };
   }
 
-  // One combined query covering a few names — stays inside the wall clock.
-  const names = targets.slice(0, 3).map((t) => t.name).join(' OR ');
-  const query = `(${names}) pricing plans cost subscription $/mo`;
-  let text = '';
-  try {
-    const budget = Math.min(SEARCH_TIMEOUT_MS, Math.max(2000, remainingMs() - 800));
-    const hit = await withTimeout(
-      webSearch(query, {
-        count: 10,
-        timeoutMs: budget,
-        skipQueue: true,
-        noResearchFallback: true,
-      }),
-      budget + 400,
-      'priceSearch'
-    );
-    text = flattenYouPayload(hit) || hit?.text || '';
-    for (const s of hit?.sources || []) {
-      text += `\n${s.title || ''} ${s.snippet || ''}`;
-    }
-  } catch {
-    return { youPrice: you.entry_price, rivalPrices: {} };
-  }
-
-  const rivalPrices = {};
   let youPrice = you.entry_price;
-  for (const t of targets) {
-    // Find a window of text near the company name/host and scrape a price.
-    const re = new RegExp(`.{0,80}\\b${t.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b.{0,120}`, 'gi');
-    const chunks = [];
-    let m;
-    while ((m = re.exec(text)) !== null && chunks.length < 3) chunks.push(m[0]);
-    if (t.host) {
-      const reH = new RegExp(`.{0,60}${t.host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.{0,100}`, 'gi');
-      let mh;
-      while ((mh = reH.exec(text)) !== null && chunks.length < 5) chunks.push(mh[0]);
-    }
-    const price = scrapeEntryPrice(chunks.join(' ') || '');
-    if (price == null) continue;
-    if (t.key === 'you') youPrice = price;
-    else rivalPrices[t.key] = price;
+  const rivalPrices = {};
+
+  const jobs = [];
+
+  // Primary product: dedicated URL pricing query (matches ChatGPT/You.com).
+  if (youUnpriced) {
+    const youUrl = normalizeUrl(you.url) || normalizeUrl(you.website) || normalizeUrl(you.pricing_url);
+    const youQuery = youUrl
+      ? `what is ${youUrl} prices`
+      : `${you.name} pricing plans`;
+    jobs.push(
+      runPriceSearch(youQuery, remainingMs)
+        .then((text) => {
+          // Query is scoped to this product — scrape the full hit set first.
+          let price = scrapeEntryPrice(text);
+          if (price == null) {
+            price = scrapeEntryPrice(
+              priceChunksNearTarget(text, {
+                name: you.name,
+                host: hostnameOf(youUrl || you.website),
+              }).join(' ')
+            );
+          }
+          if (price != null) youPrice = price;
+        })
+        .catch(() => {})
+    );
+  }
+
+  // Rivals: one combined query when there is still budget after/parallel with you.
+  if (rivalTargets.length && remainingMs() > 3200) {
+    const slice = rivalTargets.slice(0, 3);
+    const names = slice.map((t) => t.name).join(' OR ');
+    const rivalQuery = `(${names}) pricing plans cost subscription`;
+    jobs.push(
+      runPriceSearch(rivalQuery, remainingMs)
+        .then((text) => {
+          for (const t of slice) {
+            const price = scrapeEntryPrice(priceChunksNearTarget(text, t).join(' '));
+            if (price != null) rivalPrices[t.key] = price;
+          }
+        })
+        .catch(() => {})
+    );
+  }
+
+  if (!jobs.length) return { youPrice, rivalPrices };
+
+  try {
+    await withTimeout(Promise.all(jobs), Math.min(9000, Math.max(2500, remainingMs() - 200)), 'priceSearchAll');
+  } catch {
+    /* partial results kept */
   }
 
   return { youPrice, rivalPrices };

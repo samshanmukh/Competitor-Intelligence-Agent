@@ -5,9 +5,10 @@
  */
 
 import { discoverCompetitors } from '../agents/discoveryAgent.js';
-import { fetchContents } from './youcom.js';
+import { fetchContents, webSearch, flattenYouPayload } from './youcom.js';
 import { completeJSON } from './ai.js';
 import { enrichWithStorePricing } from './storePricing.js';
+import { scrapeEntryPrice } from './demoCompetitorsFast.js';
 
 const MAX_RIVALS = 6;
 
@@ -88,9 +89,47 @@ async function enrichCompany({ name, website, pricing_url }) {
     /* optional */
   }
 
+  const displayName = name || hostnameOf(url);
+
+  // SPA / hidden checkout: Contents often has marketing copy but no plan dollars
+  // (e.g. jobright.ai — /pricing 404). Fall back to You.com pricing search.
+  async function pricesFromWebSearch() {
+    try {
+      const hit = await webSearch(`what is ${url} prices`, {
+        count: 8,
+        timeoutMs: 8000,
+        skipQueue: true,
+        noResearchFallback: true,
+      });
+      let text = flattenYouPayload(hit) || hit?.text || '';
+      for (const s of hit?.sources || []) {
+        text += `\n${s.title || ''} ${s.snippet || ''}`;
+      }
+      const entry = scrapeEntryPrice(text);
+      if (entry == null) return null;
+      return {
+        name: displayName,
+        website: website || originOf(url),
+        pricing_url: url,
+        entry_price: entry,
+        value_score: null,
+        value_analysis: null,
+        tiers: entry === 0
+          ? [{ name: 'Free', price_monthly: 0 }]
+          : [{ name: 'Entry', price_monthly: entry }],
+        error: null,
+        from_search: true,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   if (!contentUseful(content)) {
+    const fromSearch = await pricesFromWebSearch();
+    if (fromSearch) return fromSearch;
     return {
-      name: name || hostnameOf(url),
+      name: displayName,
       website: website || originOf(url),
       pricing_url: url,
       entry_price: null,
@@ -100,7 +139,6 @@ async function enrichCompany({ name, website, pricing_url }) {
     };
   }
 
-  const displayName = name || hostnameOf(url);
   let result = null;
   try {
     result = await completeJSON({
@@ -130,12 +168,26 @@ ${content.slice(0, 5000)}`,
   const tiers = Array.isArray(result?.tiers) ? result.tiers : [];
   const scoreRaw = result?.value_score ?? result?.score;
   const score = typeof scoreRaw === 'number' ? scoreRaw : Number(scoreRaw);
+  let entry = entryPrice(tiers);
+
+  // Homepage Contents can be "useful" (marketing) yet still have no dollars.
+  if (entry == null) {
+    const fromSearch = await pricesFromWebSearch();
+    if (fromSearch) {
+      return {
+        ...fromSearch,
+        name: (result?.name || displayName).trim(),
+        value_score: Number.isFinite(score) ? Math.max(1, Math.min(10, score)) : null,
+        value_analysis: result?.value_analysis || null,
+      };
+    }
+  }
 
   return {
     name: (result?.name || displayName).trim(),
     website: website || originOf(url),
     pricing_url: url,
-    entry_price: entryPrice(tiers),
+    entry_price: entry,
     value_score: Number.isFinite(score) ? Math.max(1, Math.min(10, score)) : null,
     value_analysis: result?.value_analysis || null,
     tiers,

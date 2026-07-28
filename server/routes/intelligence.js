@@ -260,6 +260,51 @@ async function ensureCompetitorContent(competitor) {
     return { content, sources };
   }
 
+  // Fast path for SPAs / hidden checkout (no public /pricing page): You.com
+  // `what is {url} prices` often surfaces third-party plan dollars in snippets.
+  try {
+    const seedUrl = competitor.pricing_url || competitor.website;
+    const q = seedUrl
+      ? `what is ${seedUrl} prices`
+      : `${competitor.name} pricing plans`;
+    const hit = await webSearch(q, {
+      count: 8,
+      timeoutMs: 10000,
+      skipQueue: true,
+      noResearchFallback: true,
+    });
+    const parts = [hit?.text];
+    for (const s of hit?.sources || []) {
+      parts.push([s.title, s.url, s.snippet].filter(Boolean).join(' — '));
+    }
+    const searchText = parts.filter(Boolean).join('\n').trim();
+    if (searchText && /\$\s*\d/.test(searchText) && contentUsefulForPricing(searchText)) {
+      try {
+        await insertSnapshot(competitor.id, searchText.slice(0, 12000), 'youcom-search');
+      } catch {
+        /* non-fatal */
+      }
+      return {
+        content: searchText.slice(0, 12000),
+        sources: mergeSources(sources, (hit?.sources || []).slice(0, 6).map((s) => (
+          sourceFromUrl(s.url, s.title) || {
+            type: 'web_search',
+            url: s.url,
+            title: s.title || 'Pricing search',
+            label: 'Web search',
+          }
+        )), [{
+          type: 'web_search',
+          url: null,
+          title: 'Pricing search',
+          label: 'Web search',
+        }]),
+      };
+    }
+  } catch {
+    /* fall through to research */
+  }
+
   const researched = await researchPricingContent(competitor);
   if (researched?.content) {
     try {
