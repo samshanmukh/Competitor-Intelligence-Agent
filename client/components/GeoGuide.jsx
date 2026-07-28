@@ -657,12 +657,13 @@ export default function GeoGuide({ embedded = false } = {}) {
             <div className="mt-6 space-y-6">
               {FAQS.map((item) => (
                 <div key={item.question} itemScope itemType="https://schema.org/Question">
-                  <h3
+                  {/* Question-format H2s help FAQ & content-hierarchy scorers. */}
+                  <h2
                     className={embedded ? 'text-base font-semibold text-slate-100' : 'text-lg font-semibold text-white'}
                     itemProp="name"
                   >
                     {item.question}
-                  </h3>
+                  </h2>
                   <div itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
                     <p className={`mt-2 ${embedded ? 'text-slate-400' : 'text-slate-300'}`} itemProp="text">
                       {item.answer}

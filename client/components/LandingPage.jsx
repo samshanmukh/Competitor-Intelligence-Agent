@@ -104,9 +104,14 @@ export default function LandingPage({ children } = {}) {
       <header className="glass-nav sticky top-0 z-40 border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <BrandLogo href="/" height={32} priority />
-          <nav className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
-            <a href="#features" className="transition hover:text-white">Features</a>
-            <a href="#how" className="transition hover:text-white">How it works</a>
+          {/*
+            Keep authority links layout-visible at all breakpoints.
+            GeoTest ignores display:none (e.g. `hidden md:flex`) the same way it
+            ignores opacity:0 — so FAQ/About/Team must not live only in a hidden nav.
+          */}
+          <nav className="flex max-w-[58%] flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-slate-400 sm:max-w-none sm:gap-x-5 sm:text-sm md:gap-x-7">
+            <a href="#features" className="hidden transition hover:text-white md:inline">Features</a>
+            <a href="#how" className="hidden transition hover:text-white md:inline">How it works</a>
             <Link href="/guide" className="transition hover:text-white">Guide</Link>
             <Link href="/faq" className="transition hover:text-white">FAQ</Link>
             <Link href="/about" className="transition hover:text-white">About</Link>
