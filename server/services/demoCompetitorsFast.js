@@ -119,28 +119,42 @@ function contentUseful(text) {
   return /\$|price|pricing|plan|subscription|\/mo|month|tier|free|pro|enterprise/i.test(t);
 }
 
-/** Cheap demo value axis so the existing chart can plot priced points. */
-function withHeuristicValueScores(you, rivals) {
-  const rows = [you, ...rivals].filter((r) => r && r.entry_price != null);
-  if (rows.length < 2) {
-    return {
-      you: you?.entry_price != null ? { ...you, value_score: you.value_score ?? 6 } : you,
-      rivals: rivals.map((r) => (r.entry_price != null ? { ...r, value_score: r.value_score ?? 5.5 } : r)),
-    };
-  }
-  const prices = rows.map((r) => r.entry_price);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const score = (price) => {
+/**
+ * Cheap demo value axis so the chart can always plot you + rivals.
+ * Priced rows get a relative score (cheaper → higher). Unpriced rows still
+ * get a mid heuristic so they appear on the map (client marks them muted).
+ */
+export function withHeuristicValueScores(you, rivals) {
+  const list = rivals || [];
+  const priced = [you, ...list].filter((r) => r && r.entry_price != null);
+  const prices = priced.map((r) => r.entry_price);
+  const min = prices.length ? Math.min(...prices) : 0;
+  const max = prices.length ? Math.max(...prices) : 0;
+  const scoreFromPrice = (price) => {
+    if (prices.length < 2) return null;
     const t = max === min ? 0.5 : (max - price) / (max - min);
     return Math.round((4 + t * 4) * 10) / 10; // 4–8, cheaper → higher
   };
-  return {
-    you: you ? { ...you, value_score: you.entry_price != null ? score(you.entry_price) : null } : you,
-    rivals: rivals.map((r) => ({
+
+  const scoreRow = (r, isYou) => {
+    if (!r) return r;
+    if (r.value_score != null && Number.isFinite(Number(r.value_score))) {
+      return r;
+    }
+    if (r.entry_price != null) {
+      const fromPrice = scoreFromPrice(r.entry_price);
+      return { ...r, value_score: fromPrice ?? (isYou ? 6 : 5.5) };
+    }
+    return {
       ...r,
-      value_score: r.entry_price != null ? score(r.entry_price) : null,
-    })),
+      value_score: isYou ? 6 : 5.5,
+      value_score_estimated: true,
+    };
+  };
+
+  return {
+    you: scoreRow(you, true),
+    rivals: list.map((r) => scoreRow(r, false)),
   };
 }
 

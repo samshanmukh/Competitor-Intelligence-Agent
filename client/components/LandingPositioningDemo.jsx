@@ -116,11 +116,11 @@ export default function LandingPositioningDemo() {
       }
     : null);
 
-  const priced = display
-    ? [display.you, ...(display.rivals || [])].filter((c) => c && c.entry_price != null)
+  const entities = display
+    ? [display.you, ...(display.rivals || [])].filter((c) => c && (c.name || c.website))
     : [];
-  const showChart = priced.length >= 2
-    && priced.every((c) => c.value_score != null);
+  // Chart plots everyone — unpriced rivals sit in an "n/a" lane (not omitted).
+  const showChart = entities.length >= 2;
 
   return (
     <div className={`mx-auto w-full text-left ${display ? 'max-w-3xl' : 'max-w-xl'}`}>
@@ -192,7 +192,6 @@ export default function LandingPositioningDemo() {
             </p>
           )}
 
-          {/* Always show rival names — chart may omit unpriced points */}
           <ul className="space-y-2 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3">
             {display.you && (
               <li className="flex items-center justify-between gap-3 text-sm">
@@ -230,13 +229,13 @@ export default function LandingPositioningDemo() {
             <PositioningMapChart
               you={display.you}
               rivals={display.rivals || []}
-              hint="Entry price vs. relative value (cheaper plans score higher in this quick preview). Rivals without a public price stay in the list above but are omitted from the chart."
+              hint="Entry price vs. relative value (cheaper plans score higher in this quick preview). Muted markers = price not found yet."
             />
           )}
 
-          {!loading && !showChart && priced.length < 2 && (display.rivals || []).length > 0 && (
+          {!loading && !showChart && (display.rivals || []).length > 0 && (
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-4 text-sm text-amber-100/90">
-              We found competitors, but couldn&apos;t extract enough public pricing to plot the map.
+              We found competitors, but need a bit more context to plot the map.
               Try a clearer pricing page, or create an account for a full report.
             </div>
           )}
