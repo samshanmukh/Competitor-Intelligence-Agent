@@ -129,7 +129,7 @@ router.post(
 /**
  * Fast public landing demo — no auth. Target <20s.
  * Body: { url | pricingUrl | productUrl }
- * 1× webSearch + 1× Grok extract + 1× batched contents (+ optional Grok prices).
+ * 2× webSearch (company about + closest competitors) + optional research lite + Grok extracts.
  */
 router.post(
   '/demo/competitors-fast',

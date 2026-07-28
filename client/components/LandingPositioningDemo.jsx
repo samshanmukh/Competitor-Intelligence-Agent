@@ -15,29 +15,32 @@ const EASE = [0.21, 0.47, 0.32, 0.98];
 const STATUS_LABELS = {
   start: 'Starting…',
   cache: 'Loading cached result…',
-  search: 'Finding competitors…',
+  search: 'Looking up company…',
+  identity: 'Looking up company…',
   extract: 'Naming rivals…',
-  competitors: 'Reading pricing…',
-  pricing: 'Reading pricing…',
+  competitors: 'Naming rivals…',
+  pricing: 'Plotting map…',
   plot: 'Plotting map…',
   done: 'Plotting map…',
 };
 
-/** Stepped progress by pipeline stage (search → names → contents → prices → done). */
+/** Stepped progress by pipeline stage (about → rivals → plot). */
 const STAGE_PROGRESS = {
   start: 8,
   cache: 92,
   search: 22,
-  extract: 42,
-  competitors: 58,
-  pricing: 78,
+  identity: 38,
+  extract: 55,
+  competitors: 70,
+  pricing: 88,
   plot: 92,
   done: 100,
 };
 
 function labelForStatus(payload) {
+  if (payload?.label) return payload.label;
   if (payload?.step && STATUS_LABELS[payload.step]) return STATUS_LABELS[payload.step];
-  return payload?.label || 'Starting…';
+  return 'Starting…';
 }
 
 export default function LandingPositioningDemo() {
@@ -181,6 +184,10 @@ export default function LandingPositioningDemo() {
             placeholder="https://yoursite.com/pricing"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            onBlur={() => {
+              const next = ensureHttps(url);
+              if (next && next !== url) setUrl(next);
+            }}
             disabled={loading}
             className="w-full flex-1 rounded-md border border-white/15 bg-white/5 px-5 py-3.5 text-sm text-white placeholder:text-slate-500 outline-none ring-accent/40 transition focus:border-accent/50 focus:ring-2 disabled:opacity-60"
           />
@@ -258,18 +265,22 @@ export default function LandingPositioningDemo() {
                 </p>
                 {loading ? (
                   <ThinkingShimmer
-                    label={statusLabel || 'Reading pricing…'}
+                    label={statusLabel || 'Plotting map…'}
                     className="text-xs"
                   />
                 ) : null}
               </div>
             )}
 
-            {(display.you?.statement || display.you?.blurb) && (
-              <p className="mx-auto line-clamp-2 max-w-2xl text-center text-sm leading-snug text-slate-400 sm:mx-0 sm:text-left">
-                {display.you.statement || display.you.blurb}
-              </p>
-            )}
+            {(() => {
+              const blurb = display.you?.statement || display.you?.blurb || '';
+              if (!blurb || /no information available/i.test(blurb)) return null;
+              return (
+                <p className="mx-auto line-clamp-2 max-w-2xl text-center text-sm leading-snug text-slate-400 sm:mx-0 sm:text-left">
+                  {blurb}
+                </p>
+              );
+            })()}
 
             {showChart && (
               <PositioningMapChart
