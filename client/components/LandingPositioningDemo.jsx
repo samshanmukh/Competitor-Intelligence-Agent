@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { api } from '../lib/api';
+import { ensureHttps } from '../lib/normalizeUrl';
 import PositioningMapChart from './PositioningMapChart';
 import ThinkingShimmer from './ThinkingShimmer';
 import { Icon } from './ui';
@@ -56,11 +57,12 @@ export default function LandingPositioningDemo() {
 
   async function onSubmit(e) {
     e.preventDefault();
-    const trimmed = url.trim();
+    const trimmed = ensureHttps(url);
     if (!trimmed) {
       setError('Paste your product or pricing page URL.');
       return;
     }
+    if (trimmed !== url.trim()) setUrl(trimmed);
     setError('');
     setResult(null);
     setPartialNames(null);
@@ -173,7 +175,7 @@ export default function LandingPositioningDemo() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
           <input
             id="landing-pricing-url"
-            type="url"
+            type="text"
             inputMode="url"
             autoComplete="url"
             placeholder="https://yoursite.com/pricing"

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { ensureHttps } from '../lib/normalizeUrl';
 import { CompanyLogo, Icon, Skeleton, useToast } from './ui';
 
 export default function MyProductClient() {
@@ -22,11 +23,15 @@ export default function MyProductClient() {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const extractFromUrl = async () => {
-    if (!form.pricing_url) return;
+    const pricingUrl = ensureHttps(form.pricing_url);
+    if (!pricingUrl) return;
+    if (pricingUrl !== form.pricing_url.trim()) {
+      setForm((f) => ({ ...f, pricing_url: pricingUrl }));
+    }
     setExtracting(true);
     try {
       // Search-first company identity (same path as Analysis sparkle).
-      const { name, description } = await api.inferProduct(form.pricing_url);
+      const { name, description } = await api.inferProduct(pricingUrl);
       setForm((f) => ({
         ...f,
         ...(name && !f.name.trim() ? { name } : {}),
@@ -83,7 +88,9 @@ export default function MyProductClient() {
               value={form.pricing_url}
               onChange={set('pricing_url')}
               placeholder="https://yourapp.com/pricing"
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
             />
             <button
               onClick={extractFromUrl}

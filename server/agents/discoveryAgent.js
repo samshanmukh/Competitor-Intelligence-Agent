@@ -11,6 +11,7 @@
 import { research, searchAboutUrl, directFetchPageText } from '../services/youcom.js';
 import { completeJSON } from '../services/ai.js';
 import { findStoreUrls, fetchAppStoreIapText, isStoreUrl } from '../services/storePricing.js';
+import { ensureHttps } from '../lib/normalizeUrl.js';
 
 const EXTRACT_SYSTEM = `You are a market research analyst. You extract structured competitor data from web research.
 Return ONLY valid JSON. Never invent URLs — only use URLs present in the provided research text.`;
@@ -27,7 +28,7 @@ Use only facts present in the evidence. If the name is unclear, use the best sho
  * Returns { name, description, source }.
  */
 export async function inferProductFromUrl(productUrl) {
-  const url = String(productUrl || '').trim();
+  const url = ensureHttps(productUrl);
   if (!url) throw new Error('Product URL required');
 
   let evidence = '';
@@ -311,8 +312,7 @@ function normalizeCandidates(list) {
 }
 
 function ensureHttp(u) {
-  if (!/^https?:\/\//i.test(u)) return `https://${u.replace(/^\/+/, '')}`;
-  return u;
+  return ensureHttps(u);
 }
 
 function origin(u) {

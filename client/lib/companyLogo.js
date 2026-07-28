@@ -3,10 +3,13 @@
  * Uses Google's favicon service (no API key), falls back to letter avatars in UI on error.
  */
 
+import { ensureHttps } from './normalizeUrl';
+
 export function hostnameFromUrl(value) {
   if (!value || typeof value !== 'string') return null;
   try {
-    const href = /^https?:\/\//i.test(value) ? value : `https://${value.replace(/^\/+/, '')}`;
+    const href = ensureHttps(value);
+    if (!href) return null;
     const host = new URL(href).hostname.replace(/^www\./i, '');
     return host || null;
   } catch {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
+import { ensureHttps } from '../lib/normalizeUrl';
 import { CompanyLogo, Icon, Shimmer, Skeleton, useToast } from './ui';
 import ReportView from './ReportView';
 export default function AnalyzeClient() {
@@ -264,10 +265,14 @@ function ProductStage({ product, onSaved, compact }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const autofill = async () => {
-    if (!form.pricing_url) return;
+    const pricingUrl = ensureHttps(form.pricing_url);
+    if (!pricingUrl) return;
+    if (pricingUrl !== form.pricing_url.trim()) {
+      setForm((f) => ({ ...f, pricing_url: pricingUrl }));
+    }
     setInferring(true);
     try {
-      const { name, description } = await api.inferProduct(form.pricing_url);
+      const { name, description } = await api.inferProduct(pricingUrl);
       setForm((f) => ({
         ...f,
         ...(name && !f.name.trim() ? { name } : {}),
@@ -283,9 +288,10 @@ function ProductStage({ product, onSaved, compact }) {
 
   const save = async () => {
     if (!form.name.trim()) { toast({ type: 'error', title: 'Add a company / product name' }); return; }
+    const pricingUrl = ensureHttps(form.pricing_url);
     setSaving(true);
     try {
-      const { product: saved } = await api.saveProduct(form);
+      const { product: saved } = await api.saveProduct({ ...form, pricing_url: pricingUrl || form.pricing_url });
       onSaved(saved);
       setEditing(false);
       toast({ type: 'success', title: 'Product saved' });
@@ -371,9 +377,7 @@ function ProductStage({ product, onSaved, compact }) {
 
 /* ──────────────────────── Stage 2: Competitors ──────────────────────── */
 function normalizeUrl(u) {
-  const t = (u || '').trim();
-  if (!t) return '';
-  return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, '')}`;
+  return ensureHttps(u);
 }
 function originOf(u) { try { return new URL(normalizeUrl(u)).origin; } catch { return null; } }
 
@@ -416,7 +420,7 @@ function CompetitorStage({ product, competitors, onChange }) {
 
       const { candidates: found } = await api.discover({
         description,
-        productUrl: product.pricing_url || '',
+        productUrl: ensureHttps(product.pricing_url) || '',
       });
       if (candidates === null) setCandidates([]);
       const approvedUrls = new Set(competitors.map((c) => (c.pricing_url || '').toLowerCase()));

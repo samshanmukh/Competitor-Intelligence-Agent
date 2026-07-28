@@ -25,6 +25,7 @@ import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
 import { METHODOLOGY } from '../services/marketInsights.js';
 import { buildDemoPositioningMap } from '../services/demoPositioningMap.js';
 import { buildDemoCompetitorsFast } from '../services/demoCompetitorsFast.js';
+import { ensureHttps } from '../lib/normalizeUrl.js';
 
 const router = Router();
 
@@ -69,10 +70,7 @@ function parseAnalysis(change) {
 }
 
 function normalizeUrl(u) {
-  if (!u) return null;
-  const t = u.trim();
-  if (!t) return null;
-  return /^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, '')}`;
+  return ensureHttps(u) || null;
 }
 
 function normalizeWebhookUrl(value) {

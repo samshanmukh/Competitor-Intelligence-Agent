@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../lib/api';
+import { ensureHttps } from '../lib/normalizeUrl';
 import { CompanyLogo, EmptyState, Icon, Skeleton, useToast } from './ui';
 import { PageHeader, PageShell } from './PageShell';
 
@@ -36,11 +37,14 @@ export default function DiscoverClient() {
     setCandidates(null);
     setCompletedCount(0);
     try {
+      const normalizedProduct = ensureHttps(productUrl);
+      const normalizedCompetitors = parsedUrls.map(ensureHttps).filter(Boolean);
+      if (normalizedProduct && normalizedProduct !== productUrl.trim()) setProductUrl(normalizedProduct);
       const payload = {
         mode,
         description: ['product', 'direct'].includes(mode) ? '' : description,
-        productUrl: ['product', 'combo'].includes(mode) ? productUrl : '',
-        competitorUrls: ['direct', 'combo'].includes(mode) ? parsedUrls : [],
+        productUrl: ['product', 'combo'].includes(mode) ? normalizedProduct : '',
+        competitorUrls: ['direct', 'combo'].includes(mode) ? normalizedCompetitors : [],
       };
       const { market, candidates } = await api.discover(payload);
       setMarket(market);

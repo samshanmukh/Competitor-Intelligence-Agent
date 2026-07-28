@@ -11,6 +11,7 @@ import { research, financeResearch, fetchContents } from '../services/youcom.js'
 import { createJob, getJob, completeJob, failJob } from '../services/jobs.js';
 import { sendPushToWorkspace } from '../services/push.js';
 import { makeAttribution, mergeAttributions } from '../services/attribution.js';
+import { ensureHttps } from '../lib/normalizeUrl.js';
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -31,10 +32,7 @@ function flatten(payload) {
 }
 
 function normalizeUrl(url) {
-  if (!url) return null;
-  const s = String(url).trim();
-  if (!s) return null;
-  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  return ensureHttps(url) || null;
 }
 
 /* ───────────────────────── Section functions ───────────────────────── */

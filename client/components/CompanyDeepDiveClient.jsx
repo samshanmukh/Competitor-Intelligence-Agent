@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { api } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
+import { ensureHttps } from '../lib/normalizeUrl';
 import { Icon, useToast } from './ui';
 import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
 import { SkillChipRow, SourceAttribution } from './SourceAttribution';
@@ -74,9 +75,11 @@ export default function CompanyDeepDiveClient() {
 
   const run = async () => {
     if (!form.company.trim()) { toast({ type: 'error', title: 'Enter a company name' }); return; }
+    const siteUrl = ensureHttps(form.url);
+    if (siteUrl && siteUrl !== form.url.trim()) setForm((f) => ({ ...f, url: siteUrl }));
     setDossier(null);
     try {
-      const { jobId } = await api.deepDiveStart(form.company.trim(), form.url.trim());
+      const { jobId } = await api.deepDiveStart(form.company.trim(), siteUrl);
       beginPolling(jobId, Date.now(), form.company.trim());
     } catch (err) {
       toast({ type: 'error', title: 'Could not start', message: err.message });
