@@ -85,7 +85,7 @@ function PositioningMock() {
   );
 }
 
-export default function LandingPage({ children } = {}) {
+export default function LandingPage() {
   const [authed, setAuthed] = useState(false);
   const reduceMotion = useReducedMotion();
   // Never SSR opacity:0 on hero copy — crawlers treat it as empty text.
@@ -112,7 +112,7 @@ export default function LandingPage({ children } = {}) {
           <nav className="flex max-w-[58%] flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-slate-400 sm:max-w-none sm:gap-x-5 sm:text-sm md:gap-x-7">
             <a href="#features" className="hidden transition hover:text-white md:inline">Features</a>
             <a href="#how" className="hidden transition hover:text-white md:inline">How it works</a>
-            <Link href="/guide" className="transition hover:text-white">Guide</Link>
+            <Link href="/guide" className="transition hover:text-white">Product guide</Link>
             <Link href="/faq" className="transition hover:text-white">FAQ</Link>
             <Link href="/about" className="transition hover:text-white">About</Link>
             <Link href="/team" className="transition hover:text-white">Team</Link>
@@ -444,10 +444,14 @@ export default function LandingPage({ children } = {}) {
               </Link>
             )}
           </div>
+          <p className="relative mt-6 text-sm text-slate-500">
+            <Link href="/guide" className="text-slate-400 underline-offset-2 transition hover:text-slate-300 hover:underline">
+              Product guide
+            </Link>
+            <span className="text-slate-600"> — how Mira works for founders</span>
+          </p>
         </Reveal>
       </section>
-
-      {children}
 
       {/* Footer — NAP/contact + About/Team/FAQ links for GEO authority signals */}
       <footer className="border-t border-white/5">
@@ -473,7 +477,7 @@ export default function LandingPage({ children } = {}) {
             <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            <Link href="/guide" className="transition hover:text-slate-300">Guide</Link>
+            <Link href="/guide" className="transition hover:text-slate-300">Product guide</Link>
             <Link href="/competitive-intelligence-software" className="transition hover:text-slate-300">CI software</Link>
             <Link href="/competitor-pricing-analysis" className="transition hover:text-slate-300">Pricing analysis</Link>
             <Link href="/tam-sam-som" className="transition hover:text-slate-300">TAM/SAM/SOM</Link>

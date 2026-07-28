@@ -1,5 +1,5 @@
 import AgentReadableSummary from '../../components/AgentReadableSummary';
-import GeoGuide from '../../components/GeoGuide';
+import LandingProductDocs from '../../components/LandingProductDocs';
 import JsonLd from '../../components/JsonLd';
 import Link from 'next/link';
 import BrandLogo from '../../components/BrandLogo';
@@ -40,7 +40,7 @@ export default function GuidePage() {
           </div>
         </header>
         <AgentReadableSummary />
-        <GeoGuide />
+        <LandingProductDocs />
       </div>
     </>
   );

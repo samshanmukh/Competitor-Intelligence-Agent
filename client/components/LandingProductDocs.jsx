@@ -16,9 +16,9 @@ const strong = 'font-medium text-slate-200';
 const a = 'text-slate-300 underline-offset-2 hover:underline';
 
 /**
- * Long-form product / GEO documentation for the homepage.
- * Always visible (no cloaking). Reads like a founder methodology guide —
- * not a dense “facts for citation” dump. Full reference remains on /guide.
+ * Long-form product / founder documentation for /guide.
+ * Reads like a founder methodology guide — not a dense “facts for citation” dump.
+ * Kept off the marketing homepage so the landing page stays clean for humans.
  */
 export default function LandingProductDocs() {
   return (
@@ -35,12 +35,12 @@ export default function LandingProductDocs() {
             Product documentation · Last updated{' '}
             <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time>
           </p>
-          <h2
+          <h1
             className="mt-3 text-2xl font-semibold tracking-tight text-white md:text-3xl"
             itemProp="headline"
           >
             How Mira works for founders
-          </h2>
+          </h1>
           <p className={`${p} max-w-2xl`} itemProp="description" id="mira-definition">
             Mira is competitive and market intelligence software for early-stage teams.
             Paste a product URL and Mira aims to return a first clarity snapshot in about{' '}
@@ -73,10 +73,6 @@ export default function LandingProductDocs() {
           </p>
           <p className="mt-3 text-sm leading-relaxed text-slate-500">
             Related pages:{' '}
-            <Link href="/guide" className={a}>
-              Guide
-            </Link>
-            {' · '}
             <Link href="/faq" className={a}>
               FAQ
             </Link>
@@ -579,23 +575,22 @@ export default function LandingProductDocs() {
             .
           </p>
           <p className={p}>
-            Want the denser reference copy (tables, extended FAQ mirror, and agent-oriented
-            summary)? Read the full{' '}
-            <Link href="/guide" className="text-slate-200 underline-offset-2 hover:underline">
-              competitive intelligence guide
-            </Link>
-            . To start using the product, create an account at{' '}
+            To start using the product, create an account at{' '}
             <Link href="/signup" className={a}>
               /signup
             </Link>
             , paste your product URL, and generate your first clarity report — target SLA about{' '}
             <strong className={strong}>2 minutes</strong> for the first snapshot. You can begin a
             workspace at <strong className={strong}>$0</strong>; live plan details appear in-app
-            after signup.
+            after signup. For a short numeric overview, see{' '}
+            <a href="#mira-overview" className={a}>
+              Mira at a glance
+            </a>{' '}
+            at the top of this page.
           </p>
 
-          <section id="faq" aria-labelledby="homepage-faq-heading" className="mt-16">
-            <h2 id="homepage-faq-heading" className="text-xl font-semibold tracking-tight text-slate-100 md:text-2xl">
+          <section id="faq" aria-labelledby="guide-faq-heading" className="mt-16">
+            <h2 id="guide-faq-heading" className="text-xl font-semibold tracking-tight text-slate-100 md:text-2xl">
               Frequently asked questions
             </h2>
             <p className="mt-3 text-sm text-slate-500">
@@ -654,8 +649,8 @@ export default function LandingProductDocs() {
                 Contact
               </Link>
               ,{' '}
-              <Link href="/guide" className={a}>
-                Guide
+              <Link href="/" className={a}>
+                Home
               </Link>
               .
             </p>

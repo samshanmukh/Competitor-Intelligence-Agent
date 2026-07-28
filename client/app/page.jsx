@@ -1,5 +1,4 @@
 import LandingPage from '../components/LandingPage';
-import LandingProductDocs from '../components/LandingProductDocs';
 import { pageMetadata } from '../lib/seo';
 import { AUTHOR, GUIDE_PUBLISHED, GUIDE_UPDATED } from '../lib/geoContent';
 
@@ -43,14 +42,10 @@ export const metadata = {
 };
 
 /**
- * Homepage: marketing landing + always-visible long-form product docs.
- * Dense GEO cornerstone (AgentReadableSummary + GeoGuide) lives on /guide.
- * No SSR-then-hide / bot-UA cloaking — GeoTest executes JS and uses Chrome UA.
+ * Homepage: marketing landing only.
+ * Long-form product docs live on /guide (LandingProductDocs + AgentReadableSummary).
+ * No cloaking — GeoTest executes JS; a clean human homepage is the priority.
  */
 export default function Home() {
-  return (
-    <LandingPage>
-      <LandingProductDocs />
-    </LandingPage>
-  );
+  return <LandingPage />;
 }
