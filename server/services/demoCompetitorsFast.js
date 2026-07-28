@@ -13,9 +13,9 @@ const WALL_MS = 18000;
 const SEARCH_TIMEOUT_MS = 8000;
 const CONTENTS_TIMEOUT_MS = 9000;
 const MAX_RIVALS = 4;
-/** Cap contents batch so You.com can finish inside the wall clock. */
-const MAX_CONTENT_URLS = 4;
-const CACHE_PREFIX = 'demo:fast:v1:';
+/** Cap contents batch so You.com can finish inside the wall clock (you + up to 4 rivals). */
+const MAX_CONTENT_URLS = 5;
+const CACHE_PREFIX = 'demo:fast:v2:';
 
 /** @type {Map<string, { expires: number, payload: object }>} */
 const cache = new Map();
@@ -196,13 +196,31 @@ function rivalsFromSearchSources(sources, host) {
   return out;
 }
 
+function mergeRivals(primary, fallback, host) {
+  const seen = new Set([host]);
+  const out = [];
+  for (const r of [...(primary || []), ...(fallback || [])]) {
+    if (!r?.website) continue;
+    const h = hostnameOf(r.website);
+    if (!h || seen.has(h) || SKIP_HOST_RE.test(h)) continue;
+    seen.add(h);
+    out.push({
+      name: String(r.name || h.split('.')[0]).slice(0, 48),
+      website: originOf(r.website) || r.website,
+      pricing_url: normalizeUrl(r.pricing_url) || originOf(r.website) || r.website,
+    });
+    if (out.length >= MAX_RIVALS) break;
+  }
+  return out;
+}
+
 async function extractRivalsFromSearch({ host, userUrl, searchText }) {
   const result = await completeJSON({
     system: 'You extract competitor lists from web search snippets. Return ONLY valid JSON.',
     user: `Product URL: ${userUrl}
 Hostname: ${host}
 
-From the search results below, identify the product/company ("you") and ${MAX_RIVALS} direct competitors with pricing pages when possible.
+From the search results below, identify the product/company ("you") and ${MAX_RIVALS} direct competitors.
 
 Return:
 {
@@ -214,15 +232,16 @@ Return:
 }
 
 Rules:
+- Return ${MAX_RIVALS} rivals whenever the market is recognizable — prefer named direct product peers (apps/SaaS) over generic platforms or media sites.
+- Each rival MUST include an official product website (homepage). If a competitor is named in snippets without a URL, use its well-known official domain when you are confident (e.g. Runna → https://www.runna.com).
+- Prefer pricing_url ending in /pricing when known; otherwise use the homepage.
 - rivals must be real competing products/companies (not the same host as ${host}).
-- Aim for ${MAX_RIVALS} rivals when the market is known; use well-known peers even if only named in snippets.
-- Prefer official websites and pricing URLs (…/pricing when known).
-- Max ${MAX_RIVALS} rivals. Never invent fake brands.
-- If unsure of pricing_url, use the homepage.
+- Never invent fake brands. Skip review sites, app stores, Wikipedia, G2, Reddit.
+- Max ${MAX_RIVALS} rivals.
 
 SEARCH RESULTS:
 ${String(searchText || '').slice(0, 7000)}`,
-    maxTokens: 500,
+    maxTokens: 700,
   });
 
   const youName = (result?.you?.name || host).trim();
@@ -233,6 +252,7 @@ ${String(searchText || '').slice(0, 7000)}`,
       const name = String(r?.name || '').trim() || (website ? hostnameOf(website) : '');
       if (!name || !website) return null;
       if (hostnameOf(website) === host || hostnameOf(pricing_url) === host) return null;
+      if (SKIP_HOST_RE.test(hostnameOf(website))) return null;
       return { name, website, pricing_url };
     })
     .filter(Boolean)
@@ -344,9 +364,9 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
     const tSearch = Date.now();
     const search = await withTimeout(
       webSearch(
-        `${host} best alternatives competitors pricing comparison similar apps products`,
+        `${host} alternatives competitors similar apps products pricing comparison -site:g2.com -site:capterra.com -site:apple.com`,
         {
-          count: 10,
+          count: 12,
           timeoutMs: searchBudget,
           skipQueue: true,
           noResearchFallback: true,
@@ -395,7 +415,8 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
     timings.extractMs = Date.now() - tExtract;
     market = extracted.market || market;
     youName = extracted.youName || youName;
-    rivals = extracted.rivals || [];
+    // Fill to MAX_RIVALS with source-host fallback when Grok returns a thin list.
+    rivals = mergeRivals(extracted.rivals || [], rivalsFromSearchSources(searchSources, host), host);
     you = { ...you, name: youName };
   } catch {
     timings.extractMs = null;
@@ -406,6 +427,8 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
   if (!rivals.length) {
     rivals = rivalsFromSearchSources(searchSources, host);
     if (rivals.length) partial = true;
+  } else if (rivals.length < Math.min(3, MAX_RIVALS)) {
+    rivals = mergeRivals(rivals, rivalsFromSearchSources(searchSources, host), host);
   }
 
   await emit('competitors', {

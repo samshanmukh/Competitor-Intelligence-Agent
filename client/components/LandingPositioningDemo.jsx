@@ -192,43 +192,45 @@ export default function LandingPositioningDemo() {
             </p>
           )}
 
-          {/* Progressive name list while prices load */}
-          {(loading || !showChart) && (
-            <ul className="space-y-2 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3">
-              {display.you && (
-                <li className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium text-accent-soft">
-                    {display.you.name || 'You'}
-                    <span className="ml-1.5 text-xs font-normal text-slate-500">(you)</span>
-                  </span>
-                  <span className="tabular-nums text-slate-300">
-                    {display.you.entry_price != null
-                      ? formatPrice(display.you.entry_price)
-                      : (loading ? <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" /> : '—')}
-                  </span>
-                </li>
-              )}
-              {(display.rivals || []).map((r) => (
-                <li key={r.website || r.name} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-slate-200">{r.name}</span>
-                  <span className="tabular-nums text-slate-300">
-                    {r.entry_price != null
-                      ? formatPrice(r.entry_price)
-                      : (loading ? <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" /> : '—')}
-                  </span>
-                </li>
-              ))}
-              {!loading && (display.rivals || []).length === 0 && (
-                <li className="text-sm text-slate-500">No clear rivals found for this URL.</li>
-              )}
-            </ul>
-          )}
+          {/* Always show rival names — chart may omit unpriced points */}
+          <ul className="space-y-2 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3">
+            {display.you && (
+              <li className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-accent-soft">
+                  {display.you.name || 'You'}
+                  <span className="ml-1.5 text-xs font-normal text-slate-500">(you)</span>
+                </span>
+                <span className="tabular-nums text-slate-400">
+                  {display.you.entry_price != null
+                    ? <span className="text-slate-300">{formatPrice(display.you.entry_price)}</span>
+                    : (loading
+                      ? <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" />
+                      : <span title="Price not found on public pages">—</span>)}
+                </span>
+              </li>
+            )}
+            {(display.rivals || []).map((r) => (
+              <li key={r.website || r.name} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-200">{r.name}</span>
+                <span className="tabular-nums text-slate-400">
+                  {r.entry_price != null
+                    ? <span className="text-slate-300">{formatPrice(r.entry_price)}</span>
+                    : (loading
+                      ? <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" />
+                      : <span title="Price not found on public pages">—</span>)}
+                </span>
+              </li>
+            ))}
+            {!loading && (display.rivals || []).length === 0 && (
+              <li className="text-sm text-slate-500">No clear rivals found for this URL.</li>
+            )}
+          </ul>
 
           {!loading && showChart && (
             <PositioningMapChart
               you={display.you}
               rivals={display.rivals || []}
-              hint="Entry price vs. relative value (cheaper plans score higher in this quick preview). Full analysis scores value from features and positioning."
+              hint="Entry price vs. relative value (cheaper plans score higher in this quick preview). Rivals without a public price stay in the list above but are omitted from the chart."
             />
           )}
 
