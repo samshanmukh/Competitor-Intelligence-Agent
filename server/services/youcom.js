@@ -224,11 +224,63 @@ export async function financeResearch(input, effort = 'deep') {
   return request('/finance_research', { input, research_effort: effort }, { timeoutMs: 360000, retries: 0 });
 }
 
+const DIRECT_FETCH_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+const DIRECT_FETCH_TIMEOUT_MS = Number(process.env.YOUCOM_DIRECT_FETCH_TIMEOUT_MS || 15000);
+const DIRECT_FETCH_CONCURRENCY = Number(process.env.YOUCOM_DIRECT_FETCH_CONCURRENCY || 3);
+/** Body text shorter than this after You.com is treated as a failed SPA/shell scrape. */
+const THIN_CONTENT_CHARS = 80;
+
+function decodeEntities(text) {
+  return String(text || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)));
+}
+
 /**
- * Strip HTML to clean plain text suitable for diffing.
+ * Pull title / description / Open Graph fields from HTML before body parsing.
+ * Modern marketing SPAs often ship usable meta even when the crawler gets an empty shell.
  */
-function htmlToText(html) {
-  return html
+export function extractMetaText(html) {
+  if (!html || typeof html !== 'string') return '';
+  const metaContent = (key) => {
+    const reNameFirst = new RegExp(
+      `<meta[^>]+(?:name|property)=["']${key}["'][^>]*content=["']([^"']*)["'][^>]*>`,
+      'i'
+    );
+    const reContentFirst = new RegExp(
+      `<meta[^>]+content=["']([^"']*)["'][^>]*(?:name|property)=["']${key}["'][^>]*>`,
+      'i'
+    );
+    const m = html.match(reNameFirst) || html.match(reContentFirst);
+    return m ? decodeEntities(m[1]).trim() : '';
+  };
+  const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+  const title = titleMatch ? decodeEntities(titleMatch[1]).trim() : '';
+  const parts = [
+    metaContent('og:title') || metaContent('twitter:title') || title,
+    metaContent('og:description') || metaContent('twitter:description') || metaContent('description'),
+    metaContent('og:site_name'),
+  ].filter(Boolean);
+  // Drop generic SPA shell titles that add no product signal.
+  const useful = parts.filter((p) => !/^(app|home|index|website|untitled)$/i.test(p.trim()));
+  return [...new Set(useful)].join('\n\n').trim();
+}
+
+/**
+ * Strip HTML to clean plain text suitable for diffing / LLM context.
+ * Falls back to meta description / og tags when the body is an empty SPA shell.
+ */
+export function htmlToText(html) {
+  if (!html || typeof html !== 'string') return '';
+  const meta = extractMetaText(html);
+  const body = html
     .replace(/<(script|style|noscript|head)[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<\/?(p|div|h[1-6]|li|tr|br|section|article|header|footer|nav|main|table|thead|tbody)[^>]*>/gi, '\n')
     .replace(/<[^>]+>/g, '')
@@ -238,42 +290,225 @@ function htmlToText(html) {
     .replace(/\n[ \t]+/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+  if (body && body.length >= THIN_CONTENT_CHARS) return body;
+  if (meta && body) return `${meta}\n\n${body}`.trim();
+  return meta || body;
+}
+
+function isThinText(text) {
+  return !text || String(text).trim().length < THIN_CONTENT_CHARS;
+}
+
+/** True when Contents returned a bot/SPA stub (empty body, generic title). */
+export function isStubHtml(html) {
+  if (!html || typeof html !== 'string') return true;
+  if (html.length < 400) return true;
+  const withoutHead = html.replace(/<head[\s\S]*?<\/head>/i, '');
+  const bodyInner = (withoutHead.match(/<body[^>]*>([\s\S]*)<\/body>/i)?.[1] || withoutHead)
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return bodyInner.length < 40;
+}
+
+function normalizeUrlKey(url) {
+  try {
+    const u = new URL(url);
+    u.hash = '';
+    let href = u.href;
+    if (href.endsWith('/') && u.pathname !== '/') href = href.slice(0, -1);
+    return href.toLowerCase();
+  } catch {
+    return String(url || '').trim().toLowerCase();
+  }
+}
+
+function resolveMapKey(map, url) {
+  if (Object.prototype.hasOwnProperty.call(map, url)) return url;
+  const want = normalizeUrlKey(url);
+  for (const key of Object.keys(map)) {
+    if (normalizeUrlKey(key) === want) return key;
+  }
+  return null;
+}
+
+function contentFromYouItem(item) {
+  const html = typeof item?.html === 'string' ? item.html : null;
+  const markdown = typeof item?.markdown === 'string' ? item.markdown : null;
+  const other = item?.content || item?.text || item?.body
+    || (typeof item === 'string' ? item : null);
+  const rawHtml = html || (typeof other === 'string' && /<\/?[a-z][\s\S]*>/i.test(other) ? other : null);
+  const rawText = markdown || (!rawHtml && typeof other === 'string' ? other : null);
+
+  let text = '';
+  if (rawHtml) text = htmlToText(rawHtml);
+  else if (rawText) text = String(rawText).trim();
+
+  // Title field from the API can still salvage a meta-less stub.
+  if (isThinText(text) && item?.title && !/^(app|home|index|website|untitled)$/i.test(String(item.title).trim())) {
+    text = [item.title, text].filter(Boolean).join('\n\n').trim();
+  }
+
+  const stub = rawHtml ? isStubHtml(rawHtml) : false;
+  if (isThinText(text)) {
+    return {
+      markdown: null,
+      error: stub
+        ? 'Empty content after parsing (SPA shell or bot-blocked page)'
+        : (item?.error || 'Empty content after parsing'),
+      stub,
+    };
+  }
+  return { markdown: text, error: null, stub: stub && isThinText(text) };
+}
+
+/**
+ * Direct browser-UA HTML fetch for pages You.com Contents returns as empty SPA shells.
+ * Only used as a fallback for thin/failed URLs — does not touch the You.com rate queue.
+ */
+async function directFetchHtml(url, { timeoutMs = DIRECT_FETCH_TIMEOUT_MS } = {}) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      redirect: 'follow',
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': DIRECT_FETCH_UA,
+        Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+    if (!res.ok) {
+      const err = new Error(`Direct fetch failed (${res.status})`);
+      err.status = res.status;
+      throw err;
+    }
+    const ctype = String(res.headers.get('content-type') || '');
+    if (ctype && !/text\/html|application\/xhtml|\+xml/i.test(ctype) && !/text\/plain/i.test(ctype)) {
+      throw new Error(`Direct fetch returned non-HTML (${ctype.split(';')[0]})`);
+    }
+    return await res.text();
+  } finally {
+    clearTimeout(to);
+  }
+}
+
+async function mapPool(items, concurrency, worker) {
+  const out = new Array(items.length);
+  let cursor = 0;
+  const n = Math.max(1, Math.min(concurrency, items.length || 1));
+  await Promise.all(Array.from({ length: n }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      out[i] = await worker(items[i], i);
+    }
+  }));
+  return out;
 }
 
 /**
  * Contents API — fetch clean text for one or more URLs.
- * Returns a map of { url -> { markdown, error } }.
+ * Returns a map of { url -> { markdown, error, source? } }.
  * (field kept as `markdown` for backwards compat with callers)
+ *
+ * Resilience for modern marketing sites:
+ *   1) You.com Contents
+ *   2) Meta/og/title salvage from returned HTML
+ *   3) Direct browser-UA HTML fetch when Contents returns an empty SPA shell
+ *
  * @param {string|string[]} urls
- * @param {{ skipQueue?: boolean, timeoutMs?: number }} [opts]
+ * @param {{ skipQueue?: boolean, timeoutMs?: number, allowDirectFetch?: boolean }} [opts]
  */
-export async function fetchContents(urls, { skipQueue = false, timeoutMs = 120000 } = {}) {
+export async function fetchContents(urls, {
+  skipQueue = false,
+  timeoutMs = 120000,
+  allowDirectFetch = true,
+} = {}) {
   const list = Array.isArray(urls) ? urls : [urls];
 
   const map = {};
   for (const url of list) map[url] = { markdown: null, error: 'No content returned' };
 
-  // 1) Try the You.com Contents API (don't let a failure block the Apify fallback).
+  // 1) You.com Contents API
   try {
-    const json = await request('/contents', { urls: list }, { skipQueue, timeoutMs, retries: skipQueue ? 1 : MAX_RETRIES });
+    const json = await request(
+      '/contents',
+      { urls: list, formats: ['html', 'markdown', 'metadata'] },
+      { skipQueue, timeoutMs, retries: skipQueue ? 1 : MAX_RETRIES }
+    );
     const results = Array.isArray(json) ? json : json.results || json.contents || json.data || [];
     for (const item of results) {
-      const url = item.url || item.source || item.link;
-      if (!url) continue;
-      const raw = item.html || item.markdown || item.content || item.text || item.body
-        || (typeof item === 'string' ? item : null);
-      if (raw) {
-        const text = item.html ? htmlToText(raw) : raw;
-        map[url] = text ? { markdown: text, error: null } : { markdown: null, error: 'Empty content after parsing' };
-      } else {
-        map[url] = { markdown: null, error: item.error || 'Empty content (site may block scrapers)' };
+      const returnedUrl = item.url || item.source || item.link;
+      if (!returnedUrl) continue;
+      const key = resolveMapKey(map, returnedUrl) || returnedUrl;
+      if (!Object.prototype.hasOwnProperty.call(map, key) && list.length === 1) {
+        // Single-URL call: always write onto the caller's key.
+        const parsed = contentFromYouItem(item);
+        map[list[0]] = {
+          markdown: parsed.markdown,
+          error: parsed.error,
+          source: parsed.markdown ? 'youcom' : undefined,
+        };
+        continue;
       }
+      const parsed = contentFromYouItem(item);
+      map[key] = {
+        markdown: parsed.markdown,
+        error: parsed.error,
+        source: parsed.markdown ? 'youcom' : undefined,
+      };
     }
   } catch (err) {
-    for (const url of list) if (!map[url].markdown) map[url] = { markdown: null, error: `You.com: ${err.message}` };
+    for (const url of list) {
+      if (!map[url].markdown) map[url] = { markdown: null, error: `You.com: ${err.message}` };
+    }
+  }
+
+  // 2) Direct fetch fallback for empty / SPA-shell results only.
+  if (allowDirectFetch) {
+    const needFallback = list.filter((url) => isThinText(map[url]?.markdown));
+    if (needFallback.length) {
+      await mapPool(needFallback, DIRECT_FETCH_CONCURRENCY, async (url) => {
+        try {
+          const html = await directFetchHtml(url);
+          const text = htmlToText(html);
+          if (!isThinText(text)) {
+            map[url] = { markdown: text, error: null, source: 'direct' };
+          } else if (!map[url].markdown) {
+            map[url] = {
+              markdown: null,
+              error: map[url].error || 'Could not extract readable content from URL',
+            };
+          }
+        } catch (err) {
+          if (!map[url].markdown) {
+            const prior = map[url].error && map[url].error !== 'No content returned'
+              ? map[url].error
+              : null;
+            map[url] = {
+              markdown: null,
+              error: prior || `Could not read URL: ${err.message}`,
+            };
+          }
+        }
+      });
+    }
   }
 
   return map;
 }
 
-export const youcom = { research, fetchContents, webSearch, financeResearch, flattenYouPayload };
+export const youcom = {
+  research,
+  fetchContents,
+  webSearch,
+  financeResearch,
+  flattenYouPayload,
+  htmlToText,
+  extractMetaText,
+  isStubHtml,
+};
