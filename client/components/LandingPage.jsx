@@ -110,6 +110,8 @@ export default function LandingPage({ children } = {}) {
             <Link href="/guide" className="transition hover:text-white">Guide</Link>
             <Link href="/faq" className="transition hover:text-white">FAQ</Link>
             <Link href="/about" className="transition hover:text-white">About</Link>
+            <Link href="/team" className="transition hover:text-white">Team</Link>
+            <Link href="/contact" className="transition hover:text-white">Contact</Link>
           </nav>
           <div className="flex items-center gap-2">
             {authed ? (
@@ -440,10 +442,29 @@ export default function LandingPage({ children } = {}) {
 
       {children}
 
-      {/* Footer */}
+      {/* Footer — NAP/contact + About/Team/FAQ links for GEO authority signals */}
       <footer className="border-t border-white/5">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm text-slate-500 sm:flex-row">
-          <BrandLogo href="/" height={28} />
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 text-sm text-slate-500">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <BrandLogo href="/" height={28} />
+            <p className="max-w-xl text-center text-xs leading-relaxed text-slate-500 sm:text-left">
+              Mira AI · Founded <time dateTime="2025-01-15">2025-01-15</time> by{' '}
+              <Link href="/about" className="text-slate-400 underline-offset-2 hover:underline">Sam Karri</Link>
+              {' '}(Founder) · Support{' '}
+              <a href="mailto:support@joinmira.ai" className="text-slate-400 underline-offset-2 hover:underline">
+                support@joinmira.ai
+              </a>
+              {' · '}
+              <Link href="/faq" className="text-slate-400 underline-offset-2 hover:underline">FAQ page</Link>
+              {' · '}
+              <Link href="/about" className="text-slate-400 underline-offset-2 hover:underline">About page</Link>
+              {' · '}
+              <Link href="/team" className="text-slate-400 underline-offset-2 hover:underline">Team page</Link>
+              {' · '}
+              <Link href="/contact" className="text-slate-400 underline-offset-2 hover:underline">Contact page</Link>
+            </p>
+            <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira</span>
+          </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <Link href="/guide" className="transition hover:text-slate-300">Guide</Link>
             <Link href="/competitive-intelligence-software" className="transition hover:text-slate-300">CI software</Link>
@@ -457,11 +478,10 @@ export default function LandingPage({ children } = {}) {
             <Link href="/methodology" className="transition hover:text-slate-300">Methodology</Link>
             <Link href="/privacy" className="transition hover:text-slate-300">Privacy</Link>
             <Link href="/terms" className="transition hover:text-slate-300">Terms</Link>
-            <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">Email</a>
+            <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">support@joinmira.ai</a>
             {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
             {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}
           </div>
-          <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira</span>
         </div>
       </footer>
     </div>

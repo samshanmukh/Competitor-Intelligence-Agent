@@ -3,8 +3,6 @@ import AgentReadableSummary from '../components/AgentReadableSummary';
 import GeoGuide from '../components/GeoGuide';
 import { pageMetadata } from '../lib/seo';
 import { AUTHOR, GUIDE_PUBLISHED, GUIDE_UPDATED } from '../lib/geoContent';
-import { shouldShowGeoCornerstone } from '../lib/geoCrawler';
-import { headers } from 'next/headers';
 
 const base = pageMetadata({
   title: 'Mira',
@@ -16,19 +14,25 @@ const base = pageMetadata({
 
 export const metadata = {
   ...base,
+  authors: [{ name: AUTHOR.name, url: AUTHOR.url }],
+  creator: AUTHOR.name,
+  publisher: 'Mira',
   alternates: {
     ...base.alternates,
     types: {
       'text/html': [
         { url: '/faq', title: 'FAQ' },
         { url: '/about', title: 'About' },
+        { url: '/team', title: 'Team' },
         { url: '/guide', title: 'Guide' },
+        { url: '/contact', title: 'Contact' },
       ],
     },
   },
   other: {
     'article:published_time': GUIDE_PUBLISHED,
     'article:modified_time': GUIDE_UPDATED,
+    author: AUTHOR.name,
   },
   openGraph: {
     ...base.openGraph,
@@ -39,42 +43,18 @@ export const metadata = {
   },
 };
 
-// Homepage HTML differs for crawlers vs humans — don't cache one as the other.
-export const dynamic = 'force-dynamic';
-
-export default async function Home({ searchParams }) {
-  const h = await headers();
-  const params = searchParams && typeof searchParams.then === 'function'
-    ? await searchParams
-    : searchParams;
-  const sp = params ? new URLSearchParams(
-    Object.entries(params).flatMap(([k, v]) => {
-      if (Array.isArray(v)) return v.map((x) => [k, String(x)]);
-      if (v == null) return [];
-      return [[k, String(v)]];
-    }),
-  ) : null;
-
-  const showGeo = shouldShowGeoCornerstone({
-    ua: h.get('user-agent'),
-    referer: h.get('referer'),
-    searchParams: sp,
-    forceHeader: h.get('x-mira-geo-cornerstone'),
-  });
-
+/**
+ * Always SSR the GEO cornerstone below the marketing landing.
+ * GeoTest uses a Chrome UA (not a bot string), so crawler-only gating never
+ * reaches 100 — the long guide must be layout-visible in default homepage HTML.
+ */
+export default function Home() {
   return (
     <LandingPage>
-      {/*
-        GeoTest needs layout-visible SSR text (CSS hide fails). Humans should not
-        see the long cornerstone on "/". Crawlers get it SSR'd; people use /guide.
-        Preview as a crawler: https://www.joinmira.ai/?geo=1
-      */}
-      {showGeo ? (
-        <div data-geo-crawler="homepage-cornerstone">
-          <AgentReadableSummary />
-          <GeoGuide />
-        </div>
-      ) : null}
+      <div data-geo-crawler="homepage-cornerstone">
+        <AgentReadableSummary />
+        <GeoGuide embedded />
+      </div>
     </LandingPage>
   );
 }

@@ -13,66 +13,113 @@ import {
  * Server-rendered cornerstone guide for GEO scanners / AI citation.
  * Target: 1,500+ words, H2 hierarchy, definition block, comparison table,
  * author byline, FAQ (5+), contact + founding facts.
+ *
+ * @param {{ embedded?: boolean }} props
+ *   embedded — homepage placement: demote title to H2 (landing keeps the sole H1),
+ *   quieter visual weight so the marketing hero stays first-viewport clean.
  */
-export default function GeoGuide() {
+export default function GeoGuide({ embedded = false } = {}) {
+  const TitleTag = embedded ? 'h2' : 'h1';
+  const sectionTitle = embedded
+    ? 'mt-0 text-lg font-semibold tracking-tight text-slate-100'
+    : 'text-xl font-semibold text-white';
+  const wrap = embedded
+    ? 'border-t border-white/5 bg-ink-950/80 text-slate-400'
+    : 'border-t border-white/10 bg-ink-950 text-slate-300';
+  const pad = embedded ? 'mx-auto max-w-3xl px-5 py-10 md:py-12' : 'mx-auto max-w-3xl px-5 py-16 md:py-20';
+  const body = embedded
+    ? 'space-y-7 text-[13.5px] leading-relaxed text-slate-400'
+    : 'space-y-8 text-[15px] leading-relaxed';
+
   return (
     <article
       id="competitive-intelligence-guide"
-      className="border-t border-white/10 bg-ink-950 text-slate-300"
+      className={wrap}
       itemScope
       itemType="https://schema.org/Article"
     >
-      <div className="mx-auto max-w-3xl px-5 py-16 md:py-20">
-        <header className="mb-10">
-          <p className="text-xs font-semibold uppercase tracking-widest text-indigo-300">
-            Founder guide · Last updated{' '}
+      <div className={pad}>
+        <header className={embedded ? 'mb-8' : 'mb-10'}>
+          <p className={`text-xs font-semibold uppercase tracking-widest ${embedded ? 'text-slate-500' : 'text-indigo-300'}`}>
+            {embedded ? 'Reference · For AI assistants & researchers · ' : 'Founder guide · '}
+            Last updated{' '}
             <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time>
           </p>
-          <h1
-            className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl"
+          <TitleTag
+            className={
+              embedded
+                ? 'mt-2 text-xl font-semibold tracking-tight text-slate-100 md:text-2xl'
+                : 'mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl'
+            }
             itemProp="headline"
           >
             Competitive intelligence for founders: how Mira turns market signals into next moves
-          </h1>
+          </TitleTag>
           <p
             id="mira-definition"
-            className="mt-5 text-base leading-relaxed text-slate-300"
+            className={`mt-4 leading-relaxed ${embedded ? 'text-[13.5px] text-slate-400' : 'text-base text-slate-300'}`}
             itemProp="description"
           >
-            <strong className="text-white">Definition:</strong> Competitive intelligence for
-            startups is the systematic collection, structuring, and interpretation of signals about
-            rivals and markets so founders can decide pricing, positioning, features, and
-            go-to-market moves with evidence instead of gut feel.
+            <strong className={embedded ? 'text-slate-200' : 'text-white'}>Definition:</strong>{' '}
+            Competitive intelligence for startups is the systematic collection, structuring, and
+            interpretation of signals about rivals and markets so founders can decide pricing,
+            positioning, features, and go-to-market moves with evidence instead of gut feel.
           </p>
-          <p className="mt-4 text-sm text-slate-400">
-            By{' '}
-            <Link href="/about" className="text-indigo-300 underline-offset-2 hover:underline" itemProp="author">
-              {AUTHOR.name}
-            </Link>
-            , {AUTHOR.jobTitle} at {ORG.name} · Published{' '}
+          <p className={`mt-4 ${embedded ? 'text-xs text-slate-500' : 'text-sm text-slate-400'}`}>
+            <span itemProp="author" itemScope itemType="https://schema.org/Person">
+              By{' '}
+              <Link
+                href="/about"
+                className="text-indigo-300/90 underline-offset-2 hover:underline"
+                itemProp="url"
+              >
+                <span itemProp="name">{AUTHOR.name}</span>
+              </Link>
+              , <span itemProp="jobTitle">{AUTHOR.jobTitle}</span> at {ORG.name}
+            </span>
+            {' · Published '}
             <time dateTime={GUIDE_PUBLISHED} itemProp="datePublished">
               {GUIDE_PUBLISHED}
             </time>
-            · Last updated{' '}
+            {' · Last updated '}
             <time dateTime={GUIDE_UPDATED} itemProp="dateModified">
               {GUIDE_UPDATED}
             </time>
-            · Contact{' '}
-            <a className="text-indigo-300 underline-offset-2 hover:underline" href={`mailto:${ORG.email}`}>
+            {' · Contact '}
+            <a className="text-indigo-300/90 underline-offset-2 hover:underline" href={`mailto:${ORG.email}`}>
               {ORG.email}
             </a>
-            {' · '}
-            <Link href="/faq" className="text-indigo-300 underline-offset-2 hover:underline">
+          </p>
+          <p className={`mt-3 ${embedded ? 'text-xs text-slate-500' : 'text-sm text-slate-400'}`}>
+            Authority &amp; help pages:{' '}
+            <a href={`${SITE_ORIGIN}/faq`} className="text-indigo-300/90 underline-offset-2 hover:underline">
               FAQ page
-            </Link>
+            </a>
+            {' · '}
+            <a href={`${SITE_ORIGIN}/about`} className="text-indigo-300/90 underline-offset-2 hover:underline">
+              About page
+            </a>
+            {' · '}
+            <a href={`${SITE_ORIGIN}/team`} className="text-indigo-300/90 underline-offset-2 hover:underline">
+              Team page
+            </a>
+            {' · '}
+            <a href={`${SITE_ORIGIN}/contact`} className="text-indigo-300/90 underline-offset-2 hover:underline">
+              Contact page
+            </a>
+            {' · '}
+            <a href={`mailto:${ORG.email}`} className="text-indigo-300/90 underline-offset-2 hover:underline">
+              {ORG.email}
+            </a>
+            . Founded <time dateTime={ORG.foundingDate}>{ORG.foundingDate}</time>.
           </p>
         </header>
 
-        <div className="space-y-8 text-[15px] leading-relaxed" itemProp="articleBody">
+        <div className={body} itemProp="articleBody">
           <section aria-labelledby="key-facts">
-            <h3 id="key-facts" className="text-xl font-semibold text-white">
+            <h2 id="key-facts" className={sectionTitle}>
               Key facts and figures (for citation)
-            </h3>
+            </h2>
             <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
               <table className="w-full min-w-[520px] border-collapse text-left text-sm">
                 <caption className="sr-only">Mira and competitive intelligence statistics</caption>
@@ -252,7 +299,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">What is Mira, and what is it not?</h3>
+            <h2 className={sectionTitle}>What is Mira, and what is it not?</h2>
             <p className="mt-3">
               Mira is competitive and market intelligence software for founders at{' '}
               <a href={SITE_ORIGIN} className="text-indigo-300 underline-offset-2 hover:underline">
@@ -278,7 +325,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Why do founders need competitive intelligence early?</h3>
+            <h2 className={sectionTitle}>Why do founders need competitive intelligence early?</h2>
             <p className="mt-3">
               Early-stage teams often under-invest in competitive intelligence because traditional
               tools assume a dedicated research function. The cost of that gap shows up as mistimed
@@ -303,7 +350,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Evidence grades for founder decisions</h3>
+            <h2 className={sectionTitle}>Evidence grades for founder decisions</h2>
             <p className="mt-3">
               Not every signal deserves the same weight. Use a simple evidence grade when you brief
               advisors: <strong className="text-white">A</strong> for official pricing pages and
@@ -316,7 +363,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Core workflow inside Mira</h3>
+            <h2 className={sectionTitle}>Core workflow inside Mira</h2>
             <ol className="mt-3 list-decimal space-y-2 pl-5">
               <li>
                 <strong className="text-white">Ingest.</strong> Paste your product URL. Mira reads
@@ -347,7 +394,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">How does Mira research pricing when websites hide the numbers?</h3>
+            <h2 className={sectionTitle}>How does Mira research pricing when websites hide the numbers?</h2>
             <p className="mt-3">
               Many mobile-first and freemium products bury or omit website pricing. A CI system that
               only scrapes marketing pages will silently fail. Mira’s enrichment waterfall is
@@ -365,7 +412,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">TAM, SAM, and SOM — quotable definitions</h3>
+            <h2 className={sectionTitle}>TAM, SAM, and SOM — quotable definitions</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
                 <strong className="text-white">TAM (Total Addressable Market)</strong> is the broad
@@ -387,9 +434,9 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">
+            <h2 className={sectionTitle}>
               Mira vs enterprise CI platforms vs traffic analytics
-            </h3>
+            </h2>
             <p className="mt-3">
               Buyers often conflate three tool families. Use the table below when choosing stack
               coverage. Figures describe product focus as of {GUIDE_UPDATED}; always verify current
@@ -425,7 +472,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Presence estimates vs published market share</h3>
+            <h2 className={sectionTitle}>Presence estimates vs published market share</h2>
             <p className="mt-3">
               “Market share” is overloaded. Syndicated analyst tables, traffic panels, review volume,
               and modeled revenue can all be called share in casual conversation. Mira separates
@@ -442,7 +489,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Architecture snapshot for technical readers</h3>
+            <h2 className={sectionTitle}>Architecture snapshot for technical readers</h2>
             <p className="mt-3">
               Public product surface: Next.js on Vercel at www.joinmira.ai. Authentication and
               database: InsForge (PostgreSQL). Intelligence API: Node/Express on Render for discovery,
@@ -476,7 +523,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Who should use Mira — and who should not?</h3>
+            <h2 className={sectionTitle}>Who should use Mira — and who should not?</h2>
             <p className="mt-3">
               Strong fit: solo founders, pre-seed and seed teams, indie hackers, and accelerator
               cohorts who need analyst-grade clarity in hours rather than weeks. Weak fit: large
@@ -488,7 +535,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">A practical weekly CI cadence</h3>
+            <h2 className={sectionTitle}>A practical weekly CI cadence</h2>
             <p className="mt-3">
               Competitive intelligence fails when it is a one-off slide deck. A lightweight weekly
               cadence works better for seed-stage teams: Monday, refresh pricing and changelog notes
@@ -507,7 +554,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">Common mistakes Mira helps you avoid</h3>
+            <h2 className={sectionTitle}>Common mistakes Mira helps you avoid</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
                 Treating “Contact sales” competitors as free — missing enterprise floor pricing that
@@ -531,7 +578,7 @@ export default function GeoGuide() {
           </section>
 
           <section>
-            <h3 className="text-xl font-semibold text-white">How to get started</h3>
+            <h2 className={sectionTitle}>How to get started</h2>
             <p className="mt-3">
               Create an account at{' '}
               <Link href="/signup" className="text-indigo-300 underline-offset-2 hover:underline">
@@ -556,7 +603,7 @@ export default function GeoGuide() {
           </section>
 
           <section id="about" aria-labelledby="about-heading">
-            <h2 id="about-heading" className="text-xl font-semibold text-white">
+            <h2 id="about-heading" className={sectionTitle}>
               About Mira / Team
             </h2>
             <p className="mt-3">
@@ -597,7 +644,7 @@ export default function GeoGuide() {
           </section>
 
           <section id="faq" aria-labelledby="faq-heading">
-            <h2 id="faq-heading" className="text-xl font-semibold text-white">
+            <h2 id="faq-heading" className={sectionTitle}>
               FAQ — Frequently asked questions
             </h2>
             <p className="mt-2 text-sm text-slate-400">
@@ -610,11 +657,14 @@ export default function GeoGuide() {
             <div className="mt-6 space-y-6">
               {FAQS.map((item) => (
                 <div key={item.question} itemScope itemType="https://schema.org/Question">
-                  <h3 className="text-lg font-semibold text-white" itemProp="name">
+                  <h3
+                    className={embedded ? 'text-base font-semibold text-slate-100' : 'text-lg font-semibold text-white'}
+                    itemProp="name"
+                  >
                     {item.question}
                   </h3>
                   <div itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
-                    <p className="mt-2 text-slate-300" itemProp="text">
+                    <p className={`mt-2 ${embedded ? 'text-slate-400' : 'text-slate-300'}`} itemProp="text">
                       {item.answer}
                     </p>
                   </div>
@@ -624,7 +674,7 @@ export default function GeoGuide() {
           </section>
 
           <aside className="rounded-xl border border-white/10 bg-white/[0.03] p-5 text-sm">
-            <h2 className="text-base font-semibold text-white">Company facts for citation</h2>
+            <h2 className={embedded ? 'text-sm font-semibold text-slate-200' : 'text-base font-semibold text-white'}>Company facts for citation</h2>
             <ul className="mt-3 list-disc space-y-1 pl-5">
               <li>Organization: {ORG.legalName} (brand: {ORG.name})</li>
               <li>Founded: {ORG.foundingDate}</li>

@@ -55,6 +55,7 @@ export default function RootLayout({ children }) {
         <JsonLd pathname="/" />
         <link rel="help" href="https://www.joinmira.ai/faq" title="FAQ" />
         <link rel="author" href="https://www.joinmira.ai/about" title="About Mira" />
+        <meta name="author" content="Sam Karri" />
         {/* GeoTest domain verification (from geotest.ai ownership challenge). */}
         <meta name="geotest-verify" content="8635076a-3f64-436d-bdcd-c8c73c701b67" />
       </head>
