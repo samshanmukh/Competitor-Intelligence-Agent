@@ -46,7 +46,7 @@ export default function DevAuthBootstrap() {
           document.cookie = `cia_workspace_id=${data.workspace.id}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         }
       } catch {
-        /* API may still be starting — pages can retry */
+        /* API may still be starting, pages can retry */
       }
       if (!cancelled) setReady(true);
     }

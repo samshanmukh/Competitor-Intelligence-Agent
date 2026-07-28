@@ -93,7 +93,7 @@ export default function AnalyzeClient() {
       </header>
 
       <div className="relative flex min-h-0 flex-1">
-        {/* Main report canvas — full width */}
+        {/* Main report canvas, full width */}
         <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           {!product && (
             <EmptyCanvas
@@ -111,7 +111,7 @@ export default function AnalyzeClient() {
             <EmptyCanvas
               icon="search"
               title="Add competitors next"
-              body="Find or add at least one competitor in the right panel — then the report opens here."
+              body="Find or add at least one competitor in the right panel, then the report opens here."
               action={!open ? (
                 <button type="button" onClick={() => setSetupOpen(true)} className="btn-primary mt-5">
                   Open setup
@@ -124,7 +124,7 @@ export default function AnalyzeClient() {
           )}
         </section>
 
-        {/* Right setup sidebar — expandable after product + competitors are set */}
+        {/* Right setup sidebar, expandable after product + competitors are set */}
         <SetupSidebar
           open={open}
           canCollapse={ready}
@@ -150,7 +150,7 @@ function SetupSidebar({
   onProductSaved,
   onCompetitorsChange,
 }) {
-  // Collapsed strip (desktop) — still shows company + count, expands on click
+  // Collapsed strip (desktop), still shows company + count, expands on click
   if (!open && canCollapse) {
     return (
       <aside className="glass-nav hidden w-14 shrink-0 flex-col items-center border-l py-3 md:flex">
@@ -443,7 +443,7 @@ function CompetitorStage({ product, competitors, onChange }) {
     }]);
     setManual({ name: '', pricing_url: '', notes: '' });
     setShowManual(false);
-    toast({ type: 'success', title: 'Added — confirm below' });
+    toast({ type: 'success', title: 'Added, confirm below' });
   };
 
   const confirm = async () => {
@@ -836,7 +836,7 @@ function ReportStage({ competitors, onScored }) {
         const { result } = await api.getAnalysisLatest();
         if (!cancelled && result) hydrateFromSnapshot(result);
       } catch {
-        /* ignore — empty canvas is fine */
+        /* ignore, empty canvas is fine */
       } finally {
         if (!cancelled) setHydrating(false);
       }
@@ -895,7 +895,7 @@ function ReportStage({ competitors, onScored }) {
     };
 
     try {
-      // Wave 0 — refresh EVERY rival page. Thin/blocked scrapes used to set
+      // Wave 0, refresh EVERY rival page. Thin/blocked scrapes used to set
       // hasSnapshot=true and skip research, leaving Pricing/Features empty.
       if (competitors.length) {
         setProgress(`Layer 0 · fetching ${competitors.length} competitor page${competitors.length === 1 ? '' : 's'}…`);
@@ -906,7 +906,7 @@ function ReportStage({ competitors, onScored }) {
         onScored?.();
       }
 
-      // Wave 1 — fast parallel foundations (ICP + pricing/features + first value scores)
+      // Wave 1, fast parallel foundations (ICP + pricing/features + first value scores)
       setProgress('Layer 1 · product, pricing matrix, value scores…');
       const wave1 = [
         api.productAnalysis()
@@ -951,7 +951,7 @@ function ReportStage({ competitors, onScored }) {
                 }));
               }
             } catch {
-              /* keep going — other rivals may still score */
+              /* keep going, other rivals may still score */
             }
             if (!alive()) return;
             onScored?.();
@@ -966,7 +966,7 @@ function ReportStage({ competitors, onScored }) {
         await persistLatest(collected);
       }
 
-      // Wave 2 — narrative layers in parallel (user can already browse Wave 1 tabs)
+      // Wave 2, narrative layers in parallel (user can already browse Wave 1 tabs)
       setProgress('Layer 2 · value narrative, strategy, reviews…');
       const wave2 = [
         api.positioning()
@@ -991,7 +991,7 @@ function ReportStage({ competitors, onScored }) {
           })
           .catch(() => { if (alive()) markLayers(setLayers, ['strategy'], 'error'); }),
 
-        // Reviews one competitor at a time — first review lands quickly
+        // Reviews one competitor at a time, first review lands quickly
         (async () => {
           const rows = [];
           for (const c of competitors) {
@@ -1022,7 +1022,7 @@ function ReportStage({ competitors, onScored }) {
         await persistLatest(collected);
       }
 
-      // Wave 3 — analyst take (uses scores/snapshots already on the server)
+      // Wave 3, analyst take (uses scores/snapshots already on the server)
       setProgress('Layer 3 · analyst take…');
       try {
         const t = await api.analystTake();
@@ -1048,7 +1048,7 @@ function ReportStage({ competitors, onScored }) {
           toast({
             type: 'success',
             title: 'Analysis complete',
-            message: 'Auto save is off — turn it on to keep this report.',
+            message: 'Auto save is off, turn it on to keep this report.',
           });
         }
       }

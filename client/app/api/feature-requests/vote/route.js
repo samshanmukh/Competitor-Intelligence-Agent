@@ -1,4 +1,4 @@
-// Toggle a vote for a feature request — one vote per signed visitor.
+// Toggle a vote for a feature request, one vote per signed visitor.
 import { NextResponse } from 'next/server';
 import { attachVisitorCookie, db, visitorIdentity } from '../../../../lib/serverInsforge';
 
@@ -38,7 +38,7 @@ export async function POST(request) {
     const { error } = await insforge.database
       .from('feature_votes')
       .insert({ request_id: requestId, voter_ip: me });
-    // Unique violation (double-click race) is still a success — the vote exists.
+    // Unique violation (double-click race) is still a success, the vote exists.
     if (error && !/duplicate|unique/i.test(error.message || '')) {
       return respond({ error: error.message }, { status: 500 });
     }

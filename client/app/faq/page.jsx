@@ -7,7 +7,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'FAQ',
   description:
-    'Frequently asked questions about Mira competitive intelligence software — pricing research, market sizing, and how Mira compares to enterprise CI tools.',
+    'Frequently asked questions about Mira competitive intelligence software, pricing research, market sizing, and how Mira compares to enterprise CI tools.',
   path: '/faq',
 });
 

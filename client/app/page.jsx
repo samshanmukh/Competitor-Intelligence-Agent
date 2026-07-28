@@ -6,7 +6,7 @@ const base = pageMetadata({
   title: 'Mira',
   absoluteTitle: 'Mira · Competitive and market intelligence for founders',
   description:
-    'Competitive and market intelligence for founders — see your rivals, pricing, and market clearly, then know what to focus on next.',
+    'Competitive and market intelligence for founders: see your rivals, pricing, and market clearly, then know what to focus on next.',
   path: '/',
 });
 
@@ -44,7 +44,7 @@ export const metadata = {
 /**
  * Homepage: marketing landing only.
  * Long-form product docs live on /guide (LandingProductDocs + AgentReadableSummary).
- * No cloaking — GeoTest executes JS; a clean human homepage is the priority.
+ * No cloaking, GeoTest executes JS; a clean human homepage is the priority.
  */
 export default function Home() {
   return <LandingPage />;

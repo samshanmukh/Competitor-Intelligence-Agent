@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { signInWithOAuth } from '../lib/auth';
 
-/** Google/GitHub — one button each for both sign-in and sign-up. */
+/** Google/GitHub, one button each for both sign-in and sign-up. */
 export default function OAuthButtons({ from, autoFocusGoogle = true }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState('');

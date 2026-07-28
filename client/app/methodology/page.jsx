@@ -5,7 +5,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'Methodology',
   description:
-    'How Mira estimates competitor presence and market size — evidence grades A–D, App Store fallbacks, and TAM/SAM/SOM provenance.',
+    'How Mira estimates competitor presence and market size: evidence grades A–D, App Store fallbacks, and TAM/SAM/SOM provenance.',
   path: '/methodology',
 });
 
@@ -20,7 +20,7 @@ export default function MethodologyRoute() {
           estimated revenue clues, web traffic proxies, and review activity (grade D).
         </p>
         <p>
-          Grade D presence figures are directional — not audited market share. Market models expose
+          Grade D presence figures are directional, not audited market share. Market models expose
           TAM → SAM → SOM with assumption provenance so a $1,000,000,000 category claim is not
           confused with a $10,000,000 near-term obtainable segment (a 100× gap).
         </p>

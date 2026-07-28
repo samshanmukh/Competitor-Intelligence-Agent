@@ -16,7 +16,7 @@ const VERDICT = {
   unsupported: { cls: 'border-rose-500/30 bg-rose-500/10 text-rose-300', icon: 'x', label: 'Unsupported' },
 };
 const KIND_NOTE = {
-  input: 'You set this — it is not a market statistic, so it will not appear in sources.',
+  input: 'You set this, it is not a market statistic, so it will not appear in sources.',
   assumption: 'A derived estimate, not a published figure. Treat it as an assumption to defend.',
 };
 // Only 'market' claims are judged Supported/Unsupported. Inputs and derived
@@ -37,7 +37,7 @@ function engineLabel(engine) {
 
 function fmtUSD(n) {
   const v = Number(n);
-  if (!Number.isFinite(v) || v <= 0) return '—';
+  if (!Number.isFinite(v) || v <= 0) return '-';
   if (v >= 1e9) return `$${(v / 1e9).toFixed(v >= 1e10 ? 0 : 1)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M`;
   if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
@@ -184,7 +184,7 @@ export default function MarketModelClient() {
         }
       })
       .catch((err) => {
-        // Job gone/expired (e.g. after a restart) — stop spinning; the saved model may still load.
+        // Job gone/expired (e.g. after a restart), stop spinning; the saved model may still load.
         if (/not found|expired|JOB_NOT_FOUND/i.test(err?.message || '')) {
           localStorage.removeItem(JOB_KEY);
           setBuilding(false);
@@ -257,7 +257,7 @@ export default function MarketModelClient() {
 
       {building && !model && (
         <div className="mt-6 rounded-xl border border-ink-700 bg-ink-900 p-6 text-sm text-slate-400">
-          Researching your market and sizing TAM / SAM / SOM. This runs in the background (1–3 min) — you can leave and come back.
+          Researching your market and sizing TAM / SAM / SOM. This runs in the background (1–3 min), you can leave and come back.
         </div>
       )}
 
@@ -520,7 +520,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
 
   function copySummary() {
     const lines = [
-      `Market model${inputs.geography ? ` — ${inputs.geography}` : ''}`,
+      `Market model${inputs.geography ? `: ${inputs.geography}` : ''}`,
       `TAM: ${fmtUSD(tamValue)}${tam.low_usd || tam.high_usd ? ` (range ${fmtUSD(tam.low_usd)}–${fmtUSD(tam.high_usd)})` : ''}${tam.confidence ? ` · confidence ${tam.confidence}` : ''}`,
       `SAM: ${fmtUSD(model.sam?.value_usd)} (serviceable ${pct(inputs.serviceable_pct)} of TAM)`,
       `SOM: ${fmtUSD(currentSom)} (obtainable ${pct(inputs.target_share)} of SAM over ${inputs.timeframe_years}yr)`,
@@ -543,8 +543,8 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       const pct = item.presence_pct ?? item.share_pct ?? 0;
       return `<tr><td>${esc(item.name)}</td><td style="text-align:right;font-weight:700">${pct}%</td><td><div style="background:#e2e8f0;border-radius:4px;height:8px;"><div style="width:${Math.max(6, (pct / maxP) * 100)}%;height:8px;border-radius:4px;background:${['#6366f1','#818cf8','#a5b4fc','#c7d2fe'][i % 4]}"></div></div></td></tr>`;
     }).join('');
-    const insightList = insights.filter((x) => x.type !== 'missing').map((ins) => `<li><b>${esc(ins.title)}</b> — ${esc(ins.body)}</li>`).join('');
-    const moves = (model.levers || []).slice(0, 3).map((l) => `<li><b>${esc(l.lever)}</b>${l.effect ? ` — ${esc(l.effect)}` : ''}</li>`).join('');
+    const insightList = insights.filter((x) => x.type !== 'missing').map((ins) => `<li><b>${esc(ins.title)}</b>: ${esc(ins.body)}</li>`).join('');
+    const moves = (model.levers || []).slice(0, 3).map((l) => `<li><b>${esc(l.lever)}</b>${l.effect ? `: ${esc(l.effect)}` : ''}</li>`).join('');
     const sources = (model.sources || []).map((s) => `<li><a href="${esc(s.url)}">${esc(s.title || s.url)}</a></li>`).join('');
     const funnel = [
       ['TAM', fmtUSD(tamValue), tam.method],
@@ -552,7 +552,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
       ['SOM', fmtUSD(currentSom), model.som?.method],
     ].map(([k, v, sub]) => `<tr><td class="k">${k}</td><td class="v">${v}</td><td class="s">${esc(sub || '')}</td></tr>`).join('');
 
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Investor brief — Market model</title>
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Investor brief: Market model</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, Inter, sans-serif; color:#0f172a; max-width:720px; margin:40px auto; padding:0 28px; line-height:1.5; }
@@ -579,11 +579,11 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
   <table>${funnel}</table>
   ${dist ? `<h2>Estimated competitor presence${dist.cr4_pct != null ? ` · CR4 ≈ ${dist.cr4_pct}%` : ''}</h2>
   <table>${presenceRows}</table>
-  <p class="muted">${esc(dist.disclaimer || 'Directional estimates — not syndicated market share.')}</p>` : '<p class="muted">Run market intelligence to populate competitor presence.</p>'}
+  <p class="muted">${esc(dist.disclaimer || 'Directional estimates, not syndicated market share.')}</p>` : '<p class="muted">Run market intelligence to populate competitor presence.</p>'}
   ${insightList ? `<h2>Market insights</h2><ul>${insightList}</ul>` : ''}
   ${moves ? `<h2>Recommended levers</h2><ul>${moves}</ul>` : ''}
   ${sources ? `<h2>Sources</h2><ul>${sources}</ul>` : ''}
-  <p class="disclaimer">This brief combines your workspace market model with estimated competitor presence from live research. Figures are hypotheses to defend — not audited market share. See methodology in Mira.</p>
+  <p class="disclaimer">This brief combines your workspace market model with estimated competitor presence from live research. Figures are hypotheses to defend, not audited market share. See methodology in Mira.</p>
 </body></html>`);
     w.document.close();
     w.focus();
@@ -595,7 +595,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
     if (!w) return;
     const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const timeline = (model.som_timeline || []).map((p) => `Yr ${p.year}: <b>${fmtUSD(p.value_usd)}</b>`).join(' &nbsp;·&nbsp; ');
-    const levers = (model.levers || []).map((l) => `<li><b>${esc(l.lever)}</b> <span class="tag">${esc(l.target_layer || 'SOM')}</span>${l.effect ? ` — ${esc(l.effect)}` : ''}</li>`).join('');
+    const levers = (model.levers || []).map((l) => `<li><b>${esc(l.lever)}</b> <span class="tag">${esc(l.target_layer || 'SOM')}</span>${l.effect ? `: ${esc(l.effect)}` : ''}</li>`).join('');
     const sources = (model.sources || []).map((s) => `<li><a href="${esc(s.url)}">${esc(s.title || s.url)}</a></li>`).join('');
     const funnel = [
       ['TAM', 'Total Addressable Market', model.tam?.value_usd, model.tam?.method],
@@ -775,10 +775,10 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
           <Field label="Geography">
             <input value={inputs.geography || ''} onChange={(e) => onInputs({ geography: e.target.value })} className="input" />
           </Field>
-          <Field label={`Serviceable share of TAM — ${pct(inputs.serviceable_pct)}`}>
+          <Field label={`Serviceable share of TAM: ${pct(inputs.serviceable_pct)}`}>
             <input type="range" min="0" max="1" step="0.01" value={inputs.serviceable_pct} onChange={(e) => onInputs({ serviceable_pct: Number(e.target.value) })} className="w-full accent-indigo-500" />
           </Field>
-          <Field label={`Obtainable share of SAM — ${pct(inputs.target_share)}`}>
+          <Field label={`Obtainable share of SAM: ${pct(inputs.target_share)}`}>
             <input type="range" min="0" max="0.5" step="0.005" value={inputs.target_share} onChange={(e) => onInputs({ target_share: Number(e.target.value) })} className="w-full accent-indigo-500" />
           </Field>
           <Field label="Annual value per customer (ACV)">
@@ -787,7 +787,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
           <Field label="Timeframe (years)">
             <input type="number" min="1" max="7" value={inputs.timeframe_years} onChange={(e) => onInputs({ timeframe_years: Number(e.target.value) })} className="input" />
           </Field>
-          <Field label={`Market growth — ${pct(inputs.annual_growth_pct)} / yr`}>
+          <Field label={`Market growth: ${pct(inputs.annual_growth_pct)} / yr`}>
             <input type="range" min="0" max="1" step="0.01" value={inputs.annual_growth_pct} onChange={(e) => onInputs({ annual_growth_pct: Number(e.target.value) })} className="w-full accent-indigo-500" />
           </Field>
         </div>
@@ -800,15 +800,15 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
           {model.bottom_up && (
             <>
               <div className="mt-2 flex flex-wrap gap-5 text-sm">
-                <StatTag label="ICP customers" value={model.bottom_up.customers ? Number(model.bottom_up.customers).toLocaleString() : '—'} tag={model.bottom_up.customers_sourced ? 'Sourced' : 'Assumption'} tone={model.bottom_up.customers_sourced ? 'emerald' : 'amber'} />
+                <StatTag label="ICP customers" value={model.bottom_up.customers ? Number(model.bottom_up.customers).toLocaleString() : '-'} tag={model.bottom_up.customers_sourced ? 'Sourced' : 'Assumption'} tone={model.bottom_up.customers_sourced ? 'emerald' : 'amber'} />
                 <StatTag label="× ACV" value={fmtUSD(model.bottom_up.acv_usd)} tag="Your input" tone="slate" />
                 <StatTag label="= Bottom-up estimate" value={fmtUSD(model.bottom_up.value_usd)} tag="Your estimate" tone="slate" />
               </div>
-              <p className="mt-2.5 text-[11px] text-slate-500">This multiplies your own assumptions, so it's a sanity-check of your logic — not an independent source.</p>
+              <p className="mt-2.5 text-[11px] text-slate-500">This multiplies your own assumptions, so it's a sanity-check of your logic, not an independent source.</p>
               {blowout && (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/25 bg-rose-950/25 p-3">
                   <span className="text-xs text-rose-200">
-                    Bottom-up is {(model.bottom_up.value_usd / model.tam.value_usd).toFixed(1)}× the sourced TAM — your customer count looks too optimistic.
+                    Bottom-up is {(model.bottom_up.value_usd / model.tam.value_usd).toFixed(1)}× the sourced TAM, so your customer count looks too optimistic.
                   </span>
                   <button onClick={onReconcile} className="btn-ghost shrink-0 py-1 px-2.5 text-xs">Reconcile to TAM</button>
                 </div>
@@ -838,7 +838,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
         </div>
       )}
 
-      {/* Growth levers — quantified + applyable */}
+      {/* Growth levers, quantified + applyable */}
       {(model.levers || []).length > 0 && (
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
           <h3 className="text-sm font-semibold text-white">Levers to grow SOM</h3>

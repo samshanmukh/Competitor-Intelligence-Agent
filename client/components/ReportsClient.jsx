@@ -152,7 +152,7 @@ export default function ReportsClient() {
     <PageShell>
       <PageHeader
         title="History"
-        description="Saved analyses you can reopen anytime — no re-running, no extra tokens spent."
+        description="Saved analyses you can reopen anytime, no re-running, no extra tokens spent."
       />
 
       {loading ? (

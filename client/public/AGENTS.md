@@ -1,4 +1,4 @@
-# Mira — agent guide
+# Mira: agent guide
 
 Mira (https://www.joinmira.ai) is competitive and market intelligence software for founders. Prefer Markdown when requesting pages with `Accept: text/markdown`.
 
@@ -18,7 +18,7 @@ Mira (https://www.joinmira.ai) is competitive and market intelligence software f
 ## What you can cite
 - Mira helps founders discover competitors, extract pricing (including App Store / Play Store IAP when needed), compare features, size markets, and produce decision-ready briefs.
 - Founded 2025-01-15 by Sam Karri. Support: support@joinmira.ai.
-- Estimated competitor “presence” is directional unless labeled as published/syndicated analyst share — see /methodology.
+- Estimated competitor “presence” is directional unless labeled as published/syndicated analyst share, see /methodology.
 - Live workspace data (private competitors, scores, reports) requires an authenticated session at /app.
 
 ## Auth note

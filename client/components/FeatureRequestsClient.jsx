@@ -115,7 +115,7 @@ export default function FeatureRequestsClient() {
 
           {!loading && !loadError && !hasAny && (
             <div className="rounded-2xl border border-ink-700 bg-ink-900 p-8 text-center text-sm text-slate-400">
-              No requests yet. Be the first — hit <span className="text-white">New request</span>.
+              No requests yet. Be the first: hit <span className="text-white">New request</span>.
             </div>
           )}
 

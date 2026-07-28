@@ -146,7 +146,7 @@ function insforgeConfig() {
   let apiKey = (process.env.INSFORGE_API_KEY || '').trim();
   if (apiKey.toLowerCase().startsWith('bearer ')) apiKey = apiKey.slice(7).trim();
   if (apiKey && !apiKey.startsWith('ik_')) {
-    console.warn('[oauth] INSFORGE_API_KEY should start with ik_ — got a different shape');
+    console.warn('[oauth] INSFORGE_API_KEY should start with ik_, got a different shape');
   }
   return { baseUrl, anonKey, apiKey };
 }
@@ -208,7 +208,7 @@ async function signInWithPasswords(email, passwords) {
       });
     } catch (err) {
       lastErr = err;
-      // Wrong password — try next. Verification / other errors: keep trying passwords
+      // Wrong password, try next. Verification / other errors: keep trying passwords
       // in case an older bridge hash works and this one doesn't.
       if (isVerificationError(err) && !/invalid|credential|password|unauthorized/i.test(err.message || '')) {
         // Definitely verification-gated; no point trying other passwords for login.
@@ -380,7 +380,7 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
     }
   }
 
-  // 1b) Email likely already registered with a different password — link + log in silently.
+  // 1b) Email likely already registered with a different password, link + log in silently.
   if (apiKey) {
     try {
       const linked = await loginExistingEmail(email, passwords);
@@ -409,7 +409,7 @@ export async function sessionFromOAuthProfile({ provider, id, email, name, idTok
       name: displayName,
     });
     if (created?.accessToken) return created;
-    // Admin autoConfirm path may return no token — sign in next.
+    // Admin autoConfirm path may return no token, sign in next.
     try {
       return await signInWithPasswords(email, [primaryPassword, ...passwords.slice(1)]);
     } catch (err) {

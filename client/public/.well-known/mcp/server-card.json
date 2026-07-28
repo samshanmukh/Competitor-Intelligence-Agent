@@ -1,6 +1,6 @@
 {
   "name": "mira",
-  "description": "Mira is competitive and market intelligence for founders — competitor discovery, pricing (web + App Store/Play Store), feature matrices, market sizing, and decision support at joinmira.ai.",
+  "description": "Mira is competitive and market intelligence for founders: competitor discovery, pricing (web + App Store/Play Store), feature matrices, market sizing, and decision support at joinmira.ai.",
   "version": "1.0.0",
   "url": "https://www.joinmira.ai",
   "documentation": "https://www.joinmira.ai/llms.txt",

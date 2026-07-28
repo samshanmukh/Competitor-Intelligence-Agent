@@ -6,9 +6,9 @@ import { Icon, timeAgo } from '../ui';
 export const CHART_COLORS = ['#818cf8', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee', '#f472b6', '#4ade80'];
 
 export const METHOD_HINT = {
-  triangulated: 'Blends estimated revenue, web traffic, and review activity — directional, not syndicated share.',
-  revenue_implied: 'Estimated revenue as a share of category TAM — directional, not syndicated share.',
-  relative_revenue: 'Relative revenue among tracked competitors — build a market model for TAM-based shares.',
+  triangulated: 'Blends estimated revenue, web traffic, and review activity: directional, not syndicated share.',
+  revenue_implied: 'Estimated revenue as a share of category TAM: directional, not syndicated share.',
+  relative_revenue: 'Relative revenue among tracked competitors: build a market model for TAM-based shares.',
 };
 
 export const INSIGHT_TONE = {
@@ -21,7 +21,7 @@ export const INSIGHT_TONE = {
 
 export function fmtUsd(n) {
   const v = Number(n);
-  if (!Number.isFinite(v) || v <= 0) return '—';
+  if (!Number.isFinite(v) || v <= 0) return '-';
   if (v >= 1e9) return `$${(v / 1e9).toFixed(v >= 1e10 ? 0 : 1)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M`;
   if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
@@ -29,7 +29,7 @@ export function fmtUsd(n) {
 }
 
 export function fmtPct(v) {
-  if (v == null || !Number.isFinite(Number(v))) return '—';
+  if (v == null || !Number.isFinite(Number(v))) return '-';
   return `${Number(v)}%`;
 }
 
@@ -175,10 +175,10 @@ export function EstimatedShareTable({ distribution }) {
             <tr key={item.name}>
               <td className="px-4 py-2.5 font-medium text-white">{item.name}</td>
               <td className="px-3 py-2.5 text-right tabular-nums text-slate-300">
-                {item.presence_pct ?? item.share_pct ?? '—'}%
+                {item.presence_pct ?? item.share_pct ?? '-'}%
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
-                {item.share_pct_tam != null ? `${item.share_pct_tam}%` : '—'}
+                {item.share_pct_tam != null ? `${item.share_pct_tam}%` : '-'}
               </td>
               <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">{fmtUsd(item.revenue_usd)}</td>
             </tr>
@@ -245,17 +245,17 @@ export function SyndicatedShareTable({ syndicated, compact }) {
                 <td className="px-3 py-2.5 tabular-nums text-slate-600">{row.rank}</td>
                 <td className="px-3 py-2.5 font-medium text-white">{row.name}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-indigo-300">
-                  {row.published_share_pct != null ? `${row.published_share_pct}%` : '—'}
+                  {row.published_share_pct != null ? `${row.published_share_pct}%` : '-'}
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
-                  {row.estimated_presence_pct != null ? `${row.estimated_presence_pct}%` : '—'}
+                  {row.estimated_presence_pct != null ? `${row.estimated_presence_pct}%` : '-'}
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums">
                   {row.delta_pp != null ? (
                     <span className={row.delta_pp > 0 ? 'text-amber-400' : row.delta_pp < 0 ? 'text-emerald-400' : 'text-slate-500'}>
                       {row.delta_pp > 0 ? '+' : ''}{row.delta_pp}pp
                     </span>
-                  ) : '—'}
+                  ) : '-'}
                 </td>
                 <td className="px-3 py-2.5 text-xs text-slate-500">
                   {row.source_url ? (
@@ -264,7 +264,7 @@ export function SyndicatedShareTable({ syndicated, compact }) {
                       <Icon name="external" className="h-3 w-3" />
                     </a>
                   ) : (
-                    row.publisher || '—'
+                    row.publisher || '-'
                   )}
                   {row.confidence && (
                     <span className={`chip ml-1 text-[10px] ${CONF_BADGE[row.confidence] || CONF_BADGE.medium}`}>
@@ -356,19 +356,19 @@ export function exportDistributionPdf({ pulseData, title = 'Market distribution 
   const presenceRows = items
     .map((item, i) => {
       const pct = item.presence_pct ?? item.share_pct ?? 0;
-      return `<tr><td>${esc(item.name)}</td><td style="text-align:right;font-weight:700">${pct}%</td><td style="text-align:right">${item.share_pct_tam != null ? item.share_pct_tam + '%' : '—'}</td></tr>`;
+      return `<tr><td>${esc(item.name)}</td><td style="text-align:right;font-weight:700">${pct}%</td><td style="text-align:right">${item.share_pct_tam != null ? item.share_pct_tam + '%' : '-'}</td></tr>`;
     })
     .join('');
   const synRows = (syndicated?.table?.rows || [])
     .slice(0, 8)
     .map(
       (r) =>
-        `<tr><td>${esc(r.name)}</td><td style="text-align:right">${r.published_share_pct != null ? r.published_share_pct + '%' : '—'}</td><td style="text-align:right">${r.estimated_presence_pct != null ? r.estimated_presence_pct + '%' : '—'}</td><td>${esc(r.publisher || '')}</td></tr>`
+        `<tr><td>${esc(r.name)}</td><td style="text-align:right">${r.published_share_pct != null ? r.published_share_pct + '%' : '-'}</td><td style="text-align:right">${r.estimated_presence_pct != null ? r.estimated_presence_pct + '%' : '-'}</td><td>${esc(r.publisher || '')}</td></tr>`
     )
     .join('');
   const insights = (pulseData?.insights || [])
     .filter((x) => x.type !== 'missing')
-    .map((ins) => `<li><b>${esc(ins.title)}</b> — ${esc(ins.body)}</li>`)
+    .map((ins) => `<li><b>${esc(ins.title)}</b>: ${esc(ins.body)}</li>`)
     .join('');
 
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
@@ -381,7 +381,7 @@ export function exportDistributionPdf({ pulseData, title = 'Market distribution 
   ul { font-size:13px; }
 </style></head><body>
   <h1>${esc(title)}</h1>
-  <p class="muted">Generated ${new Date().toLocaleDateString()} — directional estimates, not licensed syndicated data.</p>
+  <p class="muted">Generated ${new Date().toLocaleDateString()}. Directional estimates, not licensed syndicated data.</p>
   ${syndicated?.table?.rows?.length ? `<h2>Published market share</h2><table><thead><tr><th>Vendor</th><th>Published</th><th>Estimated</th><th>Source</th></tr></thead><tbody>${synRows}</tbody></table>` : ''}
   <h2>Estimated presence</h2>
   <table><thead><tr><th>Company</th><th>Presence</th><th>TAM share</th></tr></thead><tbody>${presenceRows}</tbody></table>
@@ -442,7 +442,7 @@ export function DistributionPanel({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className={`font-semibold text-white ${compact ? 'text-xs' : 'text-sm'}`}>Published market share</h3>
-              <p className="mt-0.5 text-[11px] text-slate-500">Analyst figures from public sources — separate from estimates</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">Analyst figures from public sources: separate from estimates</p>
             </div>
             <Link href="/methodology" className="chip border-ink-600 bg-ink-850 text-slate-400 hover:text-white">
               <Icon name="shield" className="h-3 w-3" /> Methodology

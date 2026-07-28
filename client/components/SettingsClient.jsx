@@ -385,7 +385,7 @@ export default function SettingsClient() {
             <p className="text-xs text-slate-500">You.com powers competitor discovery and source retrieval.</p>
             <SecretInput label="YOUCOM_API_KEY" value={form.youcom_api_key} onChange={set('youcom_api_key')}
               revealed={revealed.youcom_api_key} onToggle={() => toggleReveal('youcom_api_key')}
-              placeholder={settings?.youcom_key_set ? 'Configured — enter a new key to replace' : 'ydc-…'} />
+              placeholder={settings?.youcom_key_set ? 'Configured: enter a new key to replace' : 'ydc-…'} />
           </section>
 
           <section className="card p-5 space-y-4">
@@ -396,7 +396,7 @@ export default function SettingsClient() {
             <p className="text-xs text-slate-500">xAI extracts competitor details and analyzes pricing changes.</p>
             <SecretInput label="XAI_API_KEY" value={form.xai_api_key} onChange={set('xai_api_key')}
               revealed={revealed.xai_api_key} onToggle={() => toggleReveal('xai_api_key')}
-              placeholder={settings?.xai_key_set ? 'Configured — enter a new key to replace' : 'xai-…'} />
+              placeholder={settings?.xai_key_set ? 'Configured: enter a new key to replace' : 'xai-…'} />
             <div>
               <label htmlFor="settings-xai-model" className="label">XAI model</label>
               <input id="settings-xai-model" className="input font-mono text-xs" value={form.xai_model} onChange={set('xai_model')} placeholder="grok-4" />
@@ -552,8 +552,8 @@ export default function SettingsClient() {
               </div>
             </div>
             <div className="text-xs text-slate-500 space-y-1">
-              <p><strong className="text-slate-400">Admin</strong> — full access including billing & team</p>
-              <p><strong className="text-slate-400">Analyst</strong> — manage competitors & run analysis</p>
+              <p><strong className="text-slate-400">Admin</strong>: full access including billing & team</p>
+              <p><strong className="text-slate-400">Analyst</strong>: manage competitors & run analysis</p>
             </div>
           </section>
 

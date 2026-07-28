@@ -1,5 +1,5 @@
 /**
- * Mira brand mark — official SVG asset (crescent, pulse wave, ascending dots).
+ * Mira brand mark, official SVG asset (crescent, pulse wave, ascending dots).
  */
 export default function MiraMark({ className = 'h-7 w-7', title }) {
   return (

@@ -8,7 +8,7 @@ export const SEO_LANDERS = [
     slug: 'competitive-intelligence-software',
     title: 'Competitive intelligence software for startups',
     description:
-      'Competitive intelligence software for founders — discover rivals, extract pricing, build feature matrices, and size TAM/SAM/SOM from a product URL in about 2 minutes with Mira.',
+      'Competitive intelligence software for founders: discover rivals, extract pricing, build feature matrices, and size TAM/SAM/SOM from a product URL in about 2 minutes with Mira.',
     h1: 'Competitive intelligence software for startups',
     updated: '2026-07-27',
     sections: [
@@ -16,7 +16,7 @@ export const SEO_LANDERS = [
         heading: 'What founders mean by competitive intelligence software',
         body: `Competitive intelligence (CI) software helps teams collect and interpret signals about rivals and markets so they can decide pricing, positioning, features, and go-to-market moves with evidence.
 
-Enterprise CI platforms (for example Klue or Crayon) are built for sales enablement and PMM orgs — battlecards, alert feeds, and multi-seat workflows. Founders usually need something different: start from a product URL, see 5–12 real competitors, and leave with a decision-ready report in minutes — not a six-week analyst project.`,
+Enterprise CI platforms (for example Klue or Crayon) are built for sales enablement and PMM orgs, battlecards, alert feeds, and multi-seat workflows. Founders usually need something different: start from a product URL, see 5–12 real competitors, and leave with a decision-ready report in minutes, not a six-week analyst project.`,
       },
       {
         heading: 'What Mira does in this category',
@@ -50,7 +50,7 @@ It is not an enterprise battlecard CMS for 100+ seat sales orgs, not a syndicate
     slug: 'competitor-pricing-analysis',
     title: 'Competitor pricing analysis tool',
     description:
-      'Competitor pricing analysis for SaaS and apps — extract website plans and App Store / Play in-app purchases, compare tiers, and map price vs value with Mira.',
+      'Competitor pricing analysis for SaaS and apps: extract website plans and App Store / Play in-app purchases, compare tiers, and map price vs value with Mira.',
     h1: 'Competitor pricing analysis for SaaS and apps',
     updated: '2026-07-27',
     sections: [
@@ -69,7 +69,7 @@ A useful competitor pricing analysis therefore has to cover:
         heading: 'How Mira analyzes competitor pricing',
         body: `Mira scrapes and researches pricing content, discovers store listings when needed, and extracts tiers (including multiple IAP price points in the common $0–$99/month band). Annual plans often advertise roughly 17%–20% off monthly run-rate.
 
-Outputs include pricing tables, price-vs-value positioning, and feature matrices tied back to sources — so you can defend a price change in a board meeting or pitch deck.`,
+Outputs include pricing tables, price-vs-value positioning, and feature matrices tied back to sources, so you can defend a price change in a board meeting or pitch deck.`,
       },
       {
         heading: 'Typical workflow',
@@ -93,19 +93,19 @@ Start free at [/signup](/signup), or read the methodology at [/methodology](/met
     slug: 'tam-sam-som',
     title: 'TAM SAM SOM calculator for founders',
     description:
-      'TAM, SAM, and SOM explained for founders — size your market with editable assumptions, provenance, and fact-check support in Mira’s market model.',
+      'TAM, SAM, and SOM explained for founders: size your market with editable assumptions, provenance, and fact-check support in Mira’s market model.',
     h1: 'TAM, SAM, and SOM for founders',
     updated: '2026-07-27',
     sections: [
       {
         heading: 'Definitions',
-        body: `**TAM (Total Addressable Market)** — the broad revenue opportunity if every potential customer bought.
+        body: `**TAM (Total Addressable Market)**, the broad revenue opportunity if every potential customer bought.
 
-**SAM (Serviceable Addressable Market)** — the segment you can realistically reach with your product, geography, and channels.
+**SAM (Serviceable Addressable Market)**, the segment you can realistically reach with your product, geography, and channels.
 
-**SOM (Serviceable Obtainable Market)** — near-term capturable share given competition, capacity, and go-to-market reality.
+**SOM (Serviceable Obtainable Market)**, near-term capturable share given competition, capacity, and go-to-market reality.
 
-Collapsing these into one slide number is a common pitch mistake. A $1,000,000,000 TAM is not a $10,000,000 SOM — that can be a 100× gap.`,
+Collapsing these into one slide number is a common pitch mistake. A $1,000,000,000 TAM is not a $10,000,000 SOM: that can be a 100× gap.`,
       },
       {
         heading: 'How Mira helps you size the market',
@@ -128,13 +128,13 @@ Pair market sizing with competitor matrices so SOM reflects real rivals, not a v
     slug: 'find-saas-competitors',
     title: 'Find SaaS competitors from your product URL',
     description:
-      'Find SaaS competitors fast — paste a product URL, discover 5–12 rivals with pricing pages or store listings, and build a founder watchlist with Mira.',
+      'Find SaaS competitors fast: paste a product URL, discover 5–12 rivals with pricing pages or store listings, and build a founder watchlist with Mira.',
     h1: 'Find SaaS competitors from a product URL',
     updated: '2026-07-27',
     sections: [
       {
         heading: 'The problem with “Google your category”',
-        body: `Searching “[category] software” returns ads, directories pages, and giants that may not compete for the same buyer. Founders need a short, named watchlist — typically 5–12 rivals — with pricing URLs (or App Store / Play listings) they can refresh weekly.`,
+        body: `Searching “[category] software” returns ads, directories pages, and giants that may not compete for the same buyer. Founders need a short, named watchlist (typically 5–12 rivals) with pricing URLs (or App Store / Play listings) they can refresh weekly.`,
       },
       {
         heading: 'How Mira discovers competitors',

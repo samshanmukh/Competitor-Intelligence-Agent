@@ -1,6 +1,6 @@
 /**
  * Derive a company logo URL from a website or pricing page.
- * Uses Google's favicon service (no API key) — falls back to letter avatars in UI on error.
+ * Uses Google's favicon service (no API key), falls back to letter avatars in UI on error.
  */
 
 export function hostnameFromUrl(value) {

@@ -15,7 +15,7 @@ const AXIS = { fill: '#64748b', fontSize: 11 };
 const COLORS = ['#818cf8', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#22d3ee'];
 
 function fmtVisits(n) {
-  if (n == null) return '—';
+  if (n == null) return '-';
   if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
   if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
@@ -140,14 +140,14 @@ export default function CompanyDeepDiveClient() {
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-600">
-          Runs in the background (~2–5 min) — you can navigate away; we notify when ready.
+          Runs in the background (~2–5 min), you can navigate away; we notify when ready.
         </p>
       </LabPanel>
 
       {running && (
         <LabPanel title={`Building dossier · ${form.company}`}>
           <p className="mb-4 text-xs text-slate-500">
-            Layers load in parallel — overview, finance, traffic, reviews.
+            Layers load in parallel, overview, finance, traffic, reviews.
             <span className="ml-2 tabular-nums text-slate-400">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -328,7 +328,7 @@ function SectionCard({ icon, title, loading, empty, children, hint, skills, skil
 }
 
 function Stat({ label, value, accent }) {
-  if (value == null || value === '' || value === '—') return null;
+  if (value == null || value === '' || value === '-') return null;
   return (
     <div className="rounded-lg border border-ink-700 bg-ink-850 px-3.5 py-3">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>

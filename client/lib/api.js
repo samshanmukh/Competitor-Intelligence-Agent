@@ -9,7 +9,7 @@ function getHeaders(extra = {}) {
   return headers;
 }
 
-// Only force re-auth when the session is genuinely missing/garbage — NOT on mere
+// Only force re-auth when the session is genuinely missing/garbage, NOT on mere
 // token expiry (the backend no longer rejects expired-but-decodable tokens, and
 // auto-logging-out on expiry kicks users out on every reload).
 const AUTH_ERROR_CODES = new Set(['INVALID_TOKEN', 'UNAUTHENTICATED']);
@@ -47,7 +47,7 @@ async function request(path, { method = 'GET', body, headers: extraHeaders } = {
     if (res.status === 401 && !_retried && AUTH_ERROR_CODES.has(data?.code) && typeof window !== 'undefined') {
       const newToken = await refreshAccessToken();
       if (newToken) return request(path, { method, body, headers: extraHeaders }, true);
-      // Couldn't recover — send the user to re-authenticate.
+      // Couldn't recover, send the user to re-authenticate.
       forceLogout();
     }
     const message = data?.code === 'AUTH_UNAVAILABLE'
@@ -64,11 +64,11 @@ async function request(path, { method = 'GET', body, headers: extraHeaders } = {
 export const api = {
   health: () => request('/health'),
 
-  /** Public landing demo — no auth. Long-running; needs NEXT_PUBLIC_API_BASE in prod. */
+  /** Public landing demo, no auth. Long-running; needs NEXT_PUBLIC_API_BASE in prod. */
   demoPositioningMap: (pricingUrl) =>
     request('/demo/positioning-map', { method: 'POST', body: { pricingUrl } }),
 
-  /** In-app analyst chat — Mira orchestrates; Pricing is auto-consulted when needed. */
+  /** In-app analyst chat, Mira orchestrates; Pricing is auto-consulted when needed. */
   analystChat: (messages) =>
     request('/analyst/chat', { method: 'POST', body: { messages } }),
 
@@ -229,7 +229,7 @@ export const api = {
   factCheckStart: () => request('/intelligence/market-model/fact-check/start', { method: 'POST' }),
   factCheckStatus: (jobId) => request(`/intelligence/market-model/fact-check/status/${jobId}`),
 
-  // Company deep dive — background job
+  // Company deep dive, background job
   deepDiveStart: (company, url) => request('/company/deep-dive/start', { method: 'POST', body: { company, url } }),
   deepDiveStatus: (jobId) => request(`/company/deep-dive/status/${jobId}`),
   companyFinancials: (company) => request('/company/financials', { method: 'POST', body: { company } }),

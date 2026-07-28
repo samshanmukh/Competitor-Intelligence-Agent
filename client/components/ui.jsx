@@ -385,7 +385,7 @@ export function NotificationBell({ unseen = 0 }) {
         });
         await api.pushSubscribe(sub.toJSON(), ['any', 'high-impact']);
       } catch {
-        // Silent on the bell — the Settings → Notifications tab surfaces the detailed error.
+        // Silent on the bell, the Settings → Notifications tab surfaces the detailed error.
       }
     }
   };

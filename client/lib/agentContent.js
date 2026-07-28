@@ -170,7 +170,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
         '@id': pathname === '/' ? articleId : `${SITE_ORIGIN}/guide#article`,
         headline: 'Competitive intelligence for founders: how Mira turns market signals into next moves',
         description:
-          'A practical guide to competitive and market intelligence for startups — definitions, comparison of CI tools, pricing research methods, and how Mira works.',
+          'A practical guide to competitive and market intelligence for startups: definitions, comparison of CI tools, pricing research methods, and how Mira works.',
         url: articleUrl,
         mainEntityOfPage: {
           '@type': 'WebPage',
@@ -247,7 +247,7 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       '@id': `${SITE_ORIGIN}/about#webpage`,
       url: `${SITE_ORIGIN}/about`,
       name: 'About Mira',
-      description: 'Who builds Mira, founding date, and how to contact the team.',
+      description: 'Who builds Mira: founding date, and how to contact the team.',
       isPartOf: { '@id': websiteId },
       mainEntity: { '@id': orgId },
       breadcrumb: {
@@ -266,10 +266,10 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
   };
 }
 
-/** @deprecated Prefer buildJsonLdGraph — kept for imports that expect a constant. */
+/** @deprecated Prefer buildJsonLdGraph, kept for imports that expect a constant. */
 export const ORGANIZATION_JSON_LD = buildJsonLdGraph({ pathname: '/' });
 
-const HOME_MD = `# Mira — Competitive and market intelligence for founders
+const HOME_MD = `# Mira: Competitive and market intelligence for founders
 
 Mira (joinmira.ai) turns your business, market, and competitor signals into decision support for your next move: pricing, positioning, feature gaps, and go-to-market.
 
@@ -295,27 +295,27 @@ Mira (joinmira.ai) turns your business, market, and competitor signals into deci
 
 ## Mira vs enterprise CI vs traffic tools
 ${COMPARISON_ROWS.map(
-  (r) => `- **${r.capability}** — Mira: ${r.mira}; Enterprise CI: ${r.enterpriseCi}; Traffic tools: ${r.trafficTools}`,
+  (r) => `- **${r.capability}**: Mira: ${r.mira}; Enterprise CI: ${r.enterpriseCi}; Traffic tools: ${r.trafficTools}`,
 ).join('\n')}
 
 ## FAQ
 ${FAQS.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
 
 ## Key public pages
-- [${SITE_ORIGIN}/](${SITE_ORIGIN}/) — product home
-- [${SITE_ORIGIN}/guide](${SITE_ORIGIN}/guide) — competitive intelligence guide (cornerstone)
-- [${SITE_ORIGIN}/competitive-intelligence-software](${SITE_ORIGIN}/competitive-intelligence-software) — CI software for startups
-- [${SITE_ORIGIN}/competitor-pricing-analysis](${SITE_ORIGIN}/competitor-pricing-analysis) — competitor pricing analysis
-- [${SITE_ORIGIN}/tam-sam-som](${SITE_ORIGIN}/tam-sam-som) — TAM / SAM / SOM
-- [${SITE_ORIGIN}/find-saas-competitors](${SITE_ORIGIN}/find-saas-competitors) — find SaaS competitors
-- [${SITE_ORIGIN}/about](${SITE_ORIGIN}/about) — company & contact
-- [${SITE_ORIGIN}/faq](${SITE_ORIGIN}/faq) — frequently asked questions
-- [${SITE_ORIGIN}/architecture](${SITE_ORIGIN}/architecture) — how Mira is built
-- [${SITE_ORIGIN}/methodology](${SITE_ORIGIN}/methodology) — how presence and market estimates are produced
-- [${SITE_ORIGIN}/privacy](${SITE_ORIGIN}/privacy) — privacy policy
-- [${SITE_ORIGIN}/terms](${SITE_ORIGIN}/terms) — terms of service
-- [${SITE_ORIGIN}/login](${SITE_ORIGIN}/login) — sign in
-- [${SITE_ORIGIN}/signup](${SITE_ORIGIN}/signup) — create account
+- [${SITE_ORIGIN}/](${SITE_ORIGIN}/): product home
+- [${SITE_ORIGIN}/guide](${SITE_ORIGIN}/guide): competitive intelligence guide (cornerstone)
+- [${SITE_ORIGIN}/competitive-intelligence-software](${SITE_ORIGIN}/competitive-intelligence-software), CI software for startups
+- [${SITE_ORIGIN}/competitor-pricing-analysis](${SITE_ORIGIN}/competitor-pricing-analysis): competitor pricing analysis
+- [${SITE_ORIGIN}/tam-sam-som](${SITE_ORIGIN}/tam-sam-som), TAM / SAM / SOM
+- [${SITE_ORIGIN}/find-saas-competitors](${SITE_ORIGIN}/find-saas-competitors): find SaaS competitors
+- [${SITE_ORIGIN}/about](${SITE_ORIGIN}/about): company & contact
+- [${SITE_ORIGIN}/faq](${SITE_ORIGIN}/faq): frequently asked questions
+- [${SITE_ORIGIN}/architecture](${SITE_ORIGIN}/architecture): how Mira is built
+- [${SITE_ORIGIN}/methodology](${SITE_ORIGIN}/methodology): how presence and market estimates are produced
+- [${SITE_ORIGIN}/privacy](${SITE_ORIGIN}/privacy): privacy policy
+- [${SITE_ORIGIN}/terms](${SITE_ORIGIN}/terms): terms of service
+- [${SITE_ORIGIN}/login](${SITE_ORIGIN}/login): sign in
+- [${SITE_ORIGIN}/signup](${SITE_ORIGIN}/signup): create account
 
 ## Machine-readable indexes
 - [llms.txt](${SITE_ORIGIN}/llms.txt)
@@ -335,7 +335,7 @@ Mira’s public architecture overview lives at ${SITE_ORIGIN}/architecture.
 ## At a glance
 - Frontend: Next.js 15 on Vercel (joinmira.ai / www.joinmira.ai)
 - Auth & database: InsForge (PostgreSQL + Auth)
-- Intelligence API: Node/Express on Render — discovery, scrape/research waterfall, feature matrix, market model, distribution
+- Intelligence API: Node/Express on Render, discovery, scrape/research waterfall, feature matrix, market model, distribution
 - Research providers: You.com (contents/research/finance), Grok/OpenRouter for structured extraction
 - Optional: Zendesk messaging, Resend email, web push
 
@@ -351,7 +351,7 @@ Public methodology: ${SITE_ORIGIN}/methodology
 
 ## How Mira estimates competitor presence
 - Prefer official pricing pages; if blocked or missing, fall back to App Store / Play Store subscription and in-app purchase listings, then web research.
-- Triangulated presence can blend estimated revenue, web traffic, and review activity — directional, not syndicated audited market share.
+- Triangulated presence can blend estimated revenue, web traffic, and review activity, directional, not syndicated audited market share.
 - Syndicated analyst figures (when found) are shown separately from Mira’s estimates.
 - Market models expose TAM → SAM → SOM with assumption provenance.
 
@@ -378,7 +378,7 @@ ${FAQS.map((f) => `## ${f.question}\n\n${f.answer}`).join('\n\n')}
 Full guide: ${SITE_ORIGIN}/guide
 `;
 
-const GUIDE_MD = `# Competitive intelligence guide — Mira
+const GUIDE_MD = `# Competitive intelligence guide: Mira
 
 Long-form founder guide: ${SITE_ORIGIN}/guide
 

@@ -17,14 +17,14 @@ const a = 'text-slate-300 underline-offset-2 hover:underline';
 
 /**
  * Long-form product / founder documentation for /guide.
- * Reads like a founder methodology guide — not a dense “facts for citation” dump.
+ * Reads like a founder methodology guide, not a dense “facts for citation” dump.
  * Kept off the marketing homepage so the landing page stays clean for humans.
  */
 export default function LandingProductDocs() {
   return (
     <article
       id="how-mira-works"
-      aria-label="How Mira works — product documentation"
+      aria-label="How Mira works: product documentation"
       className="border-t border-white/5 bg-ink-950/60"
       itemScope
       itemType="https://schema.org/Article"
@@ -101,7 +101,7 @@ export default function LandingProductDocs() {
         </header>
 
         <div itemProp="articleBody">
-          <h2 className={h2}>What Mira is — and what it is not</h2>
+          <h2 className={h2}>What Mira is (and what it is not)</h2>
           <p className={p}>
             Mira helps founders turn public market and competitor signals into decision support.
             You start from a product URL or a short market description. Mira discovers competitor
@@ -135,7 +135,7 @@ export default function LandingProductDocs() {
           <h2 className={h2}>Why founders need competitive intelligence early</h2>
           <p className={p}>
             Early-stage teams often under-invest in competitive intelligence because traditional
-            tools assume a dedicated research function — and multi-week analyst retainers can run{' '}
+            tools assume a dedicated research function, and multi-week analyst retainers can run{' '}
             <strong className={strong}>$5,000–$25,000+</strong> (often <strong className={strong}>$150–$400/hour</strong>{' '}
             billed across <strong className={strong}>20–60 hours</strong>). The cost of that gap shows
             up as mistimed pricing, vague positioning, and feature roadmaps that chase anecdotes. A
@@ -167,7 +167,7 @@ export default function LandingProductDocs() {
             >
               Porter’s Five Forces (Harvard Business School)
             </a>{' '}
-            still apply — Mira simply compresses the operational loop for seed-stage teams.
+            still apply, Mira simply compresses the operational loop for seed-stage teams.
           </p>
           <p className={p}>
             For background on the discipline itself, see{' '}
@@ -192,7 +192,7 @@ export default function LandingProductDocs() {
             <a href="https://www.nist.gov/" className={a} rel="noopener noreferrer" target="_blank">
               NIST
             </a>{' '}
-            remains a useful framing reference — which is why Mira uses explicit evidence grades
+            remains a useful framing reference, which is why Mira uses explicit evidence grades
             instead of presenting every number as equally hard.
           </p>
 
@@ -201,7 +201,7 @@ export default function LandingProductDocs() {
             A typical seed-stage workspace watches about{' '}
             <strong className={strong}>5–12 named competitors</strong>, not a hundred-row enterprise
             alert feed. Pricing enrichment checks your competitors’ websites first, then falls back
-            to App Store and Google Play listings when public web prices are missing — consumer SaaS
+            to App Store and Google Play listings when public web prices are missing, consumer SaaS
             list prices often sit in the <strong className={strong}>$0–$99/month</strong> band, with
             annual plans commonly around <strong className={strong}>17–20%</strong> below monthly
             run-rate when vendors advertise “2 months free.” Feature and value matrices make
@@ -215,7 +215,7 @@ export default function LandingProductDocs() {
             <strong className={strong}>$4,200,000,000</strong> with an{' '}
             <strong className={strong}>18%</strong> CAGR, SAM might be{' '}
             <strong className={strong}>$420,000,000</strong> (10% of TAM) and SOM{' '}
-            <strong className={strong}>$12,600,000</strong> (3% of SAM) in year 1 — three different
+            <strong className={strong}>$12,600,000</strong> (3% of SAM) in year 1, three different
             decisions, not one slide. Alternatively, a simplified gap many pitch decks collapse:
             a <strong className={strong}>$1,000,000,000</strong> TAM next to a{' '}
             <strong className={strong}>$10,000,000</strong> SOM is a{' '}
@@ -228,7 +228,7 @@ export default function LandingProductDocs() {
             do not invent them. Mira was founded on{' '}
             <time dateTime={ORG.foundingDate}>{ORG.foundingDate}</time> (calendar year{' '}
             <strong className={strong}>2025</strong>). The first clarity snapshot targets about{' '}
-            <strong className={strong}>2 minutes</strong> after you paste a product URL — roughly{' '}
+            <strong className={strong}>2 minutes</strong> after you paste a product URL: roughly{' '}
             <strong className={strong}>90%+</strong> faster than a week-long analyst sprint for the
             same founder questions. Default watchlist size is{' '}
             <strong className={strong}>5–12</strong> rivals; recommended refresh cadence is weekly (
@@ -343,7 +343,7 @@ export default function LandingProductDocs() {
             incompatible data grades.
           </p>
 
-          <h2 className={h2}>TAM, SAM, and SOM — kept separate on purpose</h2>
+          <h2 className={h2}>TAM, SAM, and SOM: kept separate on purpose</h2>
           <p className={p}>
             <strong className={strong}>TAM (Total Addressable Market)</strong> is the broad revenue
             opportunity if every potential customer in the category bought a solution.{' '}
@@ -443,12 +443,12 @@ export default function LandingProductDocs() {
           <h2 className={h2}>A practical weekly cadence</h2>
           <p className={p}>
             Competitive intelligence fails when it is a one-off slide deck. A lightweight weekly
-            cadence works better for seed-stage teams — about{' '}
+            cadence works better for seed-stage teams, about{' '}
             <strong className={strong}>52 structured refresh cycles per year</strong>. Monday:
             refresh pricing and changelog notes for your top{' '}
             <strong className={strong}>5–12</strong> rivals. Wednesday: update one battlecard claim
             that advisors questioned. Friday: decide one product or positioning move informed by the
-            week’s deltas. Mira is designed to support that loop — re-run enrichment when a
+            week’s deltas. Mira is designed to support that loop, re-run enrichment when a
             competitor launches a plan, and keep source links attached so you can defend the number
             in a partner meeting.
           </p>
@@ -457,7 +457,7 @@ export default function LandingProductDocs() {
             <strong className={strong}>14 days</strong>, refresh the top{' '}
             <strong className={strong}>5</strong> rivals’ pricing pages and one changelog each, then
             write a single paragraph on what changed for your positioning. That is still{' '}
-            <strong className={strong}>26</strong> refresh cycles per year — far better than a single
+            <strong className={strong}>26</strong> refresh cycles per year, far better than a single
             outdated deck from last quarter. When the team has capacity again, return to the{' '}
             <strong className={strong}>7-day</strong> cadence.
           </p>
@@ -469,10 +469,10 @@ export default function LandingProductDocs() {
             methodology rule, or a workspace-specific estimate that is not public.
           </p>
 
-          <h2 className={h2}>Who Mira is for — and who should look elsewhere</h2>
+          <h2 className={h2}>Who Mira is for (and who should look elsewhere)</h2>
           <p className={p}>
             Strong fit for solo founders, pre-seed and seed teams, indie hackers, and accelerator
-            cohorts who need analyst-grade clarity without a dedicated research function — often in
+            cohorts who need analyst-grade clarity without a dedicated research function, often in
             hours rather than weeks. Large enterprises that need multi-seat battlecard CMS workflows,
             legal review queues, and CRM-tied enablement are usually better served by enterprise CI
             suites. Growth teams that only need category traffic share should keep a traffic
@@ -487,7 +487,7 @@ export default function LandingProductDocs() {
           <h2 className={h2}>Common mistakes Mira helps you avoid</h2>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-[15px] leading-[1.75] text-slate-400">
             <li>
-              Treating “Contact sales” competitors as free — missing enterprise floor pricing that
+              Treating “Contact sales” competitors as free, missing enterprise floor pricing that
               still anchors buyer expectations.
             </li>
             <li>
@@ -503,7 +503,7 @@ export default function LandingProductDocs() {
               summarizers alike.
             </li>
             <li>
-              Ignoring mobile-store pricing when the website only markets a free download — especially
+              Ignoring mobile-store pricing when the website only markets a free download, especially
               when list prices commonly land in the <strong className={strong}>$0–$99/month</strong>{' '}
               consumer band.
             </li>
@@ -579,7 +579,7 @@ export default function LandingProductDocs() {
             <Link href="/signup" className={a}>
               /signup
             </Link>
-            , paste your product URL, and generate your first clarity report — target SLA about{' '}
+            , paste your product URL, and generate your first clarity report, target SLA about{' '}
             <strong className={strong}>2 minutes</strong> for the first snapshot. You can begin a
             workspace at <strong className={strong}>$0</strong>; live plan details appear in-app
             after signup. For a short numeric overview, see{' '}

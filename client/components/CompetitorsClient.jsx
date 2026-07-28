@@ -262,7 +262,7 @@ export default function CompetitorsClient() {
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell"><ValueScore score={c.value_score} /></td>
                   <td className="px-4 py-3 text-slate-400">{c.changeCount || 0}</td>
-                  <td className="px-4 py-3 text-slate-500 hidden md:table-cell text-xs">{c.last_checked_at ? timeAgo(c.last_checked_at) : '—'}</td>
+                  <td className="px-4 py-3 text-slate-500 hidden md:table-cell text-xs">{c.last_checked_at ? timeAgo(c.last_checked_at) : '-'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
                       <button onClick={() => refresh(c.id)} disabled={refreshingId === c.id} className="text-slate-500 hover:text-white transition p-1">

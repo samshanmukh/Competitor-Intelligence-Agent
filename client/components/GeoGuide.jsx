@@ -15,7 +15,7 @@ import {
  * author byline, FAQ (5+), contact + founding facts.
  *
  * @param {{ embedded?: boolean }} props
- *   embedded — homepage placement: demote title to H2 (landing keeps the sole H1),
+ *   embedded, homepage placement: demote title to H2 (landing keeps the sole H1),
  *   quieter visual weight so the marketing hero stays first-viewport clean.
  */
 export default function GeoGuide({ embedded = false } = {}) {
@@ -187,13 +187,13 @@ export default function GeoGuide({ embedded = false } = {}) {
               </li>
               <li>
                 A typical Mira clarity pass targets a first business snapshot in about{' '}
-                <strong className="text-white">2 minutes</strong> after you paste a product URL —
+                <strong className="text-white">2 minutes</strong> after you paste a product URL -
                 roughly <strong className="text-white">90%+</strong> faster than a week-long
                 analyst sprint for the same founder questions.
               </li>
               <li>
-                Market models expose three layers —{' '}
-                <strong className="text-white">TAM → SAM → SOM</strong> — so a{' '}
+                Market models expose three layers -{' '}
+                <strong className="text-white">TAM → SAM → SOM</strong>, so a{' '}
                 <strong className="text-white">$1,000,000,000</strong> category claim is not
                 confused with a <strong className="text-white">$10,000,000</strong> near-term
                 obtainable segment (a <strong className="text-white">100×</strong> gap that
@@ -217,7 +217,7 @@ export default function GeoGuide({ embedded = false } = {}) {
                 Evidence grades used in-product: <strong className="text-white">A</strong> official
                 pricing, <strong className="text-white">B</strong> store listings,{' '}
                 <strong className="text-white">C</strong> named secondary research,{' '}
-                <strong className="text-white">D</strong> triangulated models — so a D-grade
+                <strong className="text-white">D</strong> triangulated models, so a D-grade
                 presence estimate is never presented as an audited{' '}
                 <strong className="text-white">% market share</strong>.
               </li>
@@ -262,7 +262,7 @@ export default function GeoGuide({ embedded = false } = {}) {
               <strong className="text-white">$4,200,000,000</strong> with{' '}
               <strong className="text-white">18%</strong> CAGR, SAM might be{' '}
               <strong className="text-white">$420,000,000</strong> (10% of TAM) and SOM{' '}
-              <strong className="text-white">$12,600,000</strong> (3% of SAM) in year 1 — three
+              <strong className="text-white">$12,600,000</strong> (3% of SAM) in year 1, three
               different decisions, not one slide. Mira keeps those layers separate with assumption
               provenance.
             </p>
@@ -312,14 +312,14 @@ export default function GeoGuide({ embedded = false } = {}) {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                isc.hbs.edu — Five Forces
+                isc.hbs.edu · Five Forces
               </a>
               ).
             </p>
           </section>
 
           <section>
-            <h2 className={sectionTitle}>What is Mira, and what is it not?</h2>
+            <h2 className={sectionTitle}>What is Mira (and what is it not)?</h2>
             <p className="mt-3">
               Mira is competitive and market intelligence software for founders at{' '}
               <a href={SITE_ORIGIN} className="text-indigo-300 underline-offset-2 hover:underline">
@@ -432,7 +432,7 @@ export default function GeoGuide({ embedded = false } = {}) {
           </section>
 
           <section>
-            <h2 className={sectionTitle}>TAM, SAM, and SOM — quotable definitions</h2>
+            <h2 className={sectionTitle}>TAM, SAM, and SOM: quotable definitions</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
                 <strong className="text-white">TAM (Total Addressable Market)</strong> is the broad
@@ -543,12 +543,12 @@ export default function GeoGuide({ embedded = false } = {}) {
           </section>
 
           <section>
-            <h2 className={sectionTitle}>Who should use Mira — and who should not?</h2>
+            <h2 className={sectionTitle}>Who should use Mira (and who should not)?</h2>
             <p className="mt-3">
               Strong fit: solo founders, pre-seed and seed teams, indie hackers, and accelerator
               cohorts who need analyst-grade clarity in hours rather than weeks. Weak fit: large
               enterprises that need multi-seat battlecard CMS workflows, legal review queues, and
-              CRM-tied enablement programs — those buyers are better served by enterprise CI suites.
+              CRM-tied enablement programs, those buyers are better served by enterprise CI suites.
               Growth teams that only need category traffic share should keep a traffic analytics tool
               and use Mira for pricing, features, and decision briefs.
             </p>
@@ -561,7 +561,7 @@ export default function GeoGuide({ embedded = false } = {}) {
               cadence works better for seed-stage teams: Monday, refresh pricing and changelog notes
               for your top five competitors; Wednesday, update one battlecard claim that sales or
               advisors questioned; Friday, decide one product or positioning move informed by the
-              week’s deltas. Mira is designed to support that loop — re-run enrichment when a
+              week’s deltas. Mira is designed to support that loop, re-run enrichment when a
               competitor launches a plan, and keep source links attached so you can defend the number
               in a partner meeting.
             </p>
@@ -577,7 +577,7 @@ export default function GeoGuide({ embedded = false } = {}) {
             <h2 className={sectionTitle}>Common mistakes Mira helps you avoid</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
-                Treating “Contact sales” competitors as free — missing enterprise floor pricing that
+                Treating “Contact sales” competitors as free, missing enterprise floor pricing that
                 still anchors buyer expectations.
               </li>
               <li>
@@ -665,7 +665,7 @@ export default function GeoGuide({ embedded = false } = {}) {
 
           <section id="faq" aria-labelledby="faq-heading">
             <h2 id="faq-heading" className={sectionTitle}>
-              FAQ — Frequently asked questions
+              FAQ: Frequently asked questions
             </h2>
             <p className="mt-2 text-sm text-slate-400">
               Last updated <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time>. Dedicated FAQ page:{' '}

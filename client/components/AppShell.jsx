@@ -20,7 +20,7 @@ const NO_SHELL_PREFIXES = [
   '/architecture',
 ];
 
-/** Public marketing docs — no app sidebar (crawlable, shareable). */
+/** Public marketing docs, no app sidebar (crawlable, shareable). */
 const PUBLIC_DOC_EXACT = new Set([
   '/',
   '/about',

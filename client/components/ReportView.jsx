@@ -166,7 +166,7 @@ export default function ReportView({
               <span><span className="text-slate-500">?</span> Not verified</span>
             </div>
             <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
-              Hover a cell for evidence, plan, and source. Marks are inferred from scraped pages — verify before decisions.
+              Hover a cell for evidence, plan, and source. Marks are inferred from scraped pages. Verify before decisions.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -197,7 +197,7 @@ export default function ReportView({
               </table>
               {matrixColumns.some((c) => !c.you && !(c.flags || []).some((x) => featureCellHasJudgment(x))) && (
                 <p className="mt-3 text-[11px] text-slate-500">
-                  Rival columns still empty — hit Regenerate to pull You.com pricing/feature research for each competitor.
+                  Rival columns still empty: hit Regenerate to pull You.com pricing/feature research for each competitor.
                 </p>
               )}
             </div>
@@ -301,7 +301,7 @@ export default function ReportView({
 
   const [tab, setTab] = useState(panels[0]?.id || 'value');
   const [pinnedTab, setPinnedTab] = useState(false);
-  // Tabs that just finished — pulse + "Ready" chip to alert the user.
+  // Tabs that just finished, pulse + "Ready" chip to alert the user.
   const [justReady, setJustReady] = useState(() => new Set());
   const prevLoadingRef = useRef({});
 
@@ -818,19 +818,19 @@ function formatTierPrice(t) {
   const amount = typeof t?.amount === 'number' ? t.amount
     : typeof t?.price_monthly === 'number' ? t.price_monthly
       : null;
-  if (amount == null) return '—';
+  if (amount == null) return '-';
   const n = Number.isInteger(amount) ? String(amount) : amount.toFixed(2).replace(/\.00$/, '');
   const period = t?.billing_period;
   if (period === 'monthly') return `$${n}/mo`;
   if (period === 'yearly') return `$${n}/yr`;
   if (period === 'weekly') return `$${n}/wk`;
   if (period === 'one_time') return `$${n}`;
-  // App Store often lists multiple IAPs without a period label — don't invent /mo.
+  // App Store often lists multiple IAPs without a period label, don't invent /mo.
   return `$${n}`;
 }
 
 function PricingCard({ name, tiers, you, href, sources, loading }) {
-  // Hide placeholder rows like "Default —" that aren't real extracted plans.
+  // Hide placeholder rows like "Default -" that aren't real extracted plans.
   // Keep every distinct IAP amount (same plan name + different $ = separate rows).
   const visible = (tiers || []).filter((t) => (
     t?.price_monthly != null || t?.amount != null || (t?.name && !/^default$/i.test(String(t.name).trim()))
@@ -972,7 +972,7 @@ function MapPointLabel({ x, y, payload }) {
   );
 }
 
-/** Logo marker on the positioning map — larger hit target for easy hover. */
+/** Logo marker on the positioning map, larger hit target for easy hover. */
 function MapLogoShape(props) {
   const { cx, cy, payload } = props;
   if (cx == null || cy == null || !payload) return null;
@@ -987,7 +987,7 @@ function MapLogoShape(props) {
       {/* Invisible larger hit area */}
       <circle cx={cx} cy={cy} r={size / 2 + 8} fill="transparent" />
       {hasLogo ? (
-        // Clean logo only — no colored ring when the favicon/image loaded.
+        // Clean logo only, no colored ring when the favicon/image loaded.
         <image
           href={payload.logoUrl}
           xlinkHref={payload.logoUrl}
@@ -1050,9 +1050,9 @@ function MapTooltip({ active, payload }) {
         )}
         <p className="font-semibold text-white">{d.name}</p>
       </div>
-      <p className="mt-1 text-slate-400">Value: {d.value ?? '—'}/10</p>
+      <p className="mt-1 text-slate-400">Value: {d.value ?? '-'}/10</p>
       <p className="text-slate-400">
-        Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '—'}
+        Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '-'}
         {d.priceEstimated ? ' (estimated)' : ''}
       </p>
     </div>
@@ -1207,33 +1207,33 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
       title="Visual analysis"
       skills={[{ skill: 'you-contents' }, { skill: 'you-research' }, { skill: 'grok' }]}
     >
-      {/* KPI strip — denser auto-fit so empty tiles don't stretch across the page */}
+      {/* KPI strip, denser auto-fit so empty tiles don't stretch across the page */}
       <div className="mb-4 grid max-w-5xl grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6">
         <StatTile
           label="Your value"
-          value={you?.value != null ? `${you.value}/10` : '—'}
+          value={you?.value != null ? `${you.value}/10` : '-'}
           sub={avgValue != null ? `Field avg ${avgValue.toFixed(1)}` : 'Awaiting score'}
           accent
         />
         <StatTile
           label="Your entry"
-          value={you?.price != null ? `$${Math.round(you.price)}` : '—'}
+          value={you?.price != null ? `$${Math.round(you.price)}` : '-'}
           sub={avgPrice != null ? `Field avg $${Math.round(avgPrice)}` : 'per month'}
           accent
         />
         <StatTile
           label="Value density"
-          value={you?.density != null ? you.density : '—'}
+          value={you?.density != null ? you.density : '-'}
           sub="value pts / $100"
         />
         <StatTile
           label="Plan tiers"
-          value={you?.tierCount || yourTiers.length || '—'}
+          value={you?.tierCount || yourTiers.length || '-'}
           sub={you?.priceMax != null ? `up to $${Math.round(you.priceMax)}` : 'on your ladder'}
         />
         <StatTile
           label="Feature coverage"
-          value={you?.coverage != null ? `${you.coverage}%` : featureCount ? '…' : '—'}
+          value={you?.coverage != null ? `${you.coverage}%` : featureCount ? '…' : '-'}
           sub={featureCount ? `${featureCount} features tracked` : 'Run matrix for %'}
         />
         <StatTile
@@ -1253,12 +1253,12 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
         </div>
       )}
 
-      {/* Positioning map — show with 1+ points; placeholder when waiting on rivals */}
+      {/* Positioning map, show with 1+ points; placeholder when waiting on rivals */}
       <div className="mb-4">
         <ChartCard
           title="Positioning map"
           hint={mapData.length >= 2
-            ? 'Entry price vs. value — top-left is best value, bottom-right is overpriced. Hover a logo for details.'
+            ? 'Entry price vs. value: top-left is best value, bottom-right is overpriced. Hover a logo for details.'
             : 'Map unlocks when at least two products have both a value score and an entry price.'}
         >
           {mapData.length >= 1 ? (
@@ -1331,7 +1331,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
             <div className="flex h-40 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/10 px-4 text-center">
               <ThinkingShimmer label="Waiting on value scores…" />
               <p className="m-0 text-xs text-slate-600">
-                Entry prices land next — then the map plots.
+                Entry prices land next, then the map plots.
               </p>
             </div>
           )}
@@ -1376,7 +1376,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
         )}
 
         {densityData.length > 0 && (
-          <ChartCard title="Value density" hint="Value points earned per $100 of entry price — higher is better bargain.">
+          <ChartCard title="Value density" hint="Value points earned per $100 of entry price: higher is better bargain.">
             <ResponsiveContainer width="100%" height={barH(densityData.length)}>
               <BarChart data={densityData} layout="vertical" margin={{ left: 8, right: 28 }}>
                 <CartesianGrid stroke="#181c24" horizontal={false} />
@@ -1446,7 +1446,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
       {/* Your pricing ladder */}
       {yourTiers.length > 0 && (
         <div className="mt-4">
-          <ChartCard title="Your pricing ladder" hint="Published plans for your product — useful while rival bars are still filling in.">
+          <ChartCard title="Your pricing ladder" hint="Published plans for your product: useful while rival bars are still filling in.">
             <div className="flex flex-wrap gap-2">
               {yourTiers.map((t, i) => {
                 const maxP = Math.max(...yourTiers.map((x) => x.price || 0), 1);
@@ -1455,7 +1455,7 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
                   <div key={`${t.name}-${i}`} className="min-w-[7rem] flex-1 rounded-lg border border-accent/25 bg-accent/5 p-3">
                     <p className="text-xs font-medium text-accent-soft">{t.name}</p>
                     <p className="mt-1 text-lg font-bold tabular-nums text-white">
-                      {t.price != null ? `$${t.price}` : '—'}
+                      {t.price != null ? `$${t.price}` : '-'}
                       {t.price != null && <span className="text-xs font-normal text-slate-500">/mo</span>}
                     </p>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-800">
@@ -1489,11 +1489,11 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
                   {you && (
                     <tr className="bg-accent/5">
                       <td className="py-2 pr-3 font-medium text-accent-soft">{you.shortName || you.name} <span className="text-[10px]">(you)</span></td>
-                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.value ?? '—'}</td>
-                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.price != null ? `$${Math.round(you.price)}` : '—'}</td>
-                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.tierCount || '—'}</td>
-                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.coverage != null ? `${you.coverage}%` : '—'}</td>
-                      <td className="px-2 py-2 text-slate-500">—</td>
+                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.value ?? '-'}</td>
+                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.price != null ? `$${Math.round(you.price)}` : '-'}</td>
+                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.tierCount || '-'}</td>
+                      <td className="px-2 py-2 tabular-nums text-slate-200">{you.coverage != null ? `${you.coverage}%` : '-'}</td>
+                      <td className="px-2 py-2 text-slate-500">-</td>
                     </tr>
                   )}
                   {comp.map((c) => (
@@ -1548,7 +1548,7 @@ function ReviewsSection({ reviews, loading }) {
       {withData.length > 0 && (
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
-            <p className="text-2xl font-bold text-amber-400">{avgRating != null ? avgRating.toFixed(1) : '—'}</p>
+            <p className="text-2xl font-bold text-amber-400">{avgRating != null ? avgRating.toFixed(1) : '-'}</p>
             <p className="text-xs text-slate-500">avg rating / 5</p>
           </div>
           <div className="rounded-lg border border-ink-700 bg-ink-850 p-3 text-center">
@@ -1668,7 +1668,7 @@ function StrategySection({ strategy, productName }) {
                       <span className="shrink-0">{q.sign}</span>{item}
                     </li>
                   ))}
-                  {(swot[q.key] || []).length === 0 && <li className="text-xs text-slate-600">—</li>}
+                  {(swot[q.key] || []).length === 0 && <li className="text-xs text-slate-600">-</li>}
                 </ul>
               </div>
             ))}
@@ -1693,9 +1693,9 @@ function StrategySection({ strategy, productName }) {
                 {positioning.map((p, i) => (
                   <tr key={i} className="align-top">
                     <td className="py-2 pr-4 text-sm font-medium text-white">{p.name}</td>
-                    <td className="px-3 py-2 text-xs text-slate-400">{p.positioning || '—'}</td>
-                    <td className="px-3 py-2 text-xs text-slate-400">{p.target_audience || '—'}</td>
-                    <td className="px-3 py-2 text-xs text-slate-400">{p.messaging_angle || '—'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.positioning || '-'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.target_audience || '-'}</td>
+                    <td className="px-3 py-2 text-xs text-slate-400">{p.messaging_angle || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1717,8 +1717,8 @@ function MarketSection({ market }) {
   const isTriangulated = distribution?.method === 'triangulated';
 
   const hintForMethod = {
-    triangulated: 'Blends estimated revenue, web traffic, and review activity — directional, not syndicated market share.',
-    revenue_implied: 'Estimated revenue as a share of category TAM — directional, not syndicated market share.',
+    triangulated: 'Blends estimated revenue, web traffic, and review activity: directional, not syndicated market share.',
+    revenue_implied: 'Estimated revenue as a share of category TAM: directional, not syndicated market share.',
     relative_revenue: 'Relative revenue scale among tracked competitors (build a market model for TAM-based shares).',
   };
 
@@ -1771,7 +1771,7 @@ function MarketSection({ market }) {
       {(syndicated?.table?.rows?.length || syndicated?.vendors?.length) > 0 && (
         <div className="mb-4 rounded-xl border border-ink-700 bg-ink-850 p-4">
           <h3 className="text-sm font-semibold text-white">Published market share</h3>
-          <p className="mt-0.5 text-[11px] text-slate-500">From public analyst sources — not blended into estimates</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">From public analyst sources: not blended into estimates</p>
           <div className="mt-3">
             <SyndicatedShareTable syndicated={syndicated} compact />
           </div>

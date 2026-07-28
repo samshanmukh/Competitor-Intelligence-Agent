@@ -21,7 +21,7 @@ export const ORG = {
     'Mira is competitive and market intelligence software for founders. It turns business, market, and competitor signals into decision support for pricing, positioning, and the next move.',
 };
 
-/** Visible FAQ entries — keep in sync with FAQPage JSON-LD (need 5+; prefer 8–12). */
+/** Visible FAQ entries, keep in sync with FAQPage JSON-LD (need 5+; prefer 8–12). */
 export const FAQS = [
   {
     question: 'What is Mira?',
@@ -36,17 +36,17 @@ export const FAQS = [
   {
     question: 'How does Mira estimate competitor presence?',
     answer:
-      'Mira prefers official pricing and product pages (evidence grade A). When those are blocked or missing, it falls back to App Store and Google Play listings (grade B), then named secondary research (grade C), then triangulated models blending estimated revenue clues, web traffic proxies, and review activity (grade D). D-grade figures are directional — never labeled as audited % market share. See /methodology.',
+      'Mira prefers official pricing and product pages (evidence grade A). When those are blocked or missing, it falls back to App Store and Google Play listings (grade B), then named secondary research (grade C), then triangulated models blending estimated revenue clues, web traffic proxies, and review activity (grade D). D-grade figures are directional, never labeled as audited % market share. See /methodology.',
   },
   {
     question: 'How is Mira different from Crayon, Klue, or Similarweb?',
     answer:
-      'Crayon and Klue are enterprise battlecard / enablement platforms for sales and PMM teams. Similarweb emphasizes traffic and digital share panels. Mira is built for early-stage founders: start from a product URL, produce pricing and feature matrices, TAM→SAM→SOM (so a $1,000,000,000 TAM is not confused with a $10,000,000 SOM — a 100× gap), and next-move recommendations without a CI ops team.',
+      'Crayon and Klue are enterprise battlecard / enablement platforms for sales and PMM teams. Similarweb emphasizes traffic and digital share panels. Mira is built for early-stage founders: start from a product URL, produce pricing and feature matrices, TAM→SAM→SOM (so a $1,000,000,000 TAM is not confused with a $10,000,000 SOM: a 100× gap), and next-move recommendations without a CI ops team.',
   },
   {
     question: 'Does Mira scrape App Store and Google Play pricing?',
     answer:
-      'Yes. When a competitor lacks a clear website pricing page, Mira can discover App Store and Google Play listings and extract subscription and in-app purchase price points — commonly in the $0–$99/month consumer SaaS band — and retain source links. Annual plans often advertise roughly 17%–20% off monthly run-rate (“2 months free”).',
+      'Yes. When a competitor lacks a clear website pricing page, Mira can discover App Store and Google Play listings and extract subscription and in-app purchase price points (commonly in the $0–$99/month consumer SaaS band) and retain source links. Annual plans often advertise roughly 17%–20% off monthly run-rate (“2 months free”).',
   },
   {
     question: 'What is TAM, SAM, and SOM in Mira?',
@@ -81,7 +81,7 @@ export const FAQS = [
   {
     question: 'What SLA should founders expect for a first Mira snapshot?',
     answer:
-      'About 2 minutes (~120 seconds) after you paste a product URL — roughly 90%+ faster than a week-long (~40 hour) analyst sprint for the same founder questions. Support: support@joinmira.ai.',
+      'About 2 minutes (~120 seconds) after you paste a product URL: roughly 90%+ faster than a week-long (~40 hour) analyst sprint for the same founder questions. Support: support@joinmira.ai.',
   },
 ];
 
@@ -97,7 +97,7 @@ export const COMPARISON_ROWS = [
   },
   {
     capability: 'Start from product URL',
-    mira: 'Yes — discovery from your site',
+    mira: 'Yes, discovery from your site',
     enterpriseCi: 'Usually manual competitor lists',
     trafficTools: 'Domain / category search',
   },

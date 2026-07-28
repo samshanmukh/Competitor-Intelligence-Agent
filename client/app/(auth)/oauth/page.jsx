@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-/** Legacy test route — social buttons live on /login and /signup now. */
+/** Legacy test route, social buttons live on /login and /signup now. */
 export default async function OAuthTestPage({ searchParams }) {
   const params = await searchParams;
   const qs = new URLSearchParams();

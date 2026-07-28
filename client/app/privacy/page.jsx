@@ -7,7 +7,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'Privacy Policy',
   description:
-    'Privacy policy for Mira (joinmira.ai) — how we handle account and product data.',
+    'Privacy policy for Mira (joinmira.ai), how we handle account and product data.',
   path: '/privacy',
 });
 

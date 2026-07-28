@@ -175,7 +175,7 @@ export default function Sidebar() {
           {renderNav(collapsed)}
         </nav>
 
-        {/* Bottom: workspace + sign out — isolate so the switcher menu covers nav text */}
+        {/* Bottom: workspace + sign out, isolate so the switcher menu covers nav text */}
         <div className={`relative z-30 mt-4 space-y-2 border-t border-ink-800/80 pt-4 ${collapsed ? 'flex flex-col items-center gap-1' : ''}`} style={{ backgroundColor: '#0e1014' }}>
           {!collapsed && workspace && (
             <WorkspaceSwitcher

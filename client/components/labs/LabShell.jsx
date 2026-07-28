@@ -4,7 +4,7 @@ import { Shimmer } from '../ui';
 import { SkillChipRow } from '../SourceAttribution';
 
 /**
- * Shared lab chrome — matches Analysis progressive UI (glass header, shimmer busy).
+ * Shared lab chrome, matches Analysis progressive UI (glass header, shimmer busy).
  */
 export function LabShell({ title, subtitle, children, action, wide = true, skills }) {
   return (

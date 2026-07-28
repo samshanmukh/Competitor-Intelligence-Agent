@@ -2,7 +2,7 @@ import Link from 'next/link';
 import MiraMark from './MiraMark';
 
 /**
- * Mira brand logo — official SVG mark + wordmark.
+ * Mira brand logo, official SVG mark + wordmark.
  * variant="mark" → icon only (collapsed sidebar)
  * variant="full" → icon + "Mira" (dark UI; white wordmark)
  * variant="lockup" → full official SVG lockup (mark + designed wordmark; best on light)

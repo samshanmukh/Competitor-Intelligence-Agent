@@ -8,7 +8,7 @@ const KEY = process.env.NEXT_PUBLIC_ZENDESK_KEY || '';
 const SCRIPT_ID = 'ze-snippet';
 const HIDE_STYLE_ID = 'mira-zendesk-hide-default-launcher';
 
-/** Dark Mira surfaces (ink + indigo). Zendesk only allows colors/layout knobs — not custom composer structure. */
+/** Dark Mira surfaces (ink + indigo). Zendesk only allows colors/layout knobs, not custom composer structure. */
 const MIRA_THEME = {
   theme: {
     primary: '#6366f1',

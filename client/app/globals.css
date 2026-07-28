@@ -11,7 +11,7 @@
     @apply bg-ink-950 text-slate-200 antialiased;
     font-feature-settings: 'cv11', 'ss01';
     overflow-x: hidden;
-    /* Deep canvas — aurora lives on ::before so frosted panels have something to blur */
+    /* Deep canvas, aurora lives on ::before so frosted panels have something to blur */
     background-color: #07080b;
   }
   body::before {
@@ -123,7 +123,7 @@
 }
 
 /*
- * Frosted ink surfaces — lift hard-coded solid panels across the app into glass.
+ * Frosted ink surfaces, lift hard-coded solid panels across the app into glass.
  * Specificity matches Tailwind utilities; listed after @tailwind utilities.
  */
 .bg-ink-900,
@@ -191,7 +191,7 @@
   box-shadow: none !important;
 }
 
-/* Opaque menus — do not use .bg-ink-* (those are remapped to translucent glass). */
+/* Opaque menus, do not use .bg-ink-* (those are remapped to translucent glass). */
 .menu-panel {
   background-color: #0e1014 !important;
   backdrop-filter: none !important;
@@ -213,7 +213,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* ChatGPT-style text shimmer — soft highlight through letters, not a skeleton bar */
+/* ChatGPT-style text shimmer, soft highlight through letters, not a skeleton bar */
 .thinking-shimmer {
   display: inline-block;
 }

@@ -8,7 +8,7 @@ import { pageMetadata } from '../../lib/seo';
 const GUIDE_META = pageMetadata({
   title: 'Competitive intelligence guide',
   description:
-    'Founder guide to competitive and market intelligence — definitions, Mira vs enterprise CI tools, pricing research, TAM/SAM/SOM, and FAQ.',
+    'Founder guide to competitive and market intelligence: definitions, Mira vs enterprise CI tools, pricing research, TAM/SAM/SOM, and FAQ.',
   path: '/guide',
   type: 'article',
 });

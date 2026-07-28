@@ -7,7 +7,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'Contact',
   description:
-    'Contact Mira — email support@joinmira.ai for product, press, and partnership questions about competitive intelligence software.',
+    'Contact Mira: email support@joinmira.ai for product, press, and partnership questions about competitive intelligence software.',
   path: '/contact',
 });
 
@@ -35,10 +35,10 @@ phone number in the email body and a good time window in your local timezone.
 
 ### Suggested email subjects
 
-- “Product question — [your product URL]”
-- “Methodology question — presence estimate”
-- “Press — Mira competitive intelligence”
-- “Partnership — [your organization]”
+- “Product question, [your product URL]”
+- “Methodology question, presence estimate”
+- “Press, Mira competitive intelligence”
+- “Partnership, [your organization]”
 
 ### After you write
 
@@ -66,7 +66,7 @@ page. If you need a phone callback, include your number in email.
 
 ### Example outreach
 
-Subject: Product question — https://example.com  
+Subject: Product question, https://example.com  
 
 Body: We use Mira for competitive intelligence. Can you confirm how App Store pricing
 fallback works when a competitor has no public pricing page? Our workspace URL is …

@@ -71,7 +71,7 @@ export async function POST(request) {
   }
 }
 
-// Edit a request — only the signed visitor that created it may edit.
+// Edit a request, only the signed visitor that created it may edit.
 export async function PATCH(request) {
   let body;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid request.' }, { status: 400 }); }
@@ -100,7 +100,7 @@ export async function PATCH(request) {
   }
 }
 
-// Delete a request — only its signed creator may delete.
+// Delete a request, only its signed creator may delete.
 export async function DELETE(request) {
   let body;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Invalid request.' }, { status: 400 }); }

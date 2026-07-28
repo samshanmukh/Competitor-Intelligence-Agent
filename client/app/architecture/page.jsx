@@ -5,7 +5,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'Architecture',
   description:
-    'How Mira is built — Next.js on Vercel, InsForge auth/DB, Render intelligence API, You.com research, and OpenRouter extraction.',
+    'How Mira is built: Next.js on Vercel, InsForge auth/DB, Render intelligence API, You.com research, and OpenRouter extraction.',
   path: '/architecture',
 });
 

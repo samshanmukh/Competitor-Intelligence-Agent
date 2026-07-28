@@ -16,7 +16,7 @@ const RAISED =
   'transition duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:border-white/15 ' +
   'hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_24px_50px_-14px_rgba(0,0,0,0.75)]';
 
-// Scroll-reveal wrapper. Never SSR opacity:0 — GEO crawlers treat that as empty text.
+// Scroll-reveal wrapper. Never SSR opacity:0, GEO crawlers treat that as empty text.
 function Reveal({ children, delay = 0, y = 24, className = '' }) {
   const reduceMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
@@ -85,7 +85,7 @@ function PositioningMock() {
 export default function LandingPage() {
   const [authed, setAuthed] = useState(false);
   const reduceMotion = useReducedMotion();
-  // Never SSR opacity:0 on hero copy — crawlers treat it as empty text.
+  // Never SSR opacity:0 on hero copy, crawlers treat it as empty text.
   const [heroReady, setHeroReady] = useState(false);
   useEffect(() => {
     setHeroReady(true);
@@ -144,7 +144,7 @@ export default function LandingPage() {
               WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 30%, transparent 70%)',
             }}
           />
-          {/* Grid of cells (graph-paper) — subtle but visible behind the headline */}
+          {/* Grid of cells (graph-paper), subtle but visible behind the headline */}
           <div
             className="absolute inset-0"
             style={{
@@ -195,7 +195,7 @@ export default function LandingPage() {
             transition={heroAnimate ? { duration: 0.6, delay: 0.12, ease: EASE } : undefined}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Turn competitor and market signals into clear next moves — so you know where you stand and what to focus on.
+            Turn competitor and market signals into clear next moves, so you know where you stand and what to focus on.
           </motion.p>
 
           <motion.div
@@ -307,7 +307,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Capabilities — three short points, easy to scan */}
+      {/* Capabilities, three short points, easy to scan */}
       <section id="features" className="mx-auto max-w-5xl px-5 py-24">
         <Reveal className="mx-auto max-w-xl text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-accent-soft">Capabilities</span>
@@ -351,7 +351,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Why Mira — outcomes + personas */}
+      {/* Why Mira, outcomes + personas */}
       <section id="why" className="mx-auto max-w-6xl px-5 py-24">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <Reveal>
@@ -408,7 +408,7 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* Footer — NAP/contact + About/Team/FAQ links for GEO authority signals */}
+      {/* Footer, NAP/contact + About/Team/FAQ links for GEO authority signals */}
       <footer className="border-t border-white/5">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 text-sm text-slate-500">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">

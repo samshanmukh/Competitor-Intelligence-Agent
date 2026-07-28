@@ -169,9 +169,9 @@ function MapTooltip({ active, payload }) {
         )}
         <p className="font-semibold text-white">{d.name}</p>
       </div>
-      <p className="mt-1 text-slate-400">Value: {d.value ?? '—'}/10</p>
+      <p className="mt-1 text-slate-400">Value: {d.value ?? '-'}/10</p>
       <p className="text-slate-400">
-        Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '—'}
+        Entry: {d.price != null ? `$${Math.round(d.price)}/mo` : '-'}
       </p>
     </div>
   );
@@ -185,7 +185,7 @@ export default function PositioningMapChart({
   you,
   rivals = [],
   title = 'Positioning map',
-  hint = 'Entry price vs. value — top-left is best value, bottom-right is overpriced. Hover a logo for details.',
+  hint = 'Entry price vs. value, top-left is best value, bottom-right is overpriced. Hover a logo for details.',
 }) {
   const rows = [];
   if (you && (you.entry_price != null || you.value_score != null)) {

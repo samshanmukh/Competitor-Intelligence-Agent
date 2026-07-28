@@ -33,7 +33,7 @@ for a first clarity snapshot.
 
 ### What we ship
 
-Mira discovers competitors, extracts pricing from websites and — when needed — Apple
+Mira discovers competitors, extracts pricing from websites and (when needed) Apple
 App Store and Google Play subscription / IAP listings, builds feature and value
 matrices, sizes markets across three layers (TAM → SAM → SOM), estimates competitor
 presence with labeled evidence grades (A–D), and produces battlecards, win-loss notes,
@@ -59,7 +59,7 @@ export function teamBody() {
 
 ### Leadership
 
-**${AUTHOR.name}** — ${AUTHOR.jobTitle}  
+**${AUTHOR.name}**, ${AUTHOR.jobTitle}  
 Founded ${ORG.legalName} on ${ORG.foundingDate}. Owns product direction, research
 waterfall design (website → App Store / Play → secondary research), and the public
 methodology for presence and market estimates.

@@ -110,7 +110,7 @@ const LAYERS = [
   {
     title: 'Browser',
     subtitle: 'joinmira.ai',
-    body: 'Next.js App Router UI — marketing, auth, and the signed-in workspace.',
+    body: 'Next.js App Router UI: marketing, auth, and the signed-in workspace.',
     tone: 'border-white/10 bg-white/[0.04]',
   },
   {
@@ -209,7 +209,7 @@ const HOSTING = [
     name: 'Render',
     badge: 'API required',
     points: [
-      'cia-api — Express server with health check at /api/health',
+      'cia-api, Express server with health check at /api/health',
       'Holds You.com, xAI, Resend, and cron secrets',
       'Needed for 2–3 minute market jobs and scheduled refresh',
       'Optional cia-web can host Next.js from the same blueprint',
@@ -229,7 +229,7 @@ const HOSTING = [
     name: 'InsForge',
     badge: 'Data plane',
     points: [
-      'Always remote — Postgres + Auth + Storage',
+      'Always remote, Postgres + Auth + Storage',
       'Used by both the Express API and Next auth proxies',
       'Workspace isolation and session cookies (cia_auth)',
     ],
@@ -286,7 +286,7 @@ export default function ArchitecturePage() {
             How Mira is built
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-400">
-            Blueprint of the product stack — website, Render API, InsForge data, and You.com skills
+            Blueprint of the product stack, website, Render API, InsForge data, and You.com skills
             that power live competitive intelligence.
           </p>
           <a
@@ -458,7 +458,7 @@ export default function ArchitecturePage() {
             <p className="mb-5 text-xs font-semibold uppercase tracking-wider text-slate-500">Request path</p>
             <div className="flex min-w-[640px] flex-col items-stretch gap-3 text-sm md:min-w-0">
               {[
-                ['Website', 'Next.js on Vercel — Discover, Market, Company, Distribution'],
+                ['Website', 'Next.js on Vercel, Discover, Market, Company, Distribution'],
                 ['API base', 'NEXT_PUBLIC_API_BASE → Render Express (Bearer + workspace)'],
                 ['Orchestration', 'Agents & routes: discover → refresh → market intel → digests'],
                 ['Providers', 'You.com research/contents/finance · xAI Grok · optional Tavily'],
@@ -502,7 +502,7 @@ export default function ArchitecturePage() {
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
                         <span>
                           <span className="font-medium text-white">{item.name}</span>
-                          <span className="text-slate-500"> — </span>
+                          <span className="text-slate-500"> · </span>
                           <span className="text-slate-400">{item.role}</span>
                         </span>
                       </li>
@@ -521,7 +521,7 @@ export default function ArchitecturePage() {
           <Reveal>
             <h2 className="text-2xl font-semibold text-white">How we use You.com</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              You.com is the live research backbone. The website never calls You.com directly —
+              You.com is the live research backbone. The website never calls You.com directly -
               the Render API owns the key, rate-limits requests, and maps results into Mira features.
             </p>
           </Reveal>

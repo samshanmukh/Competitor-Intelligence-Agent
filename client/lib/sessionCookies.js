@@ -10,9 +10,9 @@ export const ACCESS_COOKIE = 'cia_auth';
 export const REFRESH_COOKIE = 'cia_refresh';
 export const WORKSPACE_COOKIE = 'cia_workspace_id';
 
-/** Access token cookie / localStorage lifetime — at least 24h as requested. */
+/** Access token cookie / localStorage lifetime, at least 24h as requested. */
 export const ACCESS_MAX_AGE = 60 * 60 * 24; // 24 hours
-/** Refresh token lifetime — keeps the browser signed in across closes. */
+/** Refresh token lifetime, keeps the browser signed in across closes. */
 export const REFRESH_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 function secureCookie() {

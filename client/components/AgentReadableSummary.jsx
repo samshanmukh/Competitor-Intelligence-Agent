@@ -1,6 +1,6 @@
 /**
  * Dense, low-markup facts for HTML token-efficiency / static rendering.
- * Number-heavy for GEO factual-density scorers. Visible on /guide only —
+ * Number-heavy for GEO factual-density scorers. Visible on /guide only -
  * paired with LandingProductDocs. Kept off the marketing homepage.
  */
 export default function AgentReadableSummary() {

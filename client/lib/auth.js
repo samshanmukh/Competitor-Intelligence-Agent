@@ -124,7 +124,7 @@ function applySession(data) {
 }
 
 export async function signUp({ email, password, name }) {
-  // Same-origin only — never call InsForge from the browser (Safari SSL / network blocks).
+  // Same-origin only, never call InsForge from the browser (Safari SSL / network blocks).
   let data;
   try {
     data = await authProxy('/api/auth/password/sign-up', { email, password, name });
@@ -141,7 +141,7 @@ export async function signUp({ email, password, name }) {
 }
 
 export async function signIn({ email, password }) {
-  // Same-origin only — never call InsForge from the browser (Safari SSL / network blocks).
+  // Same-origin only, never call InsForge from the browser (Safari SSL / network blocks).
   let data;
   try {
     data = await authProxy('/api/auth/password/sign-in', { email, password });
@@ -328,7 +328,7 @@ export async function ensureFreshSession() {
   if (token && !accessTokenNeedsRefresh(token)) return token;
   const renewed = await refreshAccessToken();
   if (renewed) return renewed;
-  // Refresh failed — keep existing token if it still looks valid (opaque/dev).
+  // Refresh failed, keep existing token if it still looks valid (opaque/dev).
   if (token && tokenExpiresAt(token) > Date.now()) return token;
   if (token && !tokenExpiresAt(token)) return token;
   return null;
@@ -336,7 +336,7 @@ export async function ensureFreshSession() {
 
 // Hard sign-out used when the session can't be recovered.
 export function forceLogout() {
-  // Localhost auth bypass — don't bounce to /login; re-bootstrap instead.
+  // Localhost auth bypass, don't bounce to /login; re-bootstrap instead.
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1';

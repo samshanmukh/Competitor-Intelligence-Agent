@@ -168,7 +168,7 @@ export default function EvidenceClient() {
         {!researching && candidates.length > 0 && (
           <div className="mt-5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs text-slate-500">{candidates.length} candidates — select what to keep</p>
+              <p className="text-xs text-slate-500">{candidates.length} candidates, select what to keep</p>
               <button onClick={saveSelected} disabled={savingBatch || selected.size === 0} className="btn-primary text-sm">
                 {savingBatch ? 'Saving…' : `Save ${selected.size} selected`}
               </button>

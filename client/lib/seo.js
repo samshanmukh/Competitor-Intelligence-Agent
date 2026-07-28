@@ -35,7 +35,7 @@ export function pageMetadata({
           url: DEFAULT_OG_IMAGE,
           width: 1200,
           height: 630,
-          alt: 'Mira — competitive and market intelligence for founders',
+          alt: 'Mira: competitive and market intelligence for founders',
         },
       ],
     },
@@ -48,7 +48,7 @@ export function pageMetadata({
   };
 }
 
-/** Auth / thin shells — keep out of the index. */
+/** Auth / thin shells, keep out of the index. */
 export const NOINDEX = {
   robots: { index: false, follow: false },
 };

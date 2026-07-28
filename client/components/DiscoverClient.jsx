@@ -7,9 +7,9 @@ import { CompanyLogo, EmptyState, Icon, Skeleton, useToast } from './ui';
 import { PageHeader, PageShell } from './PageShell';
 
 const MODES = [
-  { id: 'describe', icon: 'sparkle', title: 'Describe market', hint: 'Plain English — AI finds competitors.' },
+  { id: 'describe', icon: 'sparkle', title: 'Describe market', hint: 'Plain English, AI finds competitors.' },
   { id: 'product', icon: 'external', title: 'Product URL', hint: 'AI reads your site, infers the market.' },
-  { id: 'direct', icon: 'plus', title: 'Direct URLs', hint: 'Skip discovery — monitor these pages.' },
+  { id: 'direct', icon: 'plus', title: 'Direct URLs', hint: 'Skip discovery, monitor these pages.' },
   { id: 'combo', icon: 'radar', title: 'Combination', hint: 'Product URL + known + discover more.' },
 ];
 
@@ -166,7 +166,7 @@ export default function DiscoverClient() {
             )}
             <div className="flex items-center justify-between pt-1">
               <p className="text-xs text-slate-500">
-                {mode === 'direct' ? 'Pages added directly — no Research call.' : 'Uses You.com Research + Grok.'}
+                {mode === 'direct' ? 'Pages added directly, no Research call.' : 'Uses You.com Research + Grok.'}
               </p>
               <button onClick={runDiscovery} disabled={!canRun || loading} className="btn-primary">
                 <Icon name="search" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />

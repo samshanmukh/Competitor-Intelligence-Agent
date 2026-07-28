@@ -8,7 +8,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'About Mira',
   description:
-    'About Mira AI — founding date, founder Sam Karri, mission, team links, and contact for competitive intelligence software.',
+    'About Mira AI: founding date, founder Sam Karri, mission, team links, and contact for competitive intelligence software.',
   path: '/about',
 });
 

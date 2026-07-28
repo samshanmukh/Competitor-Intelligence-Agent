@@ -1,4 +1,4 @@
-# Mira — https://www.joinmira.ai
+# Mira: https://www.joinmira.ai
 # Content Signals: https://contentsignals.org/
 
 User-agent: OAI-SearchBot

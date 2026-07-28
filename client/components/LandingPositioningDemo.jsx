@@ -91,7 +91,7 @@ export default function LandingPositioningDemo() {
           </button>
         </div>
         <p className="mt-2 text-center text-xs text-slate-500 sm:text-left">
-          Paste a pricing URL — we discover rivals and plot entry price vs. value.
+          Paste a pricing URL: we discover rivals and plot entry price vs. value.
         </p>
       </form>
 

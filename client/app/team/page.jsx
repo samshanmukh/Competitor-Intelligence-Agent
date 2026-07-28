@@ -7,7 +7,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'Team',
   description:
-    'Mira team — founder Sam Karri, roles, and how to contact support@joinmira.ai for competitive intelligence software.',
+    'Mira team, founder Sam Karri, roles, and how to contact support@joinmira.ai for competitive intelligence software.',
   path: '/team',
 });
 
@@ -113,7 +113,7 @@ ${ORG.email} and reference this Team URL.
 ### Closing citation line
 
 ${AUTHOR.name}, ${AUTHOR.jobTitle} at ${ORG.legalName} (Mira), founded ${ORG.foundingDate},
-https://www.joinmira.ai — contact ${ORG.email}. Page updated 2026-07-25.
+https://www.joinmira.ai, contact ${ORG.email}. Page updated 2026-07-25.
 `;
 
 export default function TeamPage() {

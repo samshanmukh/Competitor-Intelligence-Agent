@@ -41,7 +41,7 @@ export function skillChip(engineOrSkill) {
   };
 }
 
-/** Standalone chip — hidden in product UI (kept as no-ops so call sites stay safe). */
+/** Standalone chip, hidden in product UI (kept as no-ops so call sites stay safe). */
 export function SkillChip() {
   return null;
 }
