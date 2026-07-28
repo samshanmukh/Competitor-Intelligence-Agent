@@ -369,7 +369,7 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
     const hit = getCached(key);
     if (hit) {
       timings.totalMs = 0;
-      await emit('status', { step: 'cache', label: 'Loaded cached competitors…' });
+      await emit('status', { step: 'cache', label: 'Loading cached result…' });
       await emit('competitors', { market: hit.market, you: hit.you, rivals: hit.rivals.map(({ entry_price, value_score, ...rest }) => rest) });
       await emit('pricing', { you: hit.you, rivals: hit.rivals });
       await emit('done', { ...hit, timings: { ...hit.timings, totalMs: 0, cache: true }, cached: true });
@@ -504,7 +504,7 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
   }
 
   // --- 3) Batched fetchContents ---
-  await emit('status', { step: 'pricing', label: 'Reading pricing pages…' });
+  await emit('status', { step: 'pricing', label: 'Reading pricing…' });
   const pricingTargets = [
     { key: 'you', name: you.name, url },
     ...rivals.map((r, i) => ({
@@ -604,6 +604,7 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
     ...(partial ? { partial: true } : {}),
   };
 
+  await emit('status', { step: 'plot', label: 'Plotting map…' });
   await emit('pricing', { you: scored.you, rivals: scored.rivals });
   await emit('done', payload);
 

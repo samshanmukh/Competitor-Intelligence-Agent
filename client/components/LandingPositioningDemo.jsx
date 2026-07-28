@@ -5,25 +5,54 @@ import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { api } from '../lib/api';
 import PositioningMapChart from './PositioningMapChart';
+import ThinkingShimmer from './ThinkingShimmer';
 import { Icon } from './ui';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
 
+/** Pipeline stages → calm status copy (mirrors SSE `step` when label missing). */
 const STATUS_LABELS = {
+  start: 'Starting…',
   cache: 'Loading cached result…',
   search: 'Finding competitors…',
   extract: 'Naming rivals…',
-  pricing: 'Reading pricing pages…',
+  competitors: 'Reading pricing…',
+  pricing: 'Reading pricing…',
+  plot: 'Plotting map…',
+  done: 'Plotting map…',
 };
+
+/** Stepped progress by pipeline stage (search → names → contents → prices → done). */
+const STAGE_PROGRESS = {
+  start: 8,
+  cache: 92,
+  search: 22,
+  extract: 42,
+  competitors: 58,
+  pricing: 78,
+  plot: 92,
+  done: 100,
+};
+
+function labelForStatus(payload) {
+  if (payload?.step && STATUS_LABELS[payload.step]) return STATUS_LABELS[payload.step];
+  return payload?.label || 'Starting…';
+}
 
 export default function LandingPositioningDemo() {
   const reduceMotion = useReducedMotion();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusLabel, setStatusLabel] = useState('');
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const [partialNames, setPartialNames] = useState(null);
+
+  function setStage(step, label) {
+    setStatusLabel(label || STATUS_LABELS[step] || 'Starting…');
+    setProgress(STAGE_PROGRESS[step] ?? 8);
+  }
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -36,12 +65,13 @@ export default function LandingPositioningDemo() {
     setResult(null);
     setPartialNames(null);
     setLoading(true);
-    setStatusLabel('Finding competitors…');
+    setStage('start');
 
     try {
       const data = await api.demoCompetitorsFastStream(trimmed, (event, payload) => {
         if (event === 'status') {
-          setStatusLabel(payload?.label || STATUS_LABELS[payload?.step] || 'Working…');
+          const step = payload?.step || 'search';
+          setStage(step, labelForStatus(payload));
         }
         if (event === 'competitors') {
           setPartialNames({
@@ -49,9 +79,10 @@ export default function LandingPositioningDemo() {
             you: payload?.you,
             rivals: payload?.rivals || [],
           });
-          setStatusLabel('Reading pricing pages…');
+          setStage('competitors');
         }
         if (event === 'pricing' || event === 'done') {
+          setStage(event === 'done' ? 'done' : 'plot');
           if (payload?.you || payload?.rivals) {
             setResult((prev) => ({
               market: payload.market || prev?.market || partialNames?.market,
@@ -63,6 +94,7 @@ export default function LandingPositioningDemo() {
           }
         }
         if (event === 'rival' && payload?.role === 'you') {
+          setStage('pricing');
           setResult((prev) => ({
             market: prev?.market || partialNames?.market,
             you: { ...(prev?.you || {}), ...payload, isYou: true },
@@ -70,6 +102,7 @@ export default function LandingPositioningDemo() {
           }));
         }
         if (event === 'rival' && payload?.role === 'rival') {
+          setStage('pricing');
           setResult((prev) => {
             const baseRivals = prev?.rivals || partialNames?.rivals || [];
             const rivals = baseRivals.map((r) =>
@@ -103,6 +136,7 @@ export default function LandingPositioningDemo() {
     } finally {
       setLoading(false);
       setStatusLabel('');
+      setProgress(0);
     }
   }
 
@@ -119,6 +153,7 @@ export default function LandingPositioningDemo() {
     : [];
   // Chart plots everyone — unpriced rivals sit in an "n/a" lane (not omitted).
   const showChart = entities.length >= 2;
+  const showLoadingPanel = loading && !display;
 
   const fade = reduceMotion
     ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
@@ -153,10 +188,7 @@ export default function LandingPositioningDemo() {
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-accent px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-accent-dim disabled:cursor-wait disabled:opacity-70"
           >
             {loading ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Mapping…
-              </>
+              'Mapping…'
             ) : (
               <>
                 <Icon name="sparkle" className="h-4 w-4" />
@@ -177,100 +209,118 @@ export default function LandingPositioningDemo() {
       )}
 
       <AnimatePresence mode="wait">
-        {loading && !partialNames && (
+        {showLoadingPanel ? (
           <motion.div
             key="loading"
             {...fade}
-            className="mt-5 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-5 text-center"
+            className="mt-5 px-1 py-5 text-center"
           >
-            <p className="text-sm font-medium text-slate-200">{statusLabel || 'Finding competitors…'}</p>
-            <p className="mt-1 text-xs text-slate-500">Usually under 20 seconds. Keep this tab open.</p>
-            <div className="mx-auto mt-4 max-w-sm space-y-2 text-left">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className={`h-8 rounded-md bg-white/5 ${reduceMotion ? '' : 'animate-pulse'}`}
-                  style={reduceMotion ? undefined : { animationDelay: `${i * 120}ms` }}
-                />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {display && (
-        <motion.div
-          className="mt-6 space-y-4"
-          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: EASE }}
-        >
-          {display.market && (
-            <p className="text-center text-xs text-slate-400 sm:text-left">
-              Market: <span className="text-slate-300">{display.market}</span>
-              {loading && (
-                <span className="ml-2 text-slate-500">· {statusLabel || 'Fetching prices…'}</span>
-              )}
-            </p>
-          )}
-
-          {(display.you?.statement || display.you?.blurb) && (
-            <p className="mx-auto line-clamp-2 max-w-2xl text-center text-sm leading-snug text-slate-400 sm:mx-0 sm:text-left">
-              {display.you.statement || display.you.blurb}
-            </p>
-          )}
-
-          {showChart && (
-            <PositioningMapChart
-              you={display.you}
-              rivals={display.rivals || []}
-              streaming={loading}
-              hint="Hover a marker for name, price, and value. Click to pin. Muted markers = price not found yet."
+            <ThinkingShimmer
+              label={statusLabel || 'Starting…'}
+              className="text-center"
             />
-          )}
-
-          {!loading && !showChart && (display.rivals || []).length > 0 && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-4 text-sm text-amber-100/90">
-              We found competitors, but need a bit more context to plot the map.
-              Try a clearer pricing page, or create an account for a full report.
-            </div>
-          )}
-
-          {!loading && !showChart && (display.rivals || []).length === 0 && (
-            <p className="text-center text-sm text-slate-500 sm:text-left">
-              No clear rivals found for this URL.
-            </p>
-          )}
-
-          {!loading && (
-            <motion.div
-              className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center"
-              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.35, delay: 0.1, ease: EASE }}
+            <div
+              className="mx-auto mt-4 h-0.5 max-w-[12rem] overflow-hidden rounded-full bg-white/10"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progress}
+              aria-label="Mapping progress"
             >
-              <Link
-                href="/signup"
-                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200"
+              <motion.div
+                className="h-full rounded-full bg-slate-400/70"
+                initial={false}
+                animate={{ width: `${Math.max(progress, 6)}%` }}
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.45, ease: EASE }
+                }
+              />
+            </div>
+            <p className="mt-3 text-xs text-slate-600">Usually under 20 seconds. Keep this tab open.</p>
+          </motion.div>
+        ) : display ? (
+          <motion.div
+            key="result"
+            className="mt-6 space-y-4"
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+            transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: EASE }}
+          >
+            {display.market && (
+              <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center text-xs text-slate-400 sm:justify-start sm:text-left">
+                <p className="m-0">
+                  Market: <span className="text-slate-300">{display.market}</span>
+                </p>
+                {loading ? (
+                  <ThinkingShimmer
+                    label={statusLabel || 'Reading pricing…'}
+                    className="text-xs"
+                  />
+                ) : null}
+              </div>
+            )}
+
+            {(display.you?.statement || display.you?.blurb) && (
+              <p className="mx-auto line-clamp-2 max-w-2xl text-center text-sm leading-snug text-slate-400 sm:mx-0 sm:text-left">
+                {display.you.statement || display.you.blurb}
+              </p>
+            )}
+
+            {showChart && (
+              <PositioningMapChart
+                you={display.you}
+                rivals={display.rivals || []}
+                streaming={loading}
+                hint="Hover a marker for name, price, and value. Click to pin. Muted markers = price not found yet."
+              />
+            )}
+
+            {!loading && !showChart && (display.rivals || []).length > 0 && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-4 text-sm text-amber-100/90">
+                We found competitors, but need a bit more context to plot the map.
+                Try a clearer pricing page, or create an account for a full report.
+              </div>
+            )}
+
+            {!loading && !showChart && (display.rivals || []).length === 0 && (
+              <p className="text-center text-sm text-slate-500 sm:text-left">
+                No clear rivals found for this URL.
+              </p>
+            )}
+
+            {!loading && (
+              <motion.div
+                className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center"
+                initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 0.35, delay: 0.1, ease: EASE }}
               >
-                Save this &amp; get the full report
-                <Icon name="chevronRight" className="h-4 w-4" />
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setResult(null);
-                  setPartialNames(null);
-                  setError('');
-                }}
-                className="rounded-md border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition hover:bg-white/5"
-              >
-                Try another URL
-              </button>
-            </motion.div>
-          )}
-        </motion.div>
-      )}
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200"
+                >
+                  Save this &amp; get the full report
+                  <Icon name="chevronRight" className="h-4 w-4" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResult(null);
+                    setPartialNames(null);
+                    setError('');
+                  }}
+                  className="rounded-md border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition hover:bg-white/5"
+                >
+                  Try another URL
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
