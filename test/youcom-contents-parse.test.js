@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { extractMetaText, htmlToText, isStubHtml } from '../server/services/youcom.js';
+import {
+  extractMetaText,
+  htmlToText,
+  isStubHtml,
+  markdownFromSearchSources,
+} from '../server/services/youcom.js';
 
 const GOREMY_STUB = `<!doctype html>
 <html>
@@ -51,4 +56,29 @@ test('htmlToText keeps body content for prerendered marketing pages', () => {
   const text = htmlToText(GOREMY_REAL);
   assert.match(text, /builds, ships, and runs products/i);
   assert.ok(text.length > 40);
+});
+
+test('markdownFromSearchSources prefers same-host title and snippets', () => {
+  const md = markdownFromSearchSources('https://goremy.ai/', [
+    {
+      title: 'Unrelated Blog',
+      url: 'https://example.com/post',
+      snippet: 'Mentions Remy in passing.',
+    },
+    {
+      title: 'Remy – An AI agent that builds, ships, and runs products',
+      url: 'https://goremy.ai/',
+      snippet: 'Remy takes your idea from conversation to production.',
+    },
+  ]);
+  assert.match(md, /^Remy/);
+  assert.match(md, /conversation to production/);
+  assert.match(md, /goremy\.ai/);
+  // Same-host hit should appear before the unrelated result.
+  assert.ok(md.indexOf('Remy') < md.indexOf('Unrelated Blog'));
+});
+
+test('markdownFromSearchSources returns empty when search has no usable fields', () => {
+  assert.equal(markdownFromSearchSources('https://goremy.ai/', []), '');
+  assert.equal(markdownFromSearchSources('https://goremy.ai/', [{ url: '' }]), '');
 });

@@ -521,7 +521,8 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
     // Single batched contents call (spec). No outer race — fetchContents returns partials on timeout.
     contentMap = await fetchContents(
       pricingTargets.map((t) => t.url),
-      { skipQueue: true, timeoutMs: contentsBudget }
+      // Latency budget: skip per-URL search fallback (demo already ran webSearch).
+      { skipQueue: true, timeoutMs: contentsBudget, allowSearchFallback: false }
     );
     timings.contentsMs = Date.now() - tContents;
   } catch {

@@ -299,6 +299,78 @@ function isThinText(text) {
   return !text || String(text).trim().length < THIN_CONTENT_CHARS;
 }
 
+function hostnameOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, '').toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Build readable markdown from You.com webSearch hits for a product/homepage URL.
+ * Prefers same-host results (title + description/snippets) so SPA stubs still enrich.
+ */
+export function markdownFromSearchSources(url, sources = []) {
+  const host = hostnameOf(url);
+  const list = Array.isArray(sources) ? sources.filter((s) => s && (s.title || s.snippet || s.url)) : [];
+  const ranked = [...list].sort((a, b) => {
+    const score = (s) => {
+      const u = String(s.url || '').toLowerCase();
+      if (host && u.includes(host)) return 0;
+      return 1;
+    };
+    return score(a) - score(b);
+  });
+
+  const parts = [];
+  for (const s of ranked.slice(0, 6)) {
+    const title = String(s.title || '').trim();
+    const snippet = String(s.snippet || '').trim();
+    const href = String(s.url || '').trim();
+    const block = [title, snippet, href && title !== href ? href : '']
+      .filter(Boolean)
+      .join('\n');
+    if (block) parts.push(block);
+  }
+
+  return parts.join('\n\n').trim();
+}
+
+/**
+ * Cheap search about a URL/hostname when Contents + direct fetch return SPA stubs.
+ * Uses /search only — never falls through to research().
+ */
+async function searchAboutUrl(url, {
+  timeoutMs = 15000,
+  skipQueue = false,
+  count = 6,
+} = {}) {
+  const host = hostnameOf(url);
+  const query = host
+    ? `${url} OR site:${host}`
+    : String(url || '').trim();
+  if (!query) return { markdown: null, error: 'Empty search query' };
+
+  try {
+    const hit = await webSearch(query, {
+      count,
+      timeoutMs,
+      skipQueue,
+      noResearchFallback: true,
+    });
+    // Prefer structured title/snippet blocks; fall back to joined search text.
+    const text = markdownFromSearchSources(url, hit.sources)
+      || String(hit.text || '').trim();
+    if (!isThinText(text)) {
+      return { markdown: text, error: null, source: 'youcom-search' };
+    }
+    return { markdown: null, error: 'Web search returned no usable product details' };
+  } catch (err) {
+    return { markdown: null, error: err?.message || 'Web search failed' };
+  }
+}
+
 /** True when Contents returned a bot/SPA stub (empty body, generic title). */
 export function isStubHtml(html) {
   if (!html || typeof html !== 'string') return true;
@@ -419,14 +491,16 @@ async function mapPool(items, concurrency, worker) {
  *   1) You.com Contents
  *   2) Meta/og/title salvage from returned HTML
  *   3) Direct browser-UA HTML fetch when Contents returns an empty SPA shell
+ *   4) You.com webSearch about the URL/hostname (title + snippets) — no research()
  *
  * @param {string|string[]} urls
- * @param {{ skipQueue?: boolean, timeoutMs?: number, allowDirectFetch?: boolean }} [opts]
+ * @param {{ skipQueue?: boolean, timeoutMs?: number, allowDirectFetch?: boolean, allowSearchFallback?: boolean }} [opts]
  */
 export async function fetchContents(urls, {
   skipQueue = false,
   timeoutMs = 120000,
   allowDirectFetch = true,
+  allowSearchFallback = true,
 } = {}) {
   const list = Array.isArray(urls) ? urls : [urls];
 
@@ -499,6 +573,35 @@ export async function fetchContents(urls, {
     }
   }
 
+  // 3) WebSearch about URL/hostname when Contents + direct fetch are still thin.
+  //    Search often has title/description for SPAs that return empty crawler shells.
+  if (allowSearchFallback) {
+    const needSearch = list.filter((url) => isThinText(map[url]?.markdown));
+    if (needSearch.length) {
+      const searchTimeout = Math.min(15000, Math.max(6000, timeoutMs));
+      await mapPool(needSearch, Math.min(2, DIRECT_FETCH_CONCURRENCY), async (url) => {
+        const prior = map[url]?.error;
+        const found = await searchAboutUrl(url, {
+          timeoutMs: searchTimeout,
+          skipQueue,
+          count: 6,
+        });
+        if (!isThinText(found.markdown)) {
+          map[url] = {
+            markdown: found.markdown,
+            error: null,
+            source: found.source || 'youcom-search',
+          };
+        } else if (!map[url].markdown) {
+          map[url] = {
+            markdown: null,
+            error: prior || found.error || 'Could not extract readable content from URL',
+          };
+        }
+      });
+    }
+  }
+
   return map;
 }
 
@@ -511,4 +614,5 @@ export const youcom = {
   htmlToText,
   extractMetaText,
   isStubHtml,
+  markdownFromSearchSources,
 };
