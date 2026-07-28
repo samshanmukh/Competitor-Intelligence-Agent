@@ -6,7 +6,7 @@ const base = pageMetadata({
   title: 'Mira',
   absoluteTitle: 'Mira · Competitive and market intelligence for founders',
   description:
-    'Competitive and market intelligence for founders — discover competitors, analyze pricing (web + App Store / Play), size TAM/SAM/SOM, and get next-move decision support in about 2 minutes.',
+    'Competitive and market intelligence for founders — see your rivals, pricing, and market clearly, then know what to focus on next.',
   path: '/',
 });
 

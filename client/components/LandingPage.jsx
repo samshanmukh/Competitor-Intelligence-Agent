@@ -212,10 +212,7 @@ export default function LandingPage() {
             transition={heroAnimate ? { duration: 0.6, delay: 0.12, ease: EASE } : undefined}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Mira turns business, market, and competitor signals into decision support in ~2 minutes
-            (~120 seconds): TAM→SAM→SOM sizing, 5–12 competitor matrices, weekly refresh (52×/year),
-            and pricing from web + App Store / Play ($0–$99/mo; annual plans often ~17%–20% off).
-            Founded 2025-01-15 by Sam Karri.
+            Turn competitor and market signals into clear next moves — so you know where you stand and what to focus on.
           </motion.p>
 
           <motion.div
@@ -459,20 +456,10 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <BrandLogo href="/" height={28} />
             <p className="max-w-xl text-center text-xs leading-relaxed text-slate-500 sm:text-left">
-              Mira AI · Founded <time dateTime="2025-01-15">2025-01-15</time> by{' '}
-              <Link href="/about" className="text-slate-400 underline-offset-2 hover:underline">Sam Karri</Link>
-              {' '}(Founder) · Support{' '}
+              Competitive intelligence for founders ·{' '}
               <a href="mailto:support@joinmira.ai" className="text-slate-400 underline-offset-2 hover:underline">
                 support@joinmira.ai
               </a>
-              {' · '}
-              <Link href="/faq" className="text-slate-400 underline-offset-2 hover:underline">FAQ page</Link>
-              {' · '}
-              <Link href="/about" className="text-slate-400 underline-offset-2 hover:underline">About page</Link>
-              {' · '}
-              <Link href="/team" className="text-slate-400 underline-offset-2 hover:underline">Team page</Link>
-              {' · '}
-              <Link href="/contact" className="text-slate-400 underline-offset-2 hover:underline">Contact page</Link>
             </p>
             <span className="text-xs text-slate-600">© {new Date().getFullYear()} Mira</span>
           </div>
@@ -500,10 +487,10 @@ export default function LandingPage() {
 }
 
 const STATS = [
-  { value: '~2 min', label: 'To a clear business snapshot (~120 seconds)' },
-  { value: '3 layers', label: 'TAM → SAM → SOM market sizing' },
-  { value: '5–12', label: 'Competitors in a seed watchlist' },
-  { value: '52×/yr', label: 'Weekly refresh cadence target' },
+  { value: '~2 min', label: 'From URL to clarity report' },
+  { value: 'Market', label: 'Sized with live research' },
+  { value: 'Rivals', label: 'Named competitors with pricing' },
+  { value: 'Weekly', label: 'Refresh to stay current' },
 ];
 
 const SPOTLIGHT = [
@@ -518,7 +505,7 @@ const SPOTLIGHT = [
   {
     icon: 'activity',
     title: 'Market & timing',
-    desc: 'Your market sized (TAM, SAM, SOM), its growth, and why now, from live research.',
+    desc: 'Your market sized, its growth, and why now — from live research.',
     visual: <GrowthMock />,
   },
   {
@@ -535,7 +522,7 @@ const FEATURES = [
   { icon: 'users', title: 'Ideal customer profile', desc: 'Who you serve, their pains, and where to reach them.' },
   { icon: 'zap', title: 'Value proposition', desc: 'Your positioning and what makes you worth choosing, sharpened.' },
   { icon: 'card', title: 'Business model', desc: 'How you make money, with pricing that fits your value.' },
-  { icon: 'bar', title: 'Market sizing', desc: 'TAM, SAM and SOM with the sources behind them.' },
+  { icon: 'bar', title: 'Market sizing', desc: 'Market size with the sources behind every number.' },
   { icon: 'map', title: 'Where you stand', desc: 'Your closest competitors as context, and where you fit.' },
   { icon: 'shield', title: 'SWOT & risks', desc: 'Strengths, weaknesses, opportunities and threats.' },
   { icon: 'trending', title: 'Pricing strategy', desc: 'Value-based pricing guidance for your stage.' },
