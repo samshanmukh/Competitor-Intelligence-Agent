@@ -1,7 +1,5 @@
 import LandingPage from '../components/LandingPage';
-import AgentReadableSummary from '../components/AgentReadableSummary';
-import GeoCornerstoneGate from '../components/GeoCornerstoneGate';
-import GeoGuide from '../components/GeoGuide';
+import LandingProductDocs from '../components/LandingProductDocs';
 import { pageMetadata } from '../lib/seo';
 import { AUTHOR, GUIDE_PUBLISHED, GUIDE_UPDATED } from '../lib/geoContent';
 
@@ -45,17 +43,14 @@ export const metadata = {
 };
 
 /**
- * SSR the GEO cornerstone layout-visible in the initial HTML (GeoTest / crawlers),
- * then GeoCornerstoneGate hides it after client hydration for human visitors.
- * Full human-readable copy stays on /guide.
+ * Homepage: marketing landing + a short, always-visible product-docs section.
+ * Dense GEO cornerstone (AgentReadableSummary + GeoGuide) lives on /guide —
+ * GeoTest executes JS, so SSR-then-hide collapsed Quick Scan (~59).
  */
 export default function Home() {
   return (
     <LandingPage>
-      <GeoCornerstoneGate>
-        <AgentReadableSummary />
-        <GeoGuide embedded />
-      </GeoCornerstoneGate>
+      <LandingProductDocs />
     </LandingPage>
   );
 }
