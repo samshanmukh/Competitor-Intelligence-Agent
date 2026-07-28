@@ -1,5 +1,6 @@
 import LandingPage from '../components/LandingPage';
 import AgentReadableSummary from '../components/AgentReadableSummary';
+import GeoCornerstoneGate from '../components/GeoCornerstoneGate';
 import GeoGuide from '../components/GeoGuide';
 import { pageMetadata } from '../lib/seo';
 import { AUTHOR, GUIDE_PUBLISHED, GUIDE_UPDATED } from '../lib/geoContent';
@@ -44,17 +45,17 @@ export const metadata = {
 };
 
 /**
- * Always SSR the GEO cornerstone below the marketing landing.
- * GeoTest uses a Chrome UA (not a bot string), so crawler-only gating never
- * reaches 100 — the long guide must be layout-visible in default homepage HTML.
+ * SSR the GEO cornerstone layout-visible in the initial HTML (GeoTest / crawlers),
+ * then GeoCornerstoneGate hides it after client hydration for human visitors.
+ * Full human-readable copy stays on /guide.
  */
 export default function Home() {
   return (
     <LandingPage>
-      <div data-geo-crawler="homepage-cornerstone">
+      <GeoCornerstoneGate>
         <AgentReadableSummary />
         <GeoGuide embedded />
-      </div>
+      </GeoCornerstoneGate>
     </LandingPage>
   );
 }

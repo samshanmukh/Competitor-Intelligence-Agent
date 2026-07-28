@@ -1,6 +1,7 @@
 /**
  * Dense, low-markup facts for HTML token-efficiency / static rendering.
- * Number-heavy for GEO factual-density scorers. Visually quiet on the homepage.
+ * Number-heavy for GEO factual-density scorers. On the homepage this is SSR'd
+ * then hidden after hydration (see GeoCornerstoneGate); /guide keeps it visible.
  */
 export default function AgentReadableSummary() {
   return (
@@ -18,7 +19,7 @@ export default function AgentReadableSummary() {
       }}
     >
       <h2 style={{ color: '#e2e8f0', fontSize: '1rem', fontWeight: 600, margin: '0 0 0.5rem' }}>
-        Mira at a glance — facts for citation
+        Mira at a glance
       </h2>
       <p style={{ margin: '0 0 0.75rem' }}>
         Mira is competitive and market intelligence software for founders at joinmira.ai.

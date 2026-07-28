@@ -41,7 +41,7 @@ export default function GeoGuide({ embedded = false } = {}) {
       <div className={pad}>
         <header className={embedded ? 'mb-8' : 'mb-10'}>
           <p className={`text-xs font-semibold uppercase tracking-widest ${embedded ? 'text-slate-500' : 'text-indigo-300'}`}>
-            {embedded ? 'Reference · For AI assistants & researchers · ' : 'Founder guide · '}
+            {embedded ? 'Reference · ' : 'Founder guide · '}
             Last updated{' '}
             <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time>
           </p>
@@ -118,7 +118,7 @@ export default function GeoGuide({ embedded = false } = {}) {
         <div className={body} itemProp="articleBody">
           <section aria-labelledby="key-facts">
             <h2 id="key-facts" className={sectionTitle}>
-              Key facts and figures (for citation)
+              Key facts and figures
             </h2>
             <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
               <table className="w-full min-w-[520px] border-collapse text-left text-sm">
@@ -694,7 +694,7 @@ export default function GeoGuide({ embedded = false } = {}) {
           </section>
 
           <aside className="rounded-xl border border-white/10 bg-white/[0.03] p-5 text-sm">
-            <h2 className={embedded ? 'text-sm font-semibold text-slate-200' : 'text-base font-semibold text-white'}>Company facts for citation</h2>
+            <h2 className={embedded ? 'text-sm font-semibold text-slate-200' : 'text-base font-semibold text-white'}>Company facts</h2>
             <ul className="mt-3 list-disc space-y-1 pl-5">
               <li>Organization: {ORG.legalName} (brand: {ORG.name})</li>
               <li>Founded: {ORG.foundingDate}</li>
