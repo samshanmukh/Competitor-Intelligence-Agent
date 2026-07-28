@@ -16,9 +16,6 @@ const RAISED =
   'transition duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:border-white/15 ' +
   'hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_24px_50px_-14px_rgba(0,0,0,0.75)]';
 
-// Recessed inner well for visuals inside a glass card.
-const WELL = 'rounded-xl border border-white/5 bg-black/25 shadow-[inset_0_1px_3px_rgba(0,0,0,0.45)] backdrop-blur-sm';
-
 // Scroll-reveal wrapper. Never SSR opacity:0 — GEO crawlers treat that as empty text.
 function Reveal({ children, delay = 0, y = 24, className = '' }) {
   const reduceMotion = useReducedMotion();
@@ -310,41 +307,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="mx-auto max-w-6xl px-5 py-24">
-        <Reveal className="mx-auto max-w-2xl text-center">
+      {/* Capabilities — three short points, easy to scan */}
+      <section id="features" className="mx-auto max-w-5xl px-5 py-24">
+        <Reveal className="mx-auto max-w-xl text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-accent-soft">Capabilities</span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-5xl">Everything you need to understand your business</h2>
-          <p className="mt-4 text-slate-400">Tailored to your business. It replaces weeks of research and guesswork.</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">What you get</h2>
+          <p className="mt-3 text-slate-400">A clear read on your business, market, and next moves.</p>
         </Reveal>
 
-        {/* Spotlight differentiators */}
-        <div className="mt-14 grid gap-4 md:grid-cols-3">
-          {SPOTLIGHT.map((f, i) => (
-            <Reveal key={f.title} delay={i * 0.08}>
-              <div className={`group h-full overflow-hidden p-6 ${RAISED}`}>
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent-soft ring-1 ring-accent/20">
-                  <Icon name={f.icon} className="h-5 w-5" />
-                </div>
-                <h3 className="mt-5 text-lg font-semibold text-white">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{f.desc}</p>
-                <div className={`mt-5 h-[84px] p-3 ${WELL}`}>{f.visual}</div>
+        <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-10">
+          {CAPABILITIES.map((f, i) => (
+            <Reveal key={f.title} delay={i * 0.08} className="text-center md:text-left">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent-soft ring-1 ring-accent/20 md:mx-0">
+                <Icon name={f.icon} className="h-5 w-5" />
               </div>
-            </Reveal>
-          ))}
-        </div>
-
-        {/* Compact feature grid */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 4) * 0.06}>
-              <div className={`group h-full p-5 ${RAISED}`}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-accent-soft transition group-hover:bg-accent/15">
-                  <Icon name={f.icon} className="h-4 w-4" />
-                </div>
-                <h3 className="mt-4 text-sm font-semibold text-white">{f.title}</h3>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{f.desc}</p>
-              </div>
+              <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
+              <p className="mt-1.5 text-sm text-slate-400">{f.desc}</p>
             </Reveal>
           ))}
         </div>
@@ -481,40 +459,10 @@ const STATS = [
   { value: 'Weekly', label: 'Refresh to stay current' },
 ];
 
-const SPOTLIGHT = [
-  {
-    icon: 'eye',
-    title: 'Your business, clearly',
-    desc: 'What you do, your category, value proposition, ideal customer and model, reflected back in plain terms.',
-    visual: (
-      <p className="text-xs italic leading-relaxed text-slate-400">"A mid-market analytics tool for ops teams, sold as a self-serve subscription."</p>
-    ),
-  },
-  {
-    icon: 'activity',
-    title: 'Market & timing',
-    desc: 'Your market sized, its growth, and why now — from live research.',
-    visual: <GrowthMock />,
-  },
-  {
-    icon: 'sparkle',
-    title: 'Your next moves',
-    desc: 'A candid read on your strengths, your gaps, and the top moves to focus on right now.',
-    visual: (
-      <p className="text-xs italic leading-relaxed text-slate-400">"Own the ops-team customer and launch a self-serve $39 tier."</p>
-    ),
-  },
-];
-
-const FEATURES = [
-  { icon: 'users', title: 'Ideal customer profile', desc: 'Who you serve, their pains, and where to reach them.' },
-  { icon: 'zap', title: 'Value proposition', desc: 'Your positioning and what makes you worth choosing, sharpened.' },
-  { icon: 'card', title: 'Business model', desc: 'How you make money, with pricing that fits your value.' },
-  { icon: 'bar', title: 'Market sizing', desc: 'Market size with the sources behind every number.' },
-  { icon: 'map', title: 'Where you stand', desc: 'Your closest competitors as context, and where you fit.' },
-  { icon: 'shield', title: 'SWOT & risks', desc: 'Strengths, weaknesses, opportunities and threats.' },
-  { icon: 'trending', title: 'Pricing strategy', desc: 'Value-based pricing guidance for your stage.' },
-  { icon: 'share', title: 'Saved reports', desc: 'Save your business report and revisit it anytime.' },
+const CAPABILITIES = [
+  { icon: 'eye', title: 'Your business, clearly', desc: 'What you do, who you serve, and how you make money.' },
+  { icon: 'activity', title: 'Market & timing', desc: 'Market size, growth, and why now.' },
+  { icon: 'sparkle', title: 'Your next moves', desc: 'Strengths, gaps, and what to focus on.' },
 ];
 
 const STEPS = [
