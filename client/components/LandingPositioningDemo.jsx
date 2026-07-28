@@ -214,6 +214,12 @@ export default function LandingPositioningDemo() {
             </p>
           )}
 
+          {(display.you?.statement || display.you?.blurb) && (
+            <p className="mx-auto line-clamp-2 max-w-2xl text-center text-sm leading-snug text-slate-400 sm:mx-0 sm:text-left">
+              {display.you.statement || display.you.blurb}
+            </p>
+          )}
+
           {showChart && (
             <PositioningMapChart
               you={display.you}

@@ -15,7 +15,7 @@ const CONTENTS_TIMEOUT_MS = 9000;
 const MAX_RIVALS = 4;
 /** Cap contents batch so You.com can finish inside the wall clock (you + up to 4 rivals). */
 const MAX_CONTENT_URLS = 5;
-const CACHE_PREFIX = 'demo:fast:v2:';
+const CACHE_PREFIX = 'demo:fast:v3:';
 
 /** @type {Map<string, { expires: number, payload: object }>} */
 const cache = new Map();
@@ -210,6 +210,15 @@ function rivalsFromSearchSources(sources, host) {
   return out;
 }
 
+function clampStatement(text, max = 180) {
+  const s = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!s) return null;
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const sp = cut.lastIndexOf(' ');
+  return `${(sp > 40 ? cut.slice(0, sp) : cut).trim()}…`;
+}
+
 function mergeRivals(primary, fallback, host) {
   const seen = new Set([host]);
   const out = [];
@@ -218,10 +227,12 @@ function mergeRivals(primary, fallback, host) {
     const h = hostnameOf(r.website);
     if (!h || seen.has(h) || SKIP_HOST_RE.test(h)) continue;
     seen.add(h);
+    const statement = clampStatement(r.statement || r.blurb, 120);
     out.push({
       name: String(r.name || h.split('.')[0]).slice(0, 48),
       website: originOf(r.website) || r.website,
       pricing_url: normalizeUrl(r.pricing_url) || originOf(r.website) || r.website,
+      ...(statement ? { statement } : {}),
     });
     if (out.length >= MAX_RIVALS) break;
   }
@@ -230,7 +241,7 @@ function mergeRivals(primary, fallback, host) {
 
 async function extractRivalsFromSearch({ host, userUrl, searchText }) {
   const result = await completeJSON({
-    system: 'You extract competitor lists from web search snippets. Return ONLY valid JSON.',
+    system: 'You extract competitor lists and short company blurbs from web search snippets. Return ONLY valid JSON.',
     user: `Product URL: ${userUrl}
 Hostname: ${host}
 
@@ -239,9 +250,17 @@ From the search results below, identify the product/company ("you") and ${MAX_RI
 Return:
 {
   "market": "short market label",
-  "you": { "name": "product or company name" },
+  "you": {
+    "name": "product or company name",
+    "statement": "1–2 short sentences: what the company is / does (product positioning, not marketing fluff)"
+  },
   "rivals": [
-    { "name": "string", "website": "https://...", "pricing_url": "https://.../pricing or same as website" }
+    {
+      "name": "string",
+      "website": "https://...",
+      "pricing_url": "https://.../pricing or same as website",
+      "statement": "one short line: what this rival is / does"
+    }
   ]
 }
 
@@ -251,14 +270,17 @@ Rules:
 - Prefer pricing_url ending in /pricing when known; otherwise use the homepage.
 - rivals must be real competing products/companies (not the same host as ${host}).
 - Never invent fake brands. Skip review sites, app stores, Wikipedia, G2, Reddit.
+- you.statement: 1–2 concise sentences (≤ ~40 words) about what the submitted company builds or sells. Product positioning, not a press release.
+- rivals[].statement: one short line each (≤ ~18 words). Omit only if snippets give no clue.
 - Max ${MAX_RIVALS} rivals.
 
 SEARCH RESULTS:
 ${String(searchText || '').slice(0, 7000)}`,
-    maxTokens: 700,
+    maxTokens: 900,
   });
 
   const youName = (result?.you?.name || host).trim();
+  const youStatement = clampStatement(result?.you?.statement || result?.you?.blurb, 180);
   const rivals = (Array.isArray(result?.rivals) ? result.rivals : [])
     .map((r) => {
       const website = normalizeUrl(r?.website) || normalizeUrl(r?.url);
@@ -267,7 +289,8 @@ ${String(searchText || '').slice(0, 7000)}`,
       if (!name || !website) return null;
       if (hostnameOf(website) === host || hostnameOf(pricing_url) === host) return null;
       if (SKIP_HOST_RE.test(hostnameOf(website))) return null;
-      return { name, website, pricing_url };
+      const statement = clampStatement(r?.statement || r?.blurb, 120);
+      return { name, website, pricing_url, ...(statement ? { statement } : {}) };
     })
     .filter(Boolean)
     .slice(0, MAX_RIVALS);
@@ -275,6 +298,7 @@ ${String(searchText || '').slice(0, 7000)}`,
   return {
     market: String(result?.market || `Competitors for ${host}`).trim(),
     youName,
+    youStatement,
     rivals,
   };
 }
@@ -431,7 +455,11 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
     youName = extracted.youName || youName;
     // Fill to MAX_RIVALS with source-host fallback when Grok returns a thin list.
     rivals = mergeRivals(extracted.rivals || [], rivalsFromSearchSources(searchSources, host), host);
-    you = { ...you, name: youName };
+    you = {
+      ...you,
+      name: youName,
+      ...(extracted.youStatement ? { statement: extracted.youStatement } : {}),
+    };
   } catch {
     timings.extractMs = null;
     partial = true;
@@ -447,8 +475,18 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
 
   await emit('competitors', {
     market,
-    you: { name: you.name, url: you.url, website: you.website },
-    rivals: rivals.map((r) => ({ name: r.name, website: r.website, pricing_url: r.pricing_url })),
+    you: {
+      name: you.name,
+      url: you.url,
+      website: you.website,
+      ...(you.statement ? { statement: you.statement } : {}),
+    },
+    rivals: rivals.map((r) => ({
+      name: r.name,
+      website: r.website,
+      pricing_url: r.pricing_url,
+      ...(r.statement ? { statement: r.statement } : {}),
+    })),
   });
 
   if (remaining() < 2000) {

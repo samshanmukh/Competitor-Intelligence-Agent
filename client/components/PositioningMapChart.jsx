@@ -272,6 +272,9 @@ function RivalDetail({ d, pinned, onUnpin, reduceMotion }) {
           <span className="mx-1.5 text-slate-600">·</span>
           Value {d.value ?? '—'}/10{d.valueEstimated ? ' (est.)' : ''}
         </p>
+        {d.statement ? (
+          <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">{d.statement}</p>
+        ) : null}
       </div>
       {pinned && (
         <button
@@ -313,6 +316,9 @@ function MapTooltip({ active, payload, pinnedKey }) {
       <p className="text-slate-400">
         Value: {d.value ?? '—'}/10{d.valueEstimated ? ' (est.)' : ''}
       </p>
+      {d.statement ? (
+        <p className="mt-1.5 max-w-[220px] line-clamp-2 text-[11px] leading-snug text-slate-500">{d.statement}</p>
+      ) : null}
       <p className="mt-1 text-[10px] text-slate-600">Click to pin</p>
     </div>
   );
@@ -320,7 +326,7 @@ function MapTooltip({ active, payload, pinnedKey }) {
 
 /**
  * @param {{ you?: object, rivals?: object[], title?: string, hint?: string, streaming?: boolean }} props
- * you/rivals: { name, website, pricing_url, entry_price, value_score, isYou? }
+ * you/rivals: { name, website, pricing_url, entry_price, value_score, statement?, isYou? }
  */
 export default function PositioningMapChart({
   you,

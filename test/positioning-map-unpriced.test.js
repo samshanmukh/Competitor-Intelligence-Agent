@@ -9,13 +9,14 @@ const RUNCOACH_YOU = {
   website: 'https://www.runna.com',
   entry_price: 15.99,
   isYou: true,
+  statement: 'AI running coach that builds personalized training plans for race goals.',
 };
 
 const RUNCOACH_RIVALS = [
-  { name: 'Nike Run Club', website: 'https://www.nike.com', entry_price: null },
-  { name: 'Strava', website: 'https://www.strava.com', entry_price: 11.99 },
-  { name: 'Garmin Connect', website: 'https://www.garmin.com', entry_price: null },
-  { name: 'Couch to 5K', website: 'https://www.c25k.com', entry_price: null },
+  { name: 'Nike Run Club', website: 'https://www.nike.com', entry_price: null, statement: 'Free Nike-branded run tracking and guided workouts.' },
+  { name: 'Strava', website: 'https://www.strava.com', entry_price: 11.99, statement: 'Social fitness network for runners and cyclists.' },
+  { name: 'Garmin Connect', website: 'https://www.garmin.com', entry_price: null, statement: 'Device-linked training and health analytics platform.' },
+  { name: 'Couch to 5K', website: 'https://www.c25k.com', entry_price: null, statement: 'Beginner walk-to-run program for first 5Ks.' },
 ];
 
 describe('positioning map includes unpriced rivals', () => {
@@ -46,6 +47,12 @@ describe('positioning map includes unpriced rivals', () => {
       assert.notEqual(p.price, 0);
     }
     assert.ok(points.every((p) => p.value != null && p.value >= 1 && p.value <= 10));
+    assert.equal(scored.you.statement, RUNCOACH_YOU.statement);
+    assert.equal(points.find((p) => p.isYou)?.statement, RUNCOACH_YOU.statement);
+    assert.equal(
+      points.find((p) => p.name === 'Strava')?.statement,
+      'Social fitness network for runners and cyclists.'
+    );
   });
 
   it('all-unpriced still plots everyone (fallback lane)', () => {

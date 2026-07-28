@@ -42,6 +42,7 @@ export function buildPositioningMapPoints(you, rivals = []) {
     const priceUnknown = priceNum == null || !Number.isFinite(priceNum) || priceNum <= 0;
     const valueNum = c.value_score != null ? Number(c.value_score) : null;
     const valueEstimated = valueNum == null || !Number.isFinite(valueNum);
+    const statement = String(c.statement || c.blurb || '').replace(/\s+/g, ' ').trim() || null;
     return {
       name: c.name || c.website || 'Unknown',
       shortName: c.name || c.website || 'Unknown',
@@ -55,6 +56,7 @@ export function buildPositioningMapPoints(you, rivals = []) {
       isYou: Boolean(c.isYou),
       website: c.website,
       pricing_url: c.pricing_url,
+      ...(statement ? { statement } : {}),
     };
   });
 
