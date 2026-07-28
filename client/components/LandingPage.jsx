@@ -104,20 +104,6 @@ export default function LandingPage() {
       <header className="glass-nav sticky top-0 z-40 border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <BrandLogo href="/" height={32} priority />
-          {/*
-            Keep authority links layout-visible at all breakpoints.
-            GeoTest ignores display:none (e.g. `hidden md:flex`) the same way it
-            ignores opacity:0 — so FAQ/About/Team must not live only in a hidden nav.
-          */}
-          <nav className="flex max-w-[58%] flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[11px] text-slate-400 sm:max-w-none sm:gap-x-5 sm:text-sm md:gap-x-7">
-            <a href="#features" className="hidden transition hover:text-white md:inline">Features</a>
-            <a href="#how" className="hidden transition hover:text-white md:inline">How it works</a>
-            <Link href="/guide" className="transition hover:text-white">Product guide</Link>
-            <Link href="/faq" className="transition hover:text-white">FAQ</Link>
-            <Link href="/about" className="transition hover:text-white">About</Link>
-            <Link href="/team" className="transition hover:text-white">Team</Link>
-            <Link href="/contact" className="transition hover:text-white">Contact</Link>
-          </nav>
           <div className="flex items-center gap-2">
             {authed ? (
               <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
