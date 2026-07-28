@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { api } from '../lib/api';
 import PositioningMapChart from './PositioningMapChart';
 import { Icon } from './ui';
+
+const EASE = [0.21, 0.47, 0.32, 0.98];
 
 const STATUS_LABELS = {
   cache: 'Loading cached result…',
@@ -13,13 +16,8 @@ const STATUS_LABELS = {
   pricing: 'Reading pricing pages…',
 };
 
-function formatPrice(n) {
-  if (n == null || !Number.isFinite(n)) return '—';
-  if (n >= 100) return `$${Math.round(n)}/mo`;
-  return `$${Number(n.toFixed(n < 10 ? 2 : 0))}/mo`;
-}
-
 export default function LandingPositioningDemo() {
+  const reduceMotion = useReducedMotion();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusLabel, setStatusLabel] = useState('');
@@ -122,6 +120,15 @@ export default function LandingPositioningDemo() {
   // Chart plots everyone — unpriced rivals sit in an "n/a" lane (not omitted).
   const showChart = entities.length >= 2;
 
+  const fade = reduceMotion
+    ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0 } }
+    : {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: 4 },
+        transition: { duration: 0.35, ease: EASE },
+      };
+
   return (
     <div className={`mx-auto w-full text-left ${display ? 'max-w-3xl' : 'max-w-xl'}`}>
       <form onSubmit={onSubmit} className="relative">
@@ -169,20 +176,35 @@ export default function LandingPositioningDemo() {
         </p>
       )}
 
-      {loading && !partialNames && (
-        <div className="mt-5 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-5 text-center">
-          <p className="text-sm font-medium text-slate-200">{statusLabel || 'Finding competitors…'}</p>
-          <p className="mt-1 text-xs text-slate-500">Usually under 20 seconds. Keep this tab open.</p>
-          <div className="mx-auto mt-4 space-y-2 max-w-sm text-left">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-8 animate-pulse rounded-md bg-white/5" style={{ animationDelay: `${i * 120}ms` }} />
-            ))}
-          </div>
-        </div>
-      )}
+      <AnimatePresence mode="wait">
+        {loading && !partialNames && (
+          <motion.div
+            key="loading"
+            {...fade}
+            className="mt-5 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-5 text-center"
+          >
+            <p className="text-sm font-medium text-slate-200">{statusLabel || 'Finding competitors…'}</p>
+            <p className="mt-1 text-xs text-slate-500">Usually under 20 seconds. Keep this tab open.</p>
+            <div className="mx-auto mt-4 max-w-sm space-y-2 text-left">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`h-8 rounded-md bg-white/5 ${reduceMotion ? '' : 'animate-pulse'}`}
+                  style={reduceMotion ? undefined : { animationDelay: `${i * 120}ms` }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {display && (
-        <div className="mt-6 space-y-4">
+        <motion.div
+          className="mt-6 space-y-4"
+          initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.4, ease: EASE }}
+        >
           {display.market && (
             <p className="text-center text-xs text-slate-400 sm:text-left">
               Market: <span className="text-slate-300">{display.market}</span>
@@ -192,44 +214,12 @@ export default function LandingPositioningDemo() {
             </p>
           )}
 
-          <ul className="space-y-2 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3">
-            {display.you && (
-              <li className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-accent-soft">
-                  {display.you.name || 'You'}
-                  <span className="ml-1.5 text-xs font-normal text-slate-500">(you)</span>
-                </span>
-                <span className="tabular-nums text-slate-400">
-                  {display.you.entry_price != null
-                    ? <span className="text-slate-300">{formatPrice(display.you.entry_price)}</span>
-                    : (loading
-                      ? <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" />
-                      : <span title="Price not found on public pages">—</span>)}
-                </span>
-              </li>
-            )}
-            {(display.rivals || []).map((r) => (
-              <li key={r.website || r.name} className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-slate-200">{r.name}</span>
-                <span className="tabular-nums text-slate-400">
-                  {r.entry_price != null
-                    ? <span className="text-slate-300">{formatPrice(r.entry_price)}</span>
-                    : (loading
-                      ? <span className="inline-block h-3 w-12 animate-pulse rounded bg-white/10" />
-                      : <span title="Price not found on public pages">—</span>)}
-                </span>
-              </li>
-            ))}
-            {!loading && (display.rivals || []).length === 0 && (
-              <li className="text-sm text-slate-500">No clear rivals found for this URL.</li>
-            )}
-          </ul>
-
-          {!loading && showChart && (
+          {showChart && (
             <PositioningMapChart
               you={display.you}
               rivals={display.rivals || []}
-              hint="Entry price vs. relative value (cheaper plans score higher in this quick preview). Muted markers = price not found yet."
+              streaming={loading}
+              hint="Hover a marker for name, price, and value. Click to pin. Muted markers = price not found yet."
             />
           )}
 
@@ -240,8 +230,19 @@ export default function LandingPositioningDemo() {
             </div>
           )}
 
+          {!loading && !showChart && (display.rivals || []).length === 0 && (
+            <p className="text-center text-sm text-slate-500 sm:text-left">
+              No clear rivals found for this URL.
+            </p>
+          )}
+
           {!loading && (
-            <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
+            <motion.div
+              className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center"
+              initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 0.35, delay: 0.1, ease: EASE }}
+            >
               <Link
                 href="/signup"
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200"
@@ -260,9 +261,9 @@ export default function LandingPositioningDemo() {
               >
                 Try another URL
               </button>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );
