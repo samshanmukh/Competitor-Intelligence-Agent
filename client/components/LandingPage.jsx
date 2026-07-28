@@ -212,8 +212,10 @@ export default function LandingPage({ children } = {}) {
             transition={heroAnimate ? { duration: 0.6, delay: 0.12, ease: EASE } : undefined}
             className="mx-auto mt-6 max-w-xl text-lg text-slate-400"
           >
-            Mira turns business, market, and competitor signals into decision support in ~2 minutes:
-            TAM/SAM/SOM sizing, 5–12 competitor matrices, and pricing from web + App Store / Play ($0–$99/mo band).
+            Mira turns business, market, and competitor signals into decision support in ~2 minutes
+            (~120 seconds): TAM→SAM→SOM sizing, 5–12 competitor matrices, weekly refresh (52×/year),
+            and pricing from web + App Store / Play ($0–$99/mo; annual plans often ~17%–20% off).
+            Founded 2025-01-15 by Sam Karri.
           </motion.p>
 
           <motion.div

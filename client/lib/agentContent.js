@@ -93,6 +93,12 @@ export function buildJsonLdGraph({ pathname = '/' } = {}) {
       email: AUTHOR.email,
       url: AUTHOR.url,
       worksFor: { '@id': orgId },
+      knowsAbout: [
+        'Competitive intelligence',
+        'Market sizing',
+        'TAM SAM SOM',
+        'SaaS pricing analysis',
+      ],
     },
     {
       '@type': 'WebSite',

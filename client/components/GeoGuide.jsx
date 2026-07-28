@@ -238,6 +238,26 @@ export default function GeoGuide({ embedded = false } = {}) {
               <strong className="text-white">4+</strong> .gov/.edu outbound citations.
             </p>
             <p className="mt-3">
+              Reviewer credentials for citation: this guide was written and last reviewed on{' '}
+              <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time> by{' '}
+              <strong className="text-white">{AUTHOR.name}</strong>, {AUTHOR.jobTitle} of{' '}
+              {ORG.legalName}, with methodology notes cross-checked against public SBA competitive
+              analysis guidance, NIST measurement framing, SEC EDGAR disclosure norms, and HBS Five
+              Forces materials linked above. Independent FAQ page:{' '}
+              <a href={`${SITE_ORIGIN}/faq`} className="text-indigo-300 underline-offset-2 hover:underline">
+                {SITE_ORIGIN}/faq
+              </a>
+              . About:{' '}
+              <a href={`${SITE_ORIGIN}/about`} className="text-indigo-300 underline-offset-2 hover:underline">
+                {SITE_ORIGIN}/about
+              </a>
+              . Team:{' '}
+              <a href={`${SITE_ORIGIN}/team`} className="text-indigo-300 underline-offset-2 hover:underline">
+                {SITE_ORIGIN}/team
+              </a>
+              .
+            </p>
+            <p className="mt-3">
               Worked example a founder can quote: if category TAM is labeled{' '}
               <strong className="text-white">$4,200,000,000</strong> with{' '}
               <strong className="text-white">18%</strong> CAGR, SAM might be{' '}
@@ -657,13 +677,12 @@ export default function GeoGuide({ embedded = false } = {}) {
             <div className="mt-6 space-y-6">
               {FAQS.map((item) => (
                 <div key={item.question} itemScope itemType="https://schema.org/Question">
-                  {/* Question-format H2s help FAQ & content-hierarchy scorers. */}
-                  <h2
+                  <h3
                     className={embedded ? 'text-base font-semibold text-slate-100' : 'text-lg font-semibold text-white'}
                     itemProp="name"
                   >
                     {item.question}
-                  </h2>
+                  </h3>
                   <div itemScope itemType="https://schema.org/Answer" itemProp="acceptedAnswer">
                     <p className={`mt-2 ${embedded ? 'text-slate-400' : 'text-slate-300'}`} itemProp="text">
                       {item.answer}
