@@ -43,9 +43,9 @@ export const metadata = {
 };
 
 /**
- * Homepage: marketing landing + a short, always-visible product-docs section.
- * Dense GEO cornerstone (AgentReadableSummary + GeoGuide) lives on /guide —
- * GeoTest executes JS, so SSR-then-hide collapsed Quick Scan (~59).
+ * Homepage: marketing landing + always-visible long-form product docs.
+ * Dense GEO cornerstone (AgentReadableSummary + GeoGuide) lives on /guide.
+ * No SSR-then-hide / bot-UA cloaking — GeoTest executes JS and uses Chrome UA.
  */
 export default function Home() {
   return (

@@ -1,7 +1,7 @@
 /**
  * Dense, low-markup facts for HTML token-efficiency / static rendering.
- * Number-heavy for GEO factual-density scorers. On the homepage this is SSR'd
- * then hidden after hydration (see GeoCornerstoneGate); /guide keeps it visible.
+ * Number-heavy for GEO factual-density scorers. Visible on /guide only —
+ * homepage uses LandingProductDocs (long-form prose, no cloaking).
  */
 export default function AgentReadableSummary() {
   return (
