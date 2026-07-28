@@ -405,12 +405,6 @@ export default function LandingPage() {
               </Link>
             )}
           </div>
-          <p className="relative mt-6 text-sm text-slate-500">
-            <Link href="/guide" className="text-slate-400 underline-offset-2 transition hover:text-slate-300 hover:underline">
-              Product guide
-            </Link>
-            <span className="text-slate-600"> — how Mira works for founders</span>
-          </p>
         </Reveal>
       </section>
 
