@@ -16,6 +16,7 @@ import {
   SyndicatedShareTable,
 } from './distribution/DistributionShared';
 import { SourceAttribution } from './SourceAttribution';
+import ThinkingShimmer from './ThinkingShimmer';
 const TIP_STYLE = { background: '#0e1014', border: '1px solid #181c24', borderRadius: 8, fontSize: 12 };
 const AXIS = { fill: '#64748b', fontSize: 11 };
 
@@ -23,9 +24,9 @@ const ReportLayoutCtx = createContext('stack');
 
 function LayerPending({ label }) {
   return (
-    <div className="space-y-3 py-2" role="status" aria-live="polite" aria-label={`Loading ${label}`}>
+    <div className="space-y-3 py-2" aria-label={`Loading ${label}`}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-400">Researching {label}</p>
+        <ThinkingShimmer label={`Researching ${label}…`} />
         <span className="text-[11px] text-slate-600">Filling in…</span>
       </div>
       <Shimmer className="h-4 w-2/5" />
@@ -862,9 +863,11 @@ function PricingCard({ name, tiers, you, href, sources, loading }) {
       )}
       <div className="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-0.5">
         {showEmpty ? (
-          <p className="text-xs text-slate-600">
-            {loading ? 'Extracting pricing…' : 'No pricing extracted'}
-          </p>
+          loading ? (
+            <ThinkingShimmer label="Extracting pricing…" className="!text-xs" />
+          ) : (
+            <p className="text-xs text-slate-600">No pricing extracted</p>
+          )
         ) : (
           visible.map((t, i) => (
             <div
@@ -1325,8 +1328,11 @@ function ChartsSection({ competitors, matrix, reviews, product }) {
               </div>
             </>
           ) : (
-            <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-white/10 text-sm text-slate-500">
-              Waiting on value scores and entry prices to plot the map.
+            <div className="flex h-40 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/10 px-4 text-center">
+              <ThinkingShimmer label="Waiting on value scores…" />
+              <p className="m-0 text-xs text-slate-600">
+                Entry prices land next — then the map plots.
+              </p>
             </div>
           )}
         </ChartCard>
@@ -1606,9 +1612,11 @@ function ReviewsSection({ reviews, loading }) {
                 )}
               </div>
             ) : !r.sentiment ? (
-              <p className="mt-1 text-xs text-slate-600">
-                {loading ? 'Fetching reviews…' : 'No review data found.'}
-              </p>
+              loading ? (
+                <ThinkingShimmer label="Fetching reviews…" className="mt-1 !text-xs" />
+              ) : (
+                <p className="mt-1 text-xs text-slate-600">No review data found.</p>
+              )
             ) : null}
             {(r.sentiment || r.sources?.length || r.attribution) && (
               <SourceAttribution

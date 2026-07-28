@@ -213,6 +213,42 @@
   to { transform: rotate(360deg); }
 }
 
+/* ChatGPT-style text shimmer — soft highlight through letters, not a skeleton bar */
+.thinking-shimmer {
+  display: inline-block;
+}
+.thinking-shimmer__text {
+  display: inline-block;
+  color: rgb(100 116 139); /* slate-500 fallback when motion reduced / no clip support */
+}
+.thinking-shimmer--animate {
+  animation: thinking-opacity-pulse 2.8s ease-in-out infinite;
+}
+.thinking-shimmer--animate .thinking-shimmer__text {
+  background-image: linear-gradient(
+    105deg,
+    rgb(100 116 139) 0%,
+    rgb(100 116 139) 38%,
+    rgb(203 213 225) 50%,
+    rgb(100 116 139) 62%,
+    rgb(100 116 139) 100%
+  );
+  background-size: 220% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-shimmer-sweep 2.4s ease-in-out infinite;
+}
+@keyframes thinking-shimmer-sweep {
+  0% { background-position: 100% 50%; }
+  100% { background-position: -100% 50%; }
+}
+@keyframes thinking-opacity-pulse {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
 /* Sweeping shimmer for progressive analysis loaders */
 .shimmer {
   position: relative;
@@ -259,5 +295,12 @@
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Keep Thinking… readable when animations are disabled (override clipped gradient). */
+  .thinking-shimmer--animate .thinking-shimmer__text {
+    background-image: none !important;
+    color: rgb(100 116 139) !important;
+    -webkit-text-fill-color: rgb(100 116 139) !important;
   }
 }

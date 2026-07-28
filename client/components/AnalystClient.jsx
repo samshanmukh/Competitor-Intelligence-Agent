@@ -1,32 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
 import { hasFeature } from '../lib/entitlements';
 import { Icon } from './ui';
 import SimpleMarkdown from './SimpleMarkdown';
+import { ThinkingStream } from './ThinkingShimmer';
 import Link from 'next/link';
-
-function ThinkingDots() {
-  return (
-    <span className="inline-flex items-center gap-1 px-0.5" aria-label="Thinking" role="status">
-      {[0, 1, 2].map((i) => (
-        <motion.span
-          key={i}
-          className="h-1.5 w-1.5 rounded-full bg-slate-400"
-          animate={{ opacity: [0.25, 1, 0.25], y: [0, -3, 0] }}
-          transition={{
-            duration: 0.9,
-            repeat: Infinity,
-            ease: 'easeInOut',
-            delay: i * 0.15,
-          }}
-        />
-      ))}
-    </span>
-  );
-}
 
 function ReasoningBody({ entries, live }) {
   return (
@@ -40,7 +20,12 @@ function ReasoningBody({ entries, live }) {
           )}
           <pre className="whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-slate-500">
             {text}
-            {live ? <span className="inline-block w-1.5 animate-pulse bg-slate-500">|</span> : null}
+            {live ? (
+              <span
+                className="ml-0.5 inline-block h-3 w-px translate-y-0.5 bg-slate-500/70 align-middle"
+                aria-hidden
+              />
+            ) : null}
           </pre>
         </div>
       ))}
@@ -207,7 +192,7 @@ export default function AnalystClient() {
     setInput('');
     setError('');
     setLoading(true);
-    setStatusLabel('Starting…');
+    setStatusLabel('Thinking…');
     setReasoningParts({});
     setDraft('');
     setConsultedLive(['Mira']);
@@ -217,7 +202,13 @@ export default function AnalystClient() {
     try {
       const data = await api.analystChatStream(next, (event, payload) => {
         if (event === 'status') {
-          if (payload?.label) setStatusLabel(payload.label);
+          if (payload?.label) {
+            const label = String(payload.label).trim();
+            // Normalize early/placeholder statuses to the calm default.
+            setStatusLabel(
+              !label || /^(starting|working)\b/i.test(label) ? 'Thinking…' : label,
+            );
+          }
           if (Array.isArray(payload?.consult)) {
             const labels = ['Mira'];
             if (payload.consult.includes('pricing')) labels.push('Pricing');
@@ -368,21 +359,6 @@ export default function AnalystClient() {
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <ThinkingDots />
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={statusLabel}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="text-slate-400"
-                    >
-                      {statusLabel || 'Working…'}
-                    </motion.span>
-                  </AnimatePresence>
-                </div>
-
                 <ReasoningBlock
                   parts={reasoningParts}
                   open={showReasoning}
@@ -390,12 +366,21 @@ export default function AnalystClient() {
                   live
                 />
 
-                {draft ? (
-                  <div className="border-t border-white/5 pt-2 text-sm text-slate-200">
-                    <SimpleMarkdown source={draft} />
-                    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-accent align-middle" />
-                  </div>
-                ) : null}
+                <ThinkingStream
+                  status={statusLabel || 'Thinking…'}
+                  streaming={loading}
+                  bodyClassName="border-t border-white/5 pt-2 text-sm text-slate-200"
+                >
+                  {draft ? (
+                    <>
+                      <SimpleMarkdown source={draft} />
+                      <span
+                        className="ml-0.5 inline-block h-3.5 w-px translate-y-0.5 bg-slate-500/70 align-middle"
+                        aria-hidden
+                      />
+                    </>
+                  ) : null}
+                </ThinkingStream>
               </div>
             </div>
           )}
