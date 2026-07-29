@@ -97,6 +97,24 @@ To brand those, configure InsForge SMTP to Resend (`smtp.resend.com`, user `rese
   - Then set Vercel `NEXT_PUBLIC_API_BASE` to the Render URL (e.g.
     `https://competitor-intelligence-agent-rgxy.onrender.com`) and redeploy Vercel.
 
+### Inbound email → SMS (Resend + Twilio)
+
+When mail arrives at `sam@joinmira.ai` / `support@joinmira.ai`, Resend posts `email.received` to the Next.js app, which texts you via Twilio.
+
+1. Deploy the frontend so `https://www.joinmira.ai/api/webhooks/resend` is live.
+2. In [Resend Webhooks](https://resend.com/webhooks), add endpoint  
+   `https://www.joinmira.ai/api/webhooks/resend` with event **`email.received`**.
+3. Copy the signing secret (`whsec_…`) into **Vercel** as `RESEND_WEBHOOK_SECRET`.
+4. On **Vercel** (Next.js), also set:
+   - `TWILIO_ACCOUNT_SID`
+   - `TWILIO_AUTH_TOKEN`
+   - `TWILIO_FROM_NUMBER` (E.164 Twilio SMS number)
+   - `SMS_ALERT_PHONE` (your phone, E.164)
+   - Optional: `SMS_ALERT_TO_EMAILS=sam@joinmira.ai,support@joinmira.ai`
+5. Redeploy Vercel. Send a test message to `sam@joinmira.ai` and confirm the SMS + Resend delivery log is 2xx.
+
+Self-mail from `noreply@joinmira.ai` is ignored so support-form loops stay quiet.
+
 ---
 
 ## Local development
