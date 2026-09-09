@@ -16,6 +16,7 @@ import {
   getAllSettings,
   setSetting,
   getSetting,
+  probeDatabase,
 } from '../db/index.js';
 import { discoverCompetitors } from '../agents/discoveryAgent.js';
 import { refreshCompetitor, refreshAll } from '../agents/monitor.js';
@@ -87,9 +88,14 @@ function normalizeWebhookUrl(value) {
 }
 
 // ---------- Health / keys (public) ----------
-router.get('/health', (req, res) => {
-  res.json({ ok: true });
-});
+// Shallow by default so host health checks stay fast. `?deep=1` also
+// verifies that Postgres is reachable — the failure mode that silently breaks
+// every workspace route.
+router.get('/health', wrap(async (req, res) => {
+  if (!req.query.deep) return res.json({ ok: true });
+  const db = await probeDatabase();
+  res.status(db.ok ? 200 : 503).json({ ok: db.ok, db });
+}));
 
 router.get('/methodology', (_req, res) => {
   res.json({ methodology: METHODOLOGY });
@@ -433,7 +439,6 @@ router.get(
       market: all.market || '',
       last_visit: all.last_visit || null,
       auto_refresh_enabled: (process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false',
-      insforge_base_url: process.env.INSFORGE_BASE_URL || '',
       // Never return the secrets themselves — only whether they're configured.
       youcom_key_set: Boolean(getKey('YOUCOM_API_KEY', req.workspaceId)),
       xai_key_set: Boolean(getKey('XAI_API_KEY', req.workspaceId)),

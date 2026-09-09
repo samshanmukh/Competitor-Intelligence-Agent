@@ -15,7 +15,7 @@ import reportsRouter from './routes/reports.js';
 import companyRouter from './routes/company.js';
 import featuresRouter from './routes/features.js';
 import analystRouter from './routes/analyst.js';
-import { listCompetitors } from './db/index.js';
+import { listCompetitors, probeDatabase } from './db/index.js';
 import { refreshAll } from './agents/monitor.js';
 import { reconcileStaleJobs } from './services/jobs.js';
 import { sendWeeklyDigests } from './services/digest.js';
@@ -66,8 +66,28 @@ reconcileStaleJobs().catch(() => {});
 app.listen(PORT, () => {
   console.log(`\n  Mira AI (Enterprise)`);
   console.log(`  API listening on http://localhost:${PORT}`);
-  console.log(`  Auth: Insforge | DB: PostgreSQL | AI: Grok-4\n`);
+  console.log(`  Access: open | DB: PostgreSQL | AI: Grok-4\n`);
 });
+
+// Fail loudly at boot when Postgres is unreachable — otherwise the first
+// symptom is an unrelated-looking error inside a feature the user clicked.
+probeDatabase().then((db) => {
+  if (db.ok) return;
+  console.error(`\n  ⚠ Database unreachable — workspace routes will fail.`);
+  console.error(`    ${db.error}`);
+  console.error(`    DATABASE_URL=${redactDatabaseUrl(process.env.DATABASE_URL)}\n`);
+});
+
+/** Host and database only — never log the password. */
+function redactDatabaseUrl(url) {
+  if (!url) return '(unset)';
+  try {
+    const parsed = new URL(url);
+    return `${parsed.protocol}//${parsed.username || '?'}:***@${parsed.host}${parsed.pathname}`;
+  } catch {
+    return '(unparseable)';
+  }
+}
 
 // Scheduled auto-refresh every 24h at 03:00
 if ((process.env.AUTO_REFRESH_ENABLED ?? 'true') !== 'false') {

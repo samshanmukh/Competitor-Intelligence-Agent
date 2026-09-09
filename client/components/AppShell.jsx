@@ -1,22 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { consumeReturnPath, ensureFreshSession } from '../lib/auth';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import SupportButton from './SupportButton';
 import ZendeskWidget, { isZendeskEnabled } from './ZendeskWidget';
-import DevAuthBootstrap from './DevAuthBootstrap';
 
 const NO_SHELL_PREFIXES = [
-  '/login',
-  '/signup',
-  '/verify',
-  '/oauth',
-  '/auth',
   '/requests',
   '/reports/shared',
-  '/invite',
   '/architecture',
 ];
 
@@ -45,30 +36,15 @@ function isPublicMarketing(pathname) {
 
 export default function AppShell({ children }) {
   const pathname = usePathname();
-  const router = useRouter();
   const zendesk = isZendeskEnabled();
 
-  useEffect(() => {
-    if (pathname !== '/app') return;
-    const returnTo = consumeReturnPath();
-    if (returnTo !== '/app') router.replace(returnTo);
-  }, [pathname, router]);
-
-  // Renew access token from httpOnly refresh cookie so closing the browser
-  // does not force re-login within the session window (24h+).
-  useEffect(() => {
-    if (isPublicMarketing(pathname)) return;
-    ensureFreshSession().catch(() => null);
-  }, [pathname]);
-
-  // Landing, marketing docs, and auth pages render full-width without the app sidebar.
+  // Landing and marketing docs render full-width without the app sidebar.
   const noShell = isPublicMarketing(pathname);
 
-  // Marketing + auth pages stay clean; Zendesk (or Help FAB) lives in the signed-in app.
+  // Marketing pages stay clean; Zendesk (or Help FAB) lives in the app.
   if (noShell) {
     return (
       <>
-        <DevAuthBootstrap />
         {children}
       </>
     );
@@ -78,7 +54,6 @@ export default function AppShell({ children }) {
 
   return (
     <div className="relative flex min-h-dvh flex-col overflow-x-hidden md:h-dvh md:flex-row">
-      <DevAuthBootstrap />
       <Sidebar />
       <main
         className={

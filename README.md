@@ -8,8 +8,8 @@ AI-powered competitive and market intelligence for founders. Discover competitor
 |-------|------|
 | Frontend | Next.js 15 + React 18 + Tailwind 3.4 (`/client`) |
 | Backend | Express (Node 18+, ESM) (`/server`) |
-| Database + Auth | Insforge (PostgreSQL + email/OAuth) |
-| AI / Research | You.com, xAI Grok, optional Tavily + Apify |
+| Database | PostgreSQL |
+| AI / Research | You.com, optional Tavily + Apify |
 | Alerts | Web push (VAPID), Slack/Discord webhooks, Resend digests |
 
 ## Features
@@ -28,7 +28,7 @@ AI-powered competitive and market intelligence for founders. Discover competitor
 ```bash
 npm run install:all
 cp .env.example .env
-# Fill: YOUCOM_API_KEY, XAI_API_KEY, INSFORGE_BASE_URL, INSFORGE_ANON_KEY
+# Fill: DATABASE_URL and YOUCOM_API_KEY
 # Optional: TAVILY_API_KEY, VAPID_*, RESEND_API_KEY, APP_URL
 
 # Client (dev): set NEXT_PUBLIC_API_BASE=http://localhost:4000 in client/.env.local
@@ -49,4 +49,4 @@ node scripts/test-market-phases.js   # distribution smoke tests
 
 ## Deploy
 
-See [DEPLOY.md](./DEPLOY.md) (Render blueprint: `cia-api` + `cia-web`).
+See [DEPLOY.md](./DEPLOY.md) for vendor-neutral frontend, API, and database guidance.

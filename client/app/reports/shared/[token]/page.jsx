@@ -93,7 +93,7 @@ export default function SharedReportPage() {
 
         <p className="text-center text-sm text-slate-500">
           Want your own competitive intelligence?{' '}
-          <Link href="/signup" className="text-accent-soft hover:text-white transition">Get started free</Link>
+          <Link href="/app" className="text-accent-soft hover:text-white transition">Open Mira</Link>
         </p>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { pageMetadata } from '../../lib/seo';
 export const metadata = pageMetadata({
   title: 'Architecture',
   description:
-    'How Mira is built: Next.js on Vercel, InsForge auth/DB, Render intelligence API, You.com research, and OpenRouter extraction.',
+    'How Mira is built: Next.js, local browser storage, JSON feature requests, and You.com research.',
   path: '/architecture',
 });
 
@@ -15,8 +15,8 @@ export default function ArchitectureRoute() {
       <SsrDocPreamble title="Mira architecture">
         <p>
           Mira’s public product surface is a Next.js app on Vercel at www.joinmira.ai.
-          Authentication and PostgreSQL are provided by InsForge. The intelligence API runs on
-          Render (Node/Express) and orchestrates competitor discovery, scrape/research waterfall,
+          The site is open without login, and application data lives in PostgreSQL. A Node/Express
+          intelligence API orchestrates competitor discovery, scrape/research waterfall,
           feature matrices, market models (TAM/SAM/SOM), and distribution views.
         </p>
         <p>

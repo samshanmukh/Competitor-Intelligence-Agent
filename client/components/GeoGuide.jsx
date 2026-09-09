@@ -511,8 +511,8 @@ export default function GeoGuide({ embedded = false } = {}) {
           <section>
             <h2 className={sectionTitle}>Architecture snapshot for technical readers</h2>
             <p className="mt-3">
-              Public product surface: Next.js on Vercel at www.joinmira.ai. Authentication and
-              database: InsForge (PostgreSQL). Intelligence API: Node/Express on Render for discovery,
+              Public product surface: Next.js on Vercel at www.joinmira.ai, open without login.
+              Database: PostgreSQL. Intelligence API: Node/Express for discovery,
               scrape/research waterfall, feature matrix, market model, and distribution views. Research
               providers include You.com contents/research/finance and structured extraction via
               OpenRouter-compatible models. Machine-readable indexes for agents include{' '}
@@ -600,9 +600,9 @@ export default function GeoGuide({ embedded = false } = {}) {
           <section>
             <h2 className={sectionTitle}>How to get started</h2>
             <p className="mt-3">
-              Create an account at{' '}
-              <Link href="/signup" className="text-indigo-300 underline-offset-2 hover:underline">
-                /signup
+              Open the workspace at{' '}
+              <Link href="/app" className="text-indigo-300 underline-offset-2 hover:underline">
+                /app
               </Link>
               , paste your product URL, and generate your first clarity report. Revisit saved reports
               as pricing and competitors change. For company background, founding date, and contact,

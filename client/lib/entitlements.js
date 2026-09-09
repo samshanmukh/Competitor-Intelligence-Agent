@@ -44,7 +44,7 @@ export function hasFeature(entitlements, feature) {
 }
 
 export function canAccessPath(entitlements, pathname) {
-  // Until /auth/me loads, keep nav visible (API still enforces).
+  // Until the workspace context loads, keep navigation visible.
   if (!entitlements) return true;
   const feature = featureForPath(pathname);
   if (!feature) return true;

@@ -807,7 +807,9 @@ export async function buildDemoCompetitorsFast(productUrl, { onEvent } = {}) {
       await emit('competitors', {
         market: hit.market,
         you: hit.you,
-        rivals: hit.rivals.map(({ entry_price, value_score, value_score_estimated, ...rest }) => rest),
+        rivals: hit.rivals.map(
+          ({ entry_price: _p, value_score: _s, value_score_estimated: _e, ...rest }) => rest
+        ),
       });
       await emit('pricing', { you: hit.you, rivals: hit.rivals });
       await emit('done', { ...hit, timings: { ...hit.timings, totalMs: 0, cache: true }, cached: true });

@@ -797,7 +797,7 @@ function buildPricingEntries(product, matrix, competitors) {
     seen.add(key);
   }
 
-  // Matrix-only names (e.g. Grok used a different label) still appear.
+  // Matrix-only names (for example, a provider using a different label) still appear.
   for (const c of matrix?.competitors || []) {
     const key = normName(c.name);
     if (!key || seen.has(key) || key === youKey) continue;
@@ -1591,7 +1591,7 @@ function ReviewsSection({ reviews, loading }) {
                 {r.sentiment && <SentimentChip sentiment={r.sentiment} />}
               </div>
             </div>
-            {r.summary && <p className="mt-2 text-sm text-slate-300">“{r.summary}”</p>}
+            {r.summary && <p className="mt-2 text-sm text-slate-300">{r.summary}</p>}
             {(r.pros?.length || r.cons?.length) ? (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {r.pros?.length > 0 && (
@@ -1611,7 +1611,7 @@ function ReviewsSection({ reviews, loading }) {
                   </div>
                 )}
               </div>
-            ) : !r.sentiment ? (
+            ) : !r.sentiment && !r.summary && !r.sources?.length ? (
               loading ? (
                 <ThinkingShimmer label="Fetching reviews…" className="mt-1 !text-xs" />
               ) : (

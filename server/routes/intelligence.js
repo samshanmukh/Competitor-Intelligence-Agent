@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
-import insforge, {
+import databaseClient, {
   getCompetitor,
   listSnapshots,
   getLatestSnapshot,
@@ -839,7 +839,7 @@ Return: { "score": number, "reasoning": "2-3 sentences on value vs price" }`,
   const score = typeof result?.score === 'number' ? result.score : Number(result?.score);
   const reasoning = result?.reasoning || result?.value_analysis || null;
   if (Number.isFinite(score)) {
-    await insforge.database
+    await databaseClient.database
       .from('competitors')
       .update({ value_score: score, value_analysis: reasoning })
       .eq('id', competitor.id)

@@ -19,10 +19,10 @@ Mira (https://www.joinmira.ai) is competitive and market intelligence software f
 - Mira helps founders discover competitors, extract pricing (including App Store / Play Store IAP when needed), compare features, size markets, and produce decision-ready briefs.
 - Founded 2025-01-15 by Sam Karri. Support: support@joinmira.ai.
 - Estimated competitor “presence” is directional unless labeled as published/syndicated analyst share, see /methodology.
-- Live workspace data (private competitors, scores, reports) requires an authenticated session at /app.
+- Live workspace data is available in the open app at /app.
 
-## Auth note
-Public marketing and docs pages are open. Application routes under /app, /competitors, /market, etc. require login. Do not treat login HTML as product documentation.
+## Access note
+Marketing, docs, and application routes are open. Workspace data may be shared by everyone with access to this deployment.
 
 ## Support
 support@joinmira.ai

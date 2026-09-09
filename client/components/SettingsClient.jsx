@@ -2,35 +2,26 @@
 
 import { useEffect, useId, useState } from 'react';
 import { api } from '../lib/api';
-import { getWorkspace, getCurrentUser, verifyEmailCode, resendCode } from '../lib/auth';
+import { getWorkspace } from '../lib/auth';
 import { Icon, Skeleton, TabBar, useToast } from './ui';
 import { PageHeader, PageShell } from './PageShell';
 
 const providerHealth = (settings, health = {}) => ({
   ...health,
   youcom_key: Boolean(settings?.youcom_key_set),
-  xai_key: Boolean(settings?.xai_key_set),
-  model: settings?.xai_model || 'grok-4',
 });
 
 export default function SettingsClient() {
   const [settings, setSettings] = useState(null);
   const [health, setHealth] = useState(null);
-  const [members, setMembers] = useState([]);
   const [workspace, setWorkspace] = useState(null);
   const [tab, setTab] = useState('general');
   const [form, setForm] = useState({
-    youcom_api_key: '', xai_api_key: '', xai_model: '', insforge_base_url: '', webhook_url: '',
+    youcom_api_key: '', webhook_url: '',
   });
   const [revealed, setRevealed] = useState({});
   const [saving, setSaving] = useState(false);
   const [notifPrefs, setNotifPrefs] = useState({ any: true, highImpact: true, newCompetitor: false, digest: false });
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('analyst');
-  const [user, setUser] = useState(null);
-  const [verifyOtp, setVerifyOtp] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [resending, setResending] = useState(false);
   const [digest, setDigest] = useState({ enabled: false, email: '' });
   const [digestPrefs, setDigestPrefs] = useState({ onlySignificant: true, topActions: 3, includeDistribution: true });
   const [savingDigest, setSavingDigest] = useState(false);
@@ -64,18 +55,6 @@ export default function SettingsClient() {
   useEffect(() => {
     const ws = getWorkspace();
     setWorkspace(ws);
-    api.me()
-      .then((data) => {
-        if (data?.user) {
-          setUser({
-            ...data.user,
-            accountTier: data.entitlements?.tier || data.user.accountTier,
-          });
-        }
-      })
-      .catch(() => {
-        getCurrentUser().then((u) => u && setUser(u)).catch(() => {});
-      });
     (async () => {
       try {
         const [s, h] = await Promise.all([api.getSettings(), api.health()]);
@@ -83,19 +62,14 @@ export default function SettingsClient() {
         setHealth(providerHealth(s, h));
         setForm({
           youcom_api_key: s.youcom_api_key || '',
-          xai_api_key: s.xai_api_key || '',
-          xai_model: s.xai_model || 'grok-4',
-          insforge_base_url: s.insforge_base_url || '',
           webhook_url: s.webhook_url || '',
         });
         if (ws?.id) {
-          const { members } = await api.workspaceMembers(ws.id).catch(() => ({ members: [] }));
-          setMembers(members || []);
           const wsFull = await api.getWorkspace(ws.id).then((r) => r.workspace).catch(() => null);
           if (wsFull) {
             setDigest({
               enabled: Boolean(wsFull.digest_enabled),
-              email: wsFull.digest_email || (await getCurrentUser().then((u) => u?.email).catch(() => '')) || '',
+              email: wsFull.digest_email || '',
             });
           }
           const prefsRes = await api.getDigestPrefs().catch(() => null);
@@ -115,80 +89,18 @@ export default function SettingsClient() {
     try {
       await api.saveSettings({
         youcom_api_key: form.youcom_api_key,
-        xai_api_key: form.xai_api_key,
-        xai_model: form.xai_model,
         webhook_url: form.webhook_url,
       });
       const [s, h] = await Promise.all([api.getSettings(), api.health()]);
       setSettings(s);
       setHealth(providerHealth(s, h));
-      setForm((current) => ({ ...current, youcom_api_key: '', xai_api_key: '' }));
+      setForm((current) => ({ ...current, youcom_api_key: '' }));
       setRevealed({});
       toast({ type: 'success', title: 'Settings saved' });
     } catch (err) {
       toast({ type: 'error', title: 'Could not save', message: err.message });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const invite = async () => {
-    if (!inviteEmail.trim() || !workspace?.id) return;
-    try {
-      const { member, emailed, inviteUrl, already } = await api.inviteMember(workspace.id, inviteEmail.trim(), inviteRole);
-      if (!already) setMembers((m) => [...m, member]);
-      const sentTo = inviteEmail;
-      setInviteEmail('');
-      if (emailed) {
-        toast({ type: 'success', title: 'Invitation emailed', message: sentTo });
-      } else {
-        toast({
-          type: 'success',
-          title: already ? 'Already invited' : 'Invite created',
-          message: inviteUrl ? `Share link: ${inviteUrl}` : sentTo,
-        });
-      }
-    } catch (err) {
-      toast({ type: 'error', title: 'Invite failed', message: err.message });
-    }
-  };
-
-  const removeMember = async (userId) => {
-    if (!workspace?.id || !userId) return;
-    try {
-      await api.removeMember(workspace.id, userId);
-      setMembers((m) => m.filter((x) => x.user_id !== userId));
-      toast({ type: 'success', title: 'Member removed' });
-    } catch (err) {
-      toast({ type: 'error', title: 'Could not remove', message: err.message });
-    }
-  };
-
-  const verifyEmail = async () => {
-    if (!user?.email || verifyOtp.length !== 6) return;
-    setVerifying(true);
-    try {
-      await verifyEmailCode({ email: user.email, otp: verifyOtp.trim() });
-      setUser((u) => ({ ...u, emailVerified: true }));
-      setVerifyOtp('');
-      toast({ type: 'success', title: 'Email verified' });
-    } catch (err) {
-      toast({ type: 'error', title: 'Verification failed', message: err.message });
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const resendVerification = async () => {
-    if (!user?.email) return;
-    setResending(true);
-    try {
-      await resendCode(user.email);
-      toast({ type: 'success', title: 'Code sent', message: `Check ${user.email}` });
-    } catch (err) {
-      toast({ type: 'error', title: 'Could not resend', message: err.message });
-    } finally {
-      setResending(false);
     }
   };
 
@@ -252,13 +164,12 @@ export default function SettingsClient() {
   const tabs = [
     { id: 'general', label: 'General', icon: 'settings' },
     { id: 'notifications', label: 'Notifications', icon: 'bell' },
-    { id: 'team', label: 'Team', icon: 'users' },
     { id: 'advanced', label: 'Advanced', icon: 'shield' },
   ];
 
   return (
     <PageShell width="max-w-2xl">
-      <PageHeader title="Settings" description="Manage your workspace, notifications, and team." />
+      <PageHeader title="Settings" description="Manage your workspace and notifications." />
 
       <TabBar tabs={tabs} active={tab} onChange={setTab} />
 
@@ -274,54 +185,10 @@ export default function SettingsClient() {
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">{workspace?.name || 'My Workspace'}</p>
                 <p className="text-xs capitalize text-slate-500">
-                  Workspace {(workspace?.plan || 'free')} · Account {user?.accountTier?.replace('_', ' ') || '…'}
+                  Plan · {workspace?.plan || 'free'}
                 </p>
               </div>
             </div>
-          </section>
-
-          <section className="card space-y-4 p-4 sm:p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-white">Email verification</h2>
-              {user?.emailVerified ? (
-                <span className="chip border-emerald-800/60 bg-emerald-950/40 text-emerald-300">
-                  <Icon name="check" className="h-3 w-3" /> verified
-                </span>
-              ) : (
-                <span className="chip border-amber-800/60 bg-amber-950/40 text-amber-300">
-                  <Icon name="alert" className="h-3 w-3" /> unverified
-                </span>
-              )}
-            </div>
-            {user?.emailVerified ? (
-              <p className="break-words text-xs text-slate-500">
-                <span className="text-slate-300">{user.email}</span> is verified.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <p className="break-words text-xs text-slate-500">
-                  Enter the 6-digit code sent to <span className="text-slate-300">{user?.email || 'your email'}</span> to verify your account.
-                </p>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
-                    className="input flex-1 text-center font-mono tracking-[0.3em]"
-                    aria-label="Verification code"
-                    value={verifyOtp}
-                    onChange={(e) => setVerifyOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000"
-                    maxLength={6}
-                    inputMode="numeric"
-                  />
-                  <button onClick={verifyEmail} disabled={verifying || verifyOtp.length !== 6} className="btn-primary shrink-0">
-                    {verifying ? <Icon name="refresh" className="h-4 w-4 animate-spin" /> : <Icon name="check" className="h-4 w-4" />}
-                    Verify
-                  </button>
-                </div>
-                <button onClick={resendVerification} disabled={resending} className="text-xs text-slate-500 hover:text-slate-300 transition">
-                  {resending ? 'Sending…' : "Didn't get a code? Resend"}
-                </button>
-              </div>
-            )}
           </section>
 
           {settings.auto_refresh_enabled !== undefined && (
@@ -355,8 +222,7 @@ export default function SettingsClient() {
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              InsForge PostgreSQL connection:{' '}
-              <span className="font-mono text-slate-400">{form.insforge_base_url}</span>
+              The application database is reachable and ready for workspace data.
             </p>
           </section>
 
@@ -386,22 +252,6 @@ export default function SettingsClient() {
             <SecretInput label="YOUCOM_API_KEY" value={form.youcom_api_key} onChange={set('youcom_api_key')}
               revealed={revealed.youcom_api_key} onToggle={() => toggleReveal('youcom_api_key')}
               placeholder={settings?.youcom_key_set ? 'Configured: enter a new key to replace' : 'ydc-…'} />
-          </section>
-
-          <section className="card p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Analysis provider</h2>
-              <StatusBadge ok={health.xai_key} />
-            </div>
-            <p className="text-xs text-slate-500">xAI extracts competitor details and analyzes pricing changes.</p>
-            <SecretInput label="XAI_API_KEY" value={form.xai_api_key} onChange={set('xai_api_key')}
-              revealed={revealed.xai_api_key} onToggle={() => toggleReveal('xai_api_key')}
-              placeholder={settings?.xai_key_set ? 'Configured: enter a new key to replace' : 'xai-…'} />
-            <div>
-              <label htmlFor="settings-xai-model" className="label">XAI model</label>
-              <input id="settings-xai-model" className="input font-mono text-xs" value={form.xai_model} onChange={set('xai_model')} placeholder="grok-4" />
-              <p className="mt-1 text-xs text-slate-500">Active: <span className="text-slate-300 font-mono">{health.model}</span></p>
-            </div>
           </section>
 
           <div className="flex justify-end">
@@ -520,77 +370,6 @@ export default function SettingsClient() {
         </div>
       )}
 
-      {/* TEAM */}
-      {tab === 'team' && (
-        <div className="space-y-5">
-          <section className="card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-white">Invite team member</h2>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <label htmlFor="invite-email" className="sr-only">Email address</label>
-              <input
-                id="invite-email"
-                className="input min-w-0 flex-1"
-                type="email"
-                placeholder="colleague@company.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <label htmlFor="invite-role" className="sr-only">Workspace role</label>
-                <select
-                  id="invite-role"
-                  className="input w-full sm:w-32"
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="analyst">Analyst</option>
-                </select>
-                <button onClick={invite} className="btn-primary shrink-0">
-                  <Icon name="plus" className="h-4 w-4" /> Invite
-                </button>
-              </div>
-            </div>
-            <div className="text-xs text-slate-500 space-y-1">
-              <p><strong className="text-slate-400">Admin</strong>: full access including billing & team</p>
-              <p><strong className="text-slate-400">Analyst</strong>: manage competitors & run analysis</p>
-            </div>
-          </section>
-
-          <section className="card p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-white">Members</h2>
-            {members.length === 0 ? (
-              <p className="text-sm text-slate-500">Just you so far. Invite teammates above.</p>
-            ) : (
-              <div className="space-y-2">
-                {members.map((m) => (
-                  <div key={m.user_id} className="flex items-center gap-3 rounded-lg border border-ink-700 bg-ink-850 p-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-800 text-xs font-bold text-slate-400">
-                      {(m.invited_email || m.user_id || '?')[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{m.invited_email || m.user_id}</p>
-                      <p className="text-xs text-slate-500 capitalize">{m.role}</p>
-                    </div>
-                    {m.invited_email && (
-                      <span className="chip border-amber-800/40 bg-amber-950/30 text-amber-400 text-[10px]">pending</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeMember(m.user_id)}
-                      aria-label={`Remove ${m.invited_email || m.user_id}`}
-                      className="text-slate-600 hover:text-rose-400 transition p-1.5"
-                      title="Remove member"
-                    >
-                      <Icon name="trash" className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      )}
     </PageShell>
   );
 }

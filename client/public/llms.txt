@@ -16,11 +16,10 @@
 - [Find SaaS competitors](https://www.joinmira.ai/find-saas-competitors): URL-driven competitor discovery
 - [About](https://www.joinmira.ai/about): company facts, founder, contact
 - [FAQ](https://www.joinmira.ai/faq): frequently asked questions
-- [App](https://www.joinmira.ai/app): signed-in workspace (auth required)
-- [Architecture](https://www.joinmira.ai/architecture): how Mira is built (Next.js, Render API, InsForge, You.com, Grok)
+- [App](https://www.joinmira.ai/app): open workspace
+- [Architecture](https://www.joinmira.ai/architecture): how Mira is built (Next.js, browser storage, JSON, You.com)
 - [Methodology](https://www.joinmira.ai/methodology): how presence, pricing, and market estimates are produced
 - [Privacy](https://www.joinmira.ai/privacy) · [Terms](https://www.joinmira.ai/terms)
-- [Sign up](https://www.joinmira.ai/signup) · [Sign in](https://www.joinmira.ai/login)
 
 ## Capabilities
 - Competitor discovery and monitoring from a product URL or market description

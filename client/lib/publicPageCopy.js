@@ -93,6 +93,7 @@ export function contactBody() {
 ### Primary contact
 
 - **Email:** ${ORG.email}
+- **LinkedIn:** ${AUTHOR.linkedin}
 - **Website:** ${SITE_ORIGIN}
 - **About:** ${SITE_ORIGIN}/about
 - **Team:** ${SITE_ORIGIN}/team
@@ -100,7 +101,7 @@ export function contactBody() {
 
 ### What to email us about
 
-Product questions, account help, methodology clarifications, press, and partnership
+Product questions, methodology clarifications, press, and partnership
 inquiries. Include your product URL when asking about competitive intelligence outputs
 so we can reproduce the workspace context.
 
@@ -111,7 +112,7 @@ see ${SITE_ORIGIN}/faq, ${SITE_ORIGIN}/methodology, and ${SITE_ORIGIN}/architect
 
 ### Company identity
 
-${ORG.legalName} · Founded ${ORG.foundingDate} · Founder ${AUTHOR.name} (${AUTHOR.jobTitle}).
+${ORG.legalName} · Founded ${ORG.foundingDate} · Built by ${AUTHOR.name} (${AUTHOR.jobTitle}).
 Published contact channel: ${ORG.email}. Updated ${GUIDE_UPDATED}.
 `.trim();
 }
@@ -127,28 +128,28 @@ information when you use ${SITE_ORIGIN} and related services.
 
 ### 1. Information we collect
 
-**Account data:** email address, authentication identifiers, and workspace membership.
 **Workspace content:** product URLs, notes, competitor lists, and reports you create.
 **Usage data:** feature usage events needed to operate and improve the product.
 **Technical logs:** IP address, user agent, timestamps for security and reliability.
+**Feature requests:** request text, priority, votes, and a random browser identifier stored in a local JSON file.
 **Communications:** messages you send to ${ORG.email}.
 
 ### 2. How we use information
 
-We use information to provide competitive intelligence features, authenticate users,
-secure accounts, debug reliability issues, improve product quality, and communicate
+We use information to provide competitive intelligence features, protect the service,
+debug reliability issues, improve product quality, and communicate
 about the service. We do not sell personal information.
 
 ### 3. Processors and research providers
 
-We use hosting, database, and authentication providers to run Mira. When you ask Mira
+We use hosting and database providers to run Mira. When you ask Mira
 to analyze a public product or competitor, research providers may process publicly
 available web and app-store content. Outputs can include estimated figures; see
 ${SITE_ORIGIN}/methodology.
 
 ### 4. Retention
 
-We retain account and workspace data while your account is active and as required for
+We retain workspace data while the service is active and as required for
 legal obligations, dispute resolution, and security. You may request deletion by
 emailing ${ORG.email}.
 
@@ -186,9 +187,9 @@ Terms: ${SITE_ORIGIN}/terms. Contact page: ${SITE_ORIGIN}/contact.
 
 ### 11. Categories of data in more detail
 
-**Identifiers:** email, user id, workspace id.  
+**Identifiers:** workspace id and any email address you voluntarily provide for support or digests.
 **Commercial information:** plan entitlements shown in-app (if any).  
-**Internet activity:** pages and features used inside the authenticated app.  
+**Internet activity:** pages and features used inside the app.
 **Geolocation:** coarse location inferred from IP for abuse prevention only.  
 **Inferences:** none used for advertising profiles.
 
@@ -200,9 +201,8 @@ advertising.
 
 ### 13. Cookies and similar technologies
 
-We use cookies and local storage required for authentication, session continuity, and
-basic product analytics. You can clear cookies in your browser; doing so may sign you
-out.
+We use local storage to remember your selected workspace and may use cookies for basic
+product analytics. You can clear browser storage to reset local preferences.
 
 ### 14. Data minimization
 
@@ -211,9 +211,8 @@ request. Workspace content is under your control; delete reports you no longer n
 
 ### 15. Subprocessors overview
 
-Infrastructure may include cloud hosting (for example Vercel for the frontend), API
-hosts (for example Render for the intelligence API), authentication/database providers
-(InsForge), email delivery, and research APIs that fetch public web/app-store content
+Infrastructure may include cloud hosting, database providers, email delivery, and
+research APIs that fetch public web/app-store content
 you ask Mira to analyze. A current list is available on request via ${ORG.email}.
 
 ### 16. Incident response
@@ -236,27 +235,27 @@ founder ${AUTHOR.name}. Website ${SITE_ORIGIN}. Updated ${GUIDE_UPDATED}.
 ### 19. Research content vs personal data
 
 When Mira fetches public competitor pages or app-store listings, that public content is
-not treated as your personal data. Your workspace notes and account email are personal
-or customer data under this policy. Keep secrets (API keys, passwords) out of workspace
-notes.
+not treated as your personal data. Workspace notes and any email you provide are
+personal or customer data under this policy. This deployment uses shared workspaces;
+do not place secrets, credentials, or sensitive personal information in workspace notes.
 
 ### 20. Retention examples
 
-- Active account: retained while the account remains open
-- Deleted account: deleted or anonymized within a reasonable period unless law requires
+- Active workspace: retained while the service remains active
+- Deleted workspace data: deleted or anonymized within a reasonable period unless law requires
   longer retention of logs
 - Security logs: typically retained for a limited window for abuse investigation
 
 ### 21. How to exercise rights (step by step)
 
-1. Email ${ORG.email} from the address on your account  
+1. Email ${ORG.email} from an address where we can reply
 2. State the right you want to exercise (access, delete, correct, export)  
 3. Include your workspace name if known  
 4. We verify identity and respond within the time required by applicable law  
 
 ### 22. Accessibility of this policy
 
-This Privacy Policy is available at ${SITE_ORIGIN}/privacy without login, in HTML that
+This Privacy Policy is available at ${SITE_ORIGIN}/privacy in HTML that
 does not require JavaScript to read. Last updated ${GUIDE_UPDATED}.
 `.trim();
 }
@@ -276,11 +275,10 @@ decision-support aids, not guarantees of market outcomes, fundraising success, o
 competitive wins. Presence and market figures may be estimates; see
 ${SITE_ORIGIN}/methodology.
 
-### 2. Accounts
+### 2. Shared workspaces
 
-You must provide accurate account information and keep credentials confidential. You
-are responsible for activity under your account. Notify ${ORG.email} of unauthorized
-use.
+Mira currently operates without user accounts. Workspaces are shared within the
+deployment, so do not enter secrets, credentials, or sensitive personal information.
 
 ### 3. Acceptable use
 
@@ -314,7 +312,7 @@ GOODWILL, ARISING FROM USE OF MIRA OR RELIANCE ON ESTIMATES.
 ### 8. Termination
 
 We may suspend or terminate access for Terms violations or risk to the service. You
-may stop using Mira at any time and request account deletion via ${ORG.email}.
+may stop using Mira at any time and request workspace-data deletion via ${ORG.email}.
 
 ### 9. Changes
 

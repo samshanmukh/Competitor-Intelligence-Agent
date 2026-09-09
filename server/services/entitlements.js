@@ -70,14 +70,9 @@ export function adminEmails() {
 
 export function resolveAccountTier(email, workspacePlan = 'free') {
   const normalized = normalizeEmail(email);
+  // The account-free app has one shared actor and exposes the full product.
+  if (!normalized) return TIERS.ADMIN;
   if (normalized && adminEmails().has(normalized)) return TIERS.ADMIN;
-
-  // Local auth bypass — treat as admin so Ask Mira stays usable in development.
-  if (
-    process.env.AUTH_BYPASS === '1' || process.env.AUTH_BYPASS === 'true'
-  ) {
-    if (normalized === 'dev@localhost') return TIERS.ADMIN;
-  }
 
   const plan = String(workspacePlan || 'free').toLowerCase();
   if (PRO_PLANS.has(plan)) return TIERS.PRO;

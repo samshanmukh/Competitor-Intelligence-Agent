@@ -78,7 +78,7 @@ const STARTERS = [
 function statusMeta(agent) {
   // Green = Band.ai process heartbeating (Mira/Pricing/Watch/…).
   if (agent.bandOnline) return { label: 'Online', detail: 'Band' };
-  if (agent.status === 'needs_key') return { label: 'Needs key', detail: 'Add XAI key in Settings' };
+  if (agent.status === 'needs_key') return { label: 'Needs key', detail: 'Add the You.com key in Settings' };
   return { label: 'Offline', detail: 'Start Band agent' };
 }
 

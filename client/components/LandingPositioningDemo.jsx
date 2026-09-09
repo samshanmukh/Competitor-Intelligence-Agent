@@ -137,7 +137,7 @@ export default function LandingPositioningDemo() {
         });
       }
     } catch (err) {
-      setError(err?.message || 'Could not map competitors. Try another URL or create an account.');
+      setError(err?.message || 'Could not map competitors. Try another URL or open the full app.');
     } finally {
       setLoading(false);
       setStatusLabel('');
@@ -294,7 +294,7 @@ export default function LandingPositioningDemo() {
             {!loading && !showChart && (display.rivals || []).length > 0 && (
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-4 text-sm text-amber-100/90">
                 We found competitors, but need a bit more context to plot the map.
-                Try a clearer pricing page, or create an account for a full report.
+                Try a clearer pricing page, or open the full app for a complete report.
               </div>
             )}
 
@@ -312,10 +312,10 @@ export default function LandingPositioningDemo() {
                 transition={reduceMotion ? { duration: 0 } : { duration: 0.35, delay: 0.1, ease: EASE }}
               >
                 <Link
-                  href="/signup"
+                  href="/app"
                   className="inline-flex items-center justify-center gap-1.5 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200"
                 >
-                  Save this &amp; get the full report
+                  Open the full report
                   <Icon name="chevronRight" className="h-4 w-4" />
                 </Link>
                 <button

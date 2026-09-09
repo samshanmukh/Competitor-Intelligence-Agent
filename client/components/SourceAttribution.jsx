@@ -28,7 +28,6 @@ export function skillChip(engineOrSkill) {
     'you-contents': 'You.com Contents',
     'youcom-contents': 'You.com Contents',
     tavily: 'Tavily',
-    grok: 'xAI Grok',
   };
   const skill = engineOrSkill === 'youcom-search' ? 'you-web'
     : engineOrSkill === 'youcom-research' ? 'you-research'

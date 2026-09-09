@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
-import { getWorkspace, fetchWorkspaces, signOut, switchWorkspace } from '../lib/auth';
+import { getWorkspace, fetchWorkspaces, saveWorkspace, switchWorkspace } from '../lib/auth';
 import { canAccessPath, tierLabel } from '../lib/entitlements';
 import { Icon, WorkspaceSwitcher, Modal } from './ui';
 import BrandLogo from './BrandLogo';
@@ -51,7 +51,6 @@ function NavGroup({ label, children, collapsed }) {
 }
 
 export default function Sidebar() {
-  const router = useRouter();
   const [unseen, setUnseen] = useState(0);
   const [workspace, setWorkspace] = useState(null);
   const [workspaces, setWorkspaces] = useState([]);
@@ -63,9 +62,12 @@ export default function Sidebar() {
 
   useEffect(() => {
     setWorkspace(getWorkspace());
-    fetchWorkspaces().then((ws) => {
-      setWorkspaces(ws);
-      if (ws.length > 0 && !getWorkspace()) setWorkspace(ws[0]);
+    fetchWorkspaces().then((items) => {
+      setWorkspaces(items);
+      if (items.length > 0 && !getWorkspace()) {
+        saveWorkspace(items[0]);
+        setWorkspace(items[0]);
+      }
     });
     api.me().then((data) => {
       if (data?.entitlements) setEntitlements(data.entitlements);
@@ -86,14 +88,6 @@ export default function Sidebar() {
     const t = setInterval(refreshUnseen, 30_000);
     return () => clearInterval(t);
   }, []);
-
-  const handleSignOut = async () => {
-    await signOut();
-    const bypass = typeof window !== 'undefined'
-      && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      && (process.env.NEXT_PUBLIC_AUTH_BYPASS === '1' || process.env.NEXT_PUBLIC_AUTH_BYPASS === 'true');
-    router.push(bypass ? '/app' : '/login');
-  };
 
   const handleCreateWorkspace = async () => {
     if (!newWsName.trim()) return;
@@ -133,7 +127,7 @@ export default function Sidebar() {
         </NavGroup>
       )}
 
-      <NavGroup label="Account" collapsed={isCollapsed}>
+      <NavGroup label="Manage" collapsed={isCollapsed}>
         {allow('/my-product') && <NavItem href="/my-product" icon="card" label="My product" collapsed={isCollapsed} onNavigate={onNavigate} />}
         {allow('/discover') && <NavItem href="/discover" icon="plus" label="Discover" collapsed={isCollapsed} onNavigate={onNavigate} />}
         {allow('/methodology') && <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={isCollapsed} onNavigate={onNavigate} />}
@@ -175,7 +169,7 @@ export default function Sidebar() {
           {renderNav(collapsed)}
         </nav>
 
-        {/* Bottom: workspace + sign out, isolate so the switcher menu covers nav text */}
+        {/* Bottom: workspace switcher, isolated so its menu covers nav text. */}
         <div className={`relative z-30 mt-4 space-y-2 border-t border-ink-800/80 pt-4 ${collapsed ? 'flex flex-col items-center gap-1' : ''}`} style={{ backgroundColor: '#0e1014' }}>
           {!collapsed && workspace && (
             <WorkspaceSwitcher
@@ -185,15 +179,6 @@ export default function Sidebar() {
               onCreate={() => setNewWsModal(true)}
             />
           )}
-          <button
-            type="button"
-            onClick={handleSignOut}
-            title="Sign out"
-            className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-slate-600 hover:bg-ink-800 hover:text-slate-300 transition ${collapsed ? 'justify-center' : 'w-full'}`}
-          >
-            <Icon name="logout" className="h-3.5 w-3.5" />
-            {!collapsed && 'Sign out'}
-          </button>
         </div>
       </aside>
 
@@ -226,10 +211,6 @@ export default function Sidebar() {
               onCreate={() => { setMobileOpen(false); setNewWsModal(true); }}
             />
           )}
-          <button type="button" onClick={handleSignOut} className="btn-ghost w-full">
-            <Icon name="logout" className="h-4 w-4" />
-            Sign out
-          </button>
         </div>
       </Modal>
 

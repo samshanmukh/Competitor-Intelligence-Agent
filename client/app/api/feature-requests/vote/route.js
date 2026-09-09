@@ -1,11 +1,13 @@
-// Toggle a vote for a feature request, one vote per signed visitor.
+// Toggle a vote for a feature request, one vote per browser visitor.
 import { NextResponse } from 'next/server';
-import { attachVisitorCookie, db, visitorIdentity } from '../../../../lib/serverInsforge';
+import {
+  attachVisitorCookie,
+  updateFeatureRequestStore,
+  visitorIdentity,
+} from '../../../../lib/featureRequestStore';
 
 function jsonError(err, fallback) {
-  const message = err?.message || fallback;
-  const status = /FEATURE_REQUEST_SIGNING_SECRET|not configured/i.test(message) ? 503 : 500;
-  return NextResponse.json({ error: message }, { status });
+  return NextResponse.json({ error: err?.message || fallback }, { status: 500 });
 }
 
 export async function POST(request) {
@@ -18,31 +20,21 @@ export async function POST(request) {
   }
 
   try {
-    const insforge = db();
     const identity = visitorIdentity(request);
     const me = identity.key;
     const respond = (responseBody, init) => attachVisitorCookie(NextResponse.json(responseBody, init), identity);
-
-    const { data: existing } = await insforge.database
-      .from('feature_votes')
-      .select('id')
-      .eq('request_id', requestId)
-      .eq('voter_ip', me)
-      .maybeSingle();
-
-    if (existing) {
-      await insforge.database.from('feature_votes').delete().eq('id', existing.id);
-      return respond({ ok: true, voted: false });
-    }
-
-    const { error } = await insforge.database
-      .from('feature_votes')
-      .insert({ request_id: requestId, voter_ip: me });
-    // Unique violation (double-click race) is still a success, the vote exists.
-    if (error && !/duplicate|unique/i.test(error.message || '')) {
-      return respond({ error: error.message }, { status: 500 });
-    }
-    return respond({ ok: true, voted: true });
+    const result = await updateFeatureRequestStore((store) => {
+      if (!store.requests.some((row) => row.id === requestId)) return 'missing';
+      const index = store.votes.findIndex((vote) => vote.requestId === requestId && vote.voterKey === me);
+      if (index !== -1) {
+        store.votes.splice(index, 1);
+        return 'removed';
+      }
+      store.votes.push({ id: store.nextVoteId++, requestId, voterKey: me });
+      return 'added';
+    });
+    if (result === 'missing') return respond({ error: 'Feature request not found.' }, { status: 404 });
+    return respond({ ok: true, voted: result === 'added' });
   } catch (err) {
     return jsonError(err, 'Could not vote.');
   }

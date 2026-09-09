@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { getCurrentUser } from '../lib/auth';
 import { Icon, useToast } from './ui';
 
 /** Avoid clashing with the feature-request FAB on /requests. */
@@ -16,14 +15,6 @@ export default function SupportButton() {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({ email: '', subject: '', message: '' });
-
-  useEffect(() => {
-    getCurrentUser()
-      .then((user) => {
-        if (user?.email) setForm((f) => (f.email ? f : { ...f, email: user.email }));
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!open) return undefined;

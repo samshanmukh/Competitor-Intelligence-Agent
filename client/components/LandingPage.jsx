@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Icon } from './ui';
 import BrandLogo from './BrandLogo';
+import { AUTHOR } from '../lib/geoContent';
 import LandingPositioningDemo from './LandingPositioningDemo';
 
 const EASE = [0.21, 0.47, 0.32, 0.98];
@@ -83,7 +84,6 @@ function PositioningMock() {
 }
 
 export default function LandingPage() {
-  const [authed, setAuthed] = useState(false);
   const reduceMotion = useReducedMotion();
   // Never SSR opacity:0 on hero copy, crawlers treat it as empty text.
   const [heroReady, setHeroReady] = useState(false);
@@ -91,26 +91,13 @@ export default function LandingPage() {
     setHeroReady(true);
   }, []);
   const heroAnimate = heroReady && !reduceMotion;
-  useEffect(() => {
-    setAuthed(Boolean(typeof window !== 'undefined' && localStorage.getItem('cia_token')));
-  }, []);
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink-950 text-slate-200">
       {/* Nav */}
       <header className="glass-nav sticky top-0 z-40 border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <BrandLogo href="/" height={32} priority />
-          <div className="flex items-center gap-2">
-            {authed ? (
-              <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
-            ) : (
-              <>
-                <Link href="/login" className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
-                <Link href="/signup" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
-              </>
-            )}
-          </div>
+          <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
         </div>
       </header>
 
@@ -205,28 +192,10 @@ export default function LandingPage() {
             className="mx-auto mt-9 max-w-3xl"
             id="get-started"
           >
-            {authed ? (
-              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
-                  Go to app
-                </Link>
-                <a href="#how" className="rounded-md border border-white/15 px-6 py-3 text-base font-medium text-slate-200 transition hover:bg-white/5">See how it works</a>
-              </div>
-            ) : (
-              <>
-                <LandingPositioningDemo />
-                <p className="mt-4 text-center text-sm text-slate-500">
-                  Or{' '}
-                  <Link href="/signup" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
-                    create an account
-                  </Link>
-                  {' · '}
-                  <Link href="/login" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">
-                    Sign in
-                  </Link>
-                </p>
-              </>
-            )}
+            <LandingPositioningDemo />
+            <p className="mt-4 text-center text-sm text-slate-500">
+              Or <Link href="/app" className="text-slate-300 underline-offset-2 hover:text-white hover:underline">open the full app</Link>
+            </p>
           </motion.div>
         </div>
 
@@ -393,17 +362,11 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute left-1/2 top-0 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-accent/25 blur-[120px]" />
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Open to everyone</p>
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">See your market clearly</h2>
-          <p className="mx-auto mt-4 max-w-md text-slate-400">Create your account and start turning market signals into focused next moves.</p>
+          <p className="mx-auto mt-4 max-w-md text-slate-400">Start turning market signals into focused next moves.</p>
           <div className="mt-9">
-            {authed ? (
-              <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-7 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
-                Go to app
-              </Link>
-            ) : (
-              <Link href="/signup" className="group inline-flex items-center gap-1.5 rounded-md bg-accent px-7 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
-                Create your account <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
-              </Link>
-            )}
+            <Link href="/app" className="group inline-flex items-center gap-1.5 rounded-md bg-accent px-7 py-3 text-base font-semibold text-white transition hover:bg-accent-dim">
+              Go to app <Icon name="chevronRight" className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            </Link>
           </div>
         </Reveal>
       </section>
@@ -437,8 +400,10 @@ export default function LandingPage() {
             <Link href="/privacy" className="transition hover:text-slate-300">Privacy</Link>
             <Link href="/terms" className="transition hover:text-slate-300">Terms</Link>
             <a href="mailto:support@joinmira.ai" className="transition hover:text-slate-300">support@joinmira.ai</a>
-            {!authed && <Link href="/login" className="transition hover:text-slate-300">Sign in</Link>}
-            {!authed && <Link href="/signup" className="transition hover:text-slate-300">Create account</Link>}
+            <Link href="/app" className="transition hover:text-slate-300">Open app</Link>
+            <a href={AUTHOR.linkedin} target="_blank" rel="noreferrer" className="transition hover:text-slate-300">
+              Built by {AUTHOR.name}
+            </a>
           </div>
         </div>
       </footer>

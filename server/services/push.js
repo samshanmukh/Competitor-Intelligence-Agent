@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import insforge from '../db/index.js';
+import databaseClient from '../db/index.js';
 
 // VAPID keys must come from the environment — no committed fallback. Generate a
 // pair with `npx web-push generate-vapid-keys` and set VAPID_PUBLIC_KEY /
@@ -20,7 +20,7 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 export { VAPID_PUBLIC };
 
 export async function saveSubscription(userId, workspaceId, subscription, alertTypes = ['any']) {
-  await insforge.database
+  await databaseClient.database
     .from('push_subscriptions')
     .insert({
       user_id: userId,
@@ -31,7 +31,7 @@ export async function saveSubscription(userId, workspaceId, subscription, alertT
 }
 
 export async function removeSubscription(userId, endpoint) {
-  const { data: subs } = await insforge.database
+  const { data: subs } = await databaseClient.database
     .from('push_subscriptions')
     .select()
     .eq('user_id', userId);
@@ -39,14 +39,14 @@ export async function removeSubscription(userId, endpoint) {
   for (const sub of subs || []) {
     const parsed = JSON.parse(sub.subscription);
     if (parsed.endpoint === endpoint) {
-      await insforge.database.from('push_subscriptions').delete().eq('id', sub.id);
+      await databaseClient.database.from('push_subscriptions').delete().eq('id', sub.id);
     }
   }
 }
 
 export async function sendPushToWorkspace(workspaceId, payload, alertType = 'any') {
   if (!VAPID_PRIVATE) return; // push disabled without VAPID keys
-  const { data: subs } = await insforge.database
+  const { data: subs } = await databaseClient.database
     .from('push_subscriptions')
     .select()
     .eq('workspace_id', workspaceId);
@@ -65,7 +65,7 @@ export async function sendPushToWorkspace(workspaceId, payload, alertType = 'any
         errors.push(err.message);
         if (err.statusCode === 410) {
           // Subscription expired — clean it up.
-          await insforge.database.from('push_subscriptions').delete().eq('id', sub.id);
+          await databaseClient.database.from('push_subscriptions').delete().eq('id', sub.id);
         }
       }
     }

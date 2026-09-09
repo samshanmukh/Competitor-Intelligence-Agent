@@ -1,8 +1,8 @@
-import insforge from './index.js';
+import databaseClient from './index.js';
 
 // One TAM/SAM/SOM model per workspace (upserted).
 export async function getMarketModel(workspaceId) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('market_models')
     .select()
     .eq('workspace_id', workspaceId)
@@ -11,7 +11,7 @@ export async function getMarketModel(workspaceId) {
 }
 
 export async function saveMarketModel(workspaceId, productId, model) {
-  const existing = await insforge.database
+  const existing = await databaseClient.database
     .from('market_models')
     .select('id')
     .eq('workspace_id', workspaceId)
@@ -25,23 +25,23 @@ export async function saveMarketModel(workspaceId, productId, model) {
   };
 
   if (existing.data) {
-    await insforge.database.from('market_models').update(row).eq('workspace_id', workspaceId);
+    await databaseClient.database.from('market_models').update(row).eq('workspace_id', workspaceId);
   } else {
-    await insforge.database.from('market_models').insert(row);
+    await databaseClient.database.from('market_models').insert(row);
   }
   return model;
 }
 
 // Append an immutable snapshot each time a model is (re)built, for change tracking.
 export async function insertModelHistory(workspaceId, productId, model) {
-  await insforge.database
+  await databaseClient.database
     .from('market_model_history')
     .insert({ workspace_id: workspaceId, product_id: productId || null, data: model });
 }
 
 // Compact history for the "what changed" view (latest first).
 export async function getModelHistory(workspaceId, limit = 6) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('market_model_history')
     .select('data, created_at')
     .eq('workspace_id', workspaceId)

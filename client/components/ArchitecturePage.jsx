@@ -29,7 +29,7 @@ const TOC = [
   { id: 'system', label: 'System design' },
   { id: 'stack', label: 'Tech stack' },
   { id: 'youcom', label: 'You.com' },
-  { id: 'hosting', label: 'Render & Vercel' },
+  { id: 'hosting', label: 'Hosting' },
   { id: 'integrations', label: 'Integrations' },
 ];
 
@@ -42,14 +42,14 @@ const BLUEPRINT_LANES = [
     color: 'sky',
     nodes: [
       { name: 'joinmira.ai', detail: 'Next.js 15 · Vercel' },
-      { name: 'Auth UI', detail: 'Login · OAuth · sessions' },
+      { name: 'Open site', detail: 'No login or session gate' },
       { name: 'Workspace', detail: 'Analysis · Labs · Market' },
     ],
   },
   {
     id: 'api',
     title: 'Control plane',
-    subtitle: 'Render Express API',
+    subtitle: 'Express API',
     color: 'accent',
     nodes: [
       { name: 'REST + jobs', detail: 'Background market / deep dive' },
@@ -60,25 +60,24 @@ const BLUEPRINT_LANES = [
   {
     id: 'data',
     title: 'Data plane',
-    subtitle: 'InsForge',
+    subtitle: 'PostgreSQL + JSON',
     color: 'emerald',
     nodes: [
       { name: 'Postgres', detail: 'Products · competitors · snapshots' },
-      { name: 'Auth', detail: 'Email · Google · GitHub' },
-      { name: 'Settings', detail: 'Workspace JSON · keys' },
+      { name: 'Feature requests', detail: 'Local JSON file' },
+      { name: 'Settings', detail: 'Workspace data · keys' },
     ],
   },
   {
     id: 'intel',
     title: 'Intelligence',
-    subtitle: 'You.com skills + Grok',
+    subtitle: 'You.com Research APIs',
     color: 'violet',
     nodes: [
       { name: 'you-web', detail: 'Search · Evidence · fact-check' },
       { name: 'you-research', detail: 'Reviews · talk tracks · overview' },
       { name: 'you-finance', detail: 'TAM · investor · market model' },
       { name: 'you-contents', detail: 'Pricing pages · site text' },
-      { name: 'xAI Grok', detail: 'Structure JSON for the UI' },
     ],
   },
 ];
@@ -86,18 +85,18 @@ const BLUEPRINT_LANES = [
 const BLUEPRINT_FLOWS = [
   {
     title: 'Analysis report',
-    path: ['UI /app', 'API layers', 'you-contents + you-research', 'Grok tabs', 'Persist analysis-latest'],
-    skills: ['you-contents', 'you-research', 'you-finance', 'grok'],
+    path: ['UI /app', 'API layers', 'You.com research', 'Structured report', 'Persist analysis-latest'],
+    skills: ['you-contents', 'you-research', 'you-finance'],
   },
   {
     title: 'Market model',
-    path: ['UI /market', 'Job on Render', 'you-finance', 'Optional Tavily check', 'TAM → SAM → SOM'],
-    skills: ['you-finance', 'tavily', 'grok'],
+    path: ['UI /market', 'Persistent API job', 'you-finance', 'Optional Tavily check', 'TAM → SAM → SOM'],
+    skills: ['you-finance', 'tavily'],
   },
   {
     title: 'Evidence locker',
-    path: ['UI Labs', 'you-web search', 'Grok candidates', 'Save to workspace'],
-    skills: ['you-web', 'grok'],
+    path: ['UI Labs', 'You.com search', 'You.com candidates', 'Save locally'],
+    skills: ['you-web'],
   },
   {
     title: 'Deep dive',
@@ -110,32 +109,32 @@ const LAYERS = [
   {
     title: 'Browser',
     subtitle: 'joinmira.ai',
-    body: 'Next.js App Router UI: marketing, auth, and the signed-in workspace.',
+    body: 'Next.js App Router UI for marketing pages and the open workspace.',
     tone: 'border-white/10 bg-white/[0.04]',
   },
   {
     title: 'API',
-    subtitle: 'Render · Express',
+    subtitle: 'Node · Express',
     body: 'Persistent Node process for discovery, market jobs, cron refresh, and digests.',
     tone: 'border-accent/30 bg-accent/10',
   },
   {
-    title: 'Data & auth',
-    subtitle: 'InsForge',
-    body: 'PostgreSQL, email/password + OAuth, workspace settings, and storage.',
+    title: 'Data',
+    subtitle: 'PostgreSQL',
+    body: 'Shared workspaces, settings, reports, jobs, and market intelligence data.',
     tone: 'border-emerald-500/25 bg-emerald-500/10',
   },
   {
     title: 'Intelligence',
-    subtitle: 'You.com · xAI Grok',
-    body: 'Live research and page contents from You.com; structured analysis via Grok.',
+    subtitle: 'You.com',
+    body: 'Live research, source retrieval, and structured analysis from You.com.',
     tone: 'border-sky-500/25 bg-sky-500/10',
   },
 ];
 
 const STACK = [
   { layer: 'Frontend', items: [
-    { name: 'Next.js 15', role: 'App Router, SSR routes, OAuth callbacks' },
+    { name: 'Next.js 15', role: 'App Router and server-rendered pages' },
     { name: 'React 18', role: 'Client components for workspace UIs' },
     { name: 'Tailwind CSS 3.4', role: 'Design system tokens (ink + accent)' },
     { name: 'Framer Motion / Recharts', role: 'Landing motion and in-app charts' },
@@ -143,16 +142,15 @@ const STACK = [
   { layer: 'API', items: [
     { name: 'Express', role: 'REST orchestration and long-running jobs' },
     { name: 'node-cron', role: '24h competitor refresh + weekly digests' },
-    { name: '@insforge/sdk', role: 'Server-side Postgres CRUD' },
+    { name: 'pg', role: 'Server-side PostgreSQL access' },
   ]},
   { layer: 'AI & research', items: [
     { name: 'You.com API', role: 'research, contents, finance_research' },
-    { name: 'xAI Grok', role: 'Structured extraction and analysis (OpenAI SDK)' },
     { name: 'Tavily (optional)', role: 'Independent fact-check for market models' },
   ]},
   { layer: 'Platform', items: [
-    { name: 'InsForge', role: 'Auth, database, storage' },
-    { name: 'Render', role: 'Persistent API (and optional Next host)' },
+    { name: 'PostgreSQL', role: 'Workspace and intelligence data' },
+    { name: 'JSON store', role: 'Dependency-free public feature requests' },
     { name: 'Vercel', role: 'Preferred frontend host for joinmira.ai' },
     { name: 'Resend / Zendesk', role: 'Transactional email and in-app support' },
   ]},
@@ -188,7 +186,7 @@ const YOUCOM_APIS = [
 const YOUCOM_FLOWS = [
   {
     title: 'Discover competitors',
-    steps: ['UI calls /api/discover', 'API fetches product page via contents', 'research finds rival set', 'Grok structures candidates for approval'],
+    steps: ['UI calls /api/discover', 'API sends product context to research', 'You.com finds the rival set', 'Candidates are normalized for approval'],
   },
   {
     title: 'Refresh snapshots',
@@ -196,7 +194,7 @@ const YOUCOM_FLOWS = [
   },
   {
     title: 'Market model',
-    steps: ['Market intelligence job starts', 'finance_research sizes the market', 'Grok builds TAM→SOM narrative', 'Optional Tavily fact-check (You.com fallback)'],
+    steps: ['Market intelligence job starts', 'finance_research sizes the market', 'You.com builds the TAM→SOM narrative', 'Optional Tavily fact-check'],
   },
   {
     title: 'Company deep dive',
@@ -206,13 +204,13 @@ const YOUCOM_FLOWS = [
 
 const HOSTING = [
   {
-    name: 'Render',
+    name: 'Node API host',
     badge: 'API required',
     points: [
       'cia-api, Express server with health check at /api/health',
-      'Holds You.com, xAI, Resend, and cron secrets',
+      'Holds You.com, Resend, and cron secrets',
       'Needed for 2–3 minute market jobs and scheduled refresh',
-      'Optional cia-web can host Next.js from the same blueprint',
+      'Deployable to any persistent Node.js environment',
     ],
   },
   {
@@ -221,37 +219,31 @@ const HOSTING = [
     points: [
       'Hosts the Next.js client (root directory: client)',
       'Serves joinmira.ai / www.joinmira.ai',
-      'Runs OAuth route handlers and feature-request APIs',
-      'NEXT_PUBLIC_API_BASE points at the Render API URL',
+      'Runs server-rendered pages and feature-request APIs',
+      'NEXT_PUBLIC_API_BASE points at the active API URL',
     ],
   },
   {
-    name: 'InsForge',
+    name: 'PostgreSQL',
     badge: 'Data plane',
     points: [
-      'Always remote, Postgres + Auth + Storage',
-      'Used by both the Express API and Next auth proxies',
-      'Workspace isolation and session cookies (cia_auth)',
+      'Persistent workspace and intelligence data',
+      'Used by the Express API through the pg client',
+      'Shared workspace selection without user sessions',
     ],
   },
 ];
 
 const INTEGRATIONS = [
-  { name: 'InsForge', role: 'Auth, PostgreSQL, storage', where: 'server/db · client auth routes' },
+  { name: 'PostgreSQL', role: 'Workspace and intelligence data', where: 'server/db' },
   { name: 'You.com', role: 'Live web research and page contents', where: 'server/services/youcom.js' },
-  { name: 'xAI Grok', role: 'Structured AI analysis', where: 'server/services/ai.js' },
-  { name: 'Resend', role: 'Digests, invites, support mail', where: 'server/services/email.js' },
+  { name: 'Resend', role: 'Digests and support mail', where: 'server/services/email.js' },
   { name: 'Tavily', role: 'Market-model fact-check', where: 'server/services/tavily.js' },
   { name: 'Zendesk', role: 'In-app messaging widget', where: 'ZendeskWidget.jsx' },
   { name: 'Web Push', role: 'Browser notifications (VAPID)', where: 'server/services/push.js' },
 ];
 
 export default function ArchitecturePage() {
-  const [authed, setAuthed] = useState(false);
-  useEffect(() => {
-    setAuthed(Boolean(typeof window !== 'undefined' && localStorage.getItem('cia_token')));
-  }, []);
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-ink-950 text-slate-200">
       <header className="glass-nav sticky top-0 z-40 border-b">
@@ -262,16 +254,7 @@ export default function ArchitecturePage() {
               <a key={item.id} href={`#${item.id}`} className="transition hover:text-white">{item.label}</a>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
-            {authed ? (
-              <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
-            ) : (
-              <>
-                <Link href="/login" className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white">Sign in</Link>
-                <Link href="/signup" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Create account</Link>
-              </>
-            )}
-          </div>
+          <Link href="/app" className="rounded-md bg-white px-4 py-1.5 text-sm font-semibold text-ink-950 transition hover:bg-slate-200">Go to app</Link>
         </div>
       </header>
 
@@ -286,7 +269,7 @@ export default function ArchitecturePage() {
             How Mira is built
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-slate-400">
-            Blueprint of the product stack, website, Render API, InsForge data, and You.com skills
+            Blueprint of the product stack, website, Express API, PostgreSQL data, and You.com skills
             that power live competitive intelligence.
           </p>
           <a
@@ -417,9 +400,9 @@ export default function ArchitecturePage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-sky-300/80">Hosting split</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {[
-                { title: 'Vercel', body: 'Next.js frontend · joinmira.ai · OAuth routes' },
-                { title: 'Render', body: 'cia-api Express · long jobs · cron · secrets' },
-                { title: 'InsForge', body: 'Auth + Postgres + storage · always remote' },
+                { title: 'Vercel', body: 'Next.js frontend · joinmira.ai · public routes' },
+                { title: 'Node host', body: 'Express API · long jobs · cron · secrets' },
+                { title: 'Data', body: 'PostgreSQL app data · JSON feature requests' },
               ].map((b) => (
                 <div key={b.title} className="rounded-xl border border-white/5 bg-black/30 px-4 py-3">
                   <p className="text-sm font-semibold text-white">{b.title}</p>
@@ -438,7 +421,7 @@ export default function ArchitecturePage() {
             <h2 className="text-2xl font-semibold text-white">System design</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
               The website talks to a persistent Express API. That API owns long jobs and secrets;
-              InsForge holds data and identity; You.com and Grok supply live research and structure.
+              Browser storage and JSON keep the open workspace lightweight; You.com supplies live research and structure.
             </p>
           </Reveal>
 
@@ -459,10 +442,10 @@ export default function ArchitecturePage() {
             <div className="flex min-w-[640px] flex-col items-stretch gap-3 text-sm md:min-w-0">
               {[
                 ['Website', 'Next.js on Vercel, Discover, Market, Company, Distribution'],
-                ['API base', 'NEXT_PUBLIC_API_BASE → Render Express (Bearer + workspace)'],
+                ['API base', 'NEXT_PUBLIC_API_BASE → Express API + shared workspace'],
                 ['Orchestration', 'Agents & routes: discover → refresh → market intel → digests'],
-                ['Providers', 'You.com research/contents/finance · xAI Grok · optional Tavily'],
-                ['Persistence', 'InsForge Postgres stores products, competitors, snapshots, jobs'],
+                ['Providers', 'You.com research/contents/finance · optional Tavily'],
+                ['Persistence', 'PostgreSQL stores products, competitors, snapshots, and jobs'],
               ].map(([label, detail], i, arr) => (
                 <div key={label}>
                   <div className="flex items-start gap-4 rounded-xl border border-white/5 bg-black/20 px-4 py-3 backdrop-blur-sm">
@@ -522,7 +505,7 @@ export default function ArchitecturePage() {
             <h2 className="text-2xl font-semibold text-white">How we use You.com</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
               You.com is the live research backbone. The website never calls You.com directly -
-              the Render API owns the key, rate-limits requests, and maps results into Mira features.
+              the Express API owns the key, rate-limits requests, and maps results into Mira features.
             </p>
           </Reveal>
 
@@ -576,7 +559,7 @@ export default function ArchitecturePage() {
             <span className="text-slate-400">routes/intelligence</span>,{' '}
             <span className="text-slate-400">routes/company</span>, and{' '}
             <span className="text-slate-400">syndicatedShare</span>.
-            Grok always sits after research when the UI needs structured JSON.
+            You.com Research returns the structured JSON used by the UI, with source links preserved for verification.
           </Reveal>
         </div>
       </section>
@@ -585,10 +568,10 @@ export default function ArchitecturePage() {
       <section id="hosting" className="scroll-mt-24 border-t border-white/5 px-5 py-20">
         <div className="mx-auto max-w-5xl">
           <Reveal>
-            <h2 className="text-2xl font-semibold text-white">Render, Vercel & why the split</h2>
+            <h2 className="text-2xl font-semibold text-white">Frontend, API, and data hosting</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-400">
-              Market jobs and cron need a process that stays alive. That is why the API lives on Render
-              even when the website is on Vercel.
+              Market jobs and cron need a process that stays alive, so the Express API is deployed
+              separately from the Vercel frontend.
             </p>
           </Reveal>
 
@@ -616,12 +599,10 @@ export default function ArchitecturePage() {
           <Reveal className="glass mt-8 rounded-2xl p-5 sm:p-6">
             <h3 className="text-sm font-semibold text-white">Deploy config</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-400">
-              <span className="font-mono text-slate-300">render.yaml</span> defines{' '}
-              <span className="text-slate-300">cia-api</span> (repo root, <span className="font-mono">npm start</span>)
-              and optional <span className="text-slate-300">cia-web</span> (client build +{' '}
-              <span className="font-mono">next start</span>). Production frontend typically uses Vercel with
-              <span className="font-mono text-slate-300"> NEXT_PUBLIC_API_BASE</span> set to the live Render API URL
-              (for example <span className="font-mono text-slate-300">*.onrender.com</span>). See the{' '}
+              The repository is vendor-neutral. Start the API with <span className="font-mono">npm start</span>{' '}
+              and deploy the client from <span className="font-mono">client/</span>. In production, set
+              <span className="font-mono text-slate-300"> NEXT_PUBLIC_API_BASE</span> to the active Express API URL.
+              See the{' '}
               <a href="#blueprint" className="text-sky-300 hover:text-sky-200">system blueprint</a> for the full
               lane diagram.
             </p>
@@ -668,15 +649,9 @@ export default function ArchitecturePage() {
             Discover competitors, build a market model, and watch You.com-backed research land in your workspace.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            {authed ? (
-              <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
-                Open app
-              </Link>
-            ) : (
-              <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
-                Create account <Icon name="chevronRight" className="h-4 w-4" />
-              </Link>
-            )}
+            <Link href="/app" className="inline-flex items-center gap-1.5 rounded-md bg-accent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dim">
+              Open app <Icon name="chevronRight" className="h-4 w-4" />
+            </Link>
             <Link href="/requests" className="rounded-md border border-white/15 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/30 hover:text-white">
               Feature requests
             </Link>

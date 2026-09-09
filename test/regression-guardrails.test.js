@@ -5,23 +5,23 @@ import test from 'node:test';
 const projectFile = (path) =>
   readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('workspace resolution verifies tenant membership before trusting headers', async () => {
+test('workspace resolution is account-free and validates selected workspace ids', async () => {
   const source = await projectFile('server/middleware/auth.js');
-  const membershipCheck = source.indexOf('await isWorkspaceMember(req.user.id, wsId)');
-  const assignment = source.indexOf('req.workspaceId = wsId');
+  const workspaceLookup = source.indexOf('await getWorkspace(workspaceId)');
+  const assignment = source.indexOf('req.workspaceId = workspace.id');
 
-  assert.match(source, /authorization.*startsWith\('Bearer '\)/s);
-  assert.match(source, /sessions\/current/);
-  assert.match(source, /status\(503\).*AUTH_UNAVAILABLE/s);
-  assert.ok(membershipCheck > -1, 'workspace membership check must remain present');
+  assert.match(source, /APP_USER/);
+  assert.match(source, /getDefaultWorkspace\(\)/);
+  assert.doesNotMatch(source, /authorization|sessions\/current|Bearer/);
+  assert.ok(workspaceLookup > -1, 'selected workspace must be loaded before use');
   assert.ok(
-    assignment > membershipCheck,
-    'the workspace ID must only be assigned after membership is verified',
+    assignment > workspaceLookup,
+    'the workspace ID must only be assigned after the workspace is resolved',
   );
-  assert.match(source, /status\(403\).*FORBIDDEN_WORKSPACE/s);
+  assert.match(source, /status\(404\).*WORKSPACE_NOT_FOUND/s);
 });
 
-test('tenant-data routers retain authentication and workspace resolution', async () => {
+test('workspace-data routers retain shared actor and workspace resolution', async () => {
   const protectedRouters = [
     'server/routes/api.js',
     'server/routes/features.js',
@@ -53,34 +53,46 @@ test('mobile shell keeps responsive navigation and content overflow protection',
     projectFile('client/components/Sidebar.jsx'),
   ]);
 
-  assert.match(shell, /<main className="[^"]*\bmin-w-0\b/);
+  // `<main>` may carry a literal className or a conditional expression; every
+  // branch must keep min-w-0 or long content forces the whole shell to scroll.
+  const mainTag = shell.match(/<main\b[\s\S]*?>/)?.[0];
+  assert.ok(mainTag, '<main> element missing from the app shell');
+  const classNames = [...mainTag.matchAll(/'([^']*)'|"([^"]*)"/g)]
+    .map((m) => m[1] ?? m[2])
+    .filter((value) => value.includes('flex-1'));
+  assert.ok(classNames.length, '<main> must set flex-1');
+  for (const value of classNames) {
+    assert.match(value, /\bmin-w-0\b/, `<main> class list missing min-w-0: ${value}`);
+  }
   assert.match(sidebar, /<aside className=\{`[^`]*\bhidden\b[^`]*\bmd:flex\b/);
   assert.match(sidebar, /Mobile top bar[\s\S]*\bmd:hidden\b/);
   assert.match(sidebar, /Mobile top bar[\s\S]*\bsticky\b[^"]*\btop-0\b/);
   assert.match(sidebar, /href="\/app"[\s\S]*href="\/competitors"[\s\S]*href="\/settings"/);
 });
 
-test('auth and shared-report pages remain outside the private app shell', async () => {
+test('legacy auth URLs redirect to the open app and public tools stay outside its shell', async () => {
   const [shell, middleware] = await Promise.all([
     projectFile('client/components/AppShell.jsx'),
     projectFile('client/middleware.js'),
   ]);
 
-  for (const prefix of ['/login', '/signup', '/oauth', '/auth', '/reports/shared', '/invite']) {
+  for (const prefix of ['/reports/shared', '/requests']) {
     assert.ok(shell.includes(`'${prefix}'`), `${prefix} must bypass the app shell`);
-    assert.ok(middleware.includes(`'${prefix}'`), `${prefix} must remain publicly routable`);
   }
+  assert.match(middleware, /LEGACY_AUTH_PATHS[\s\S]*'\/login'[\s\S]*'\/signup'/);
+  assert.match(middleware, /NextResponse\.redirect\(new URL\('\/app'/);
+  assert.doesNotMatch(shell, /'\/login'|'\/signup'|'\/invite'/);
 });
 
 test('public ownership and report links retain abuse controls', async () => {
   const [visitorSource, reportSource] = await Promise.all([
-    projectFile('client/lib/serverInsforge.js'),
+    projectFile('client/lib/featureRequestStore.js'),
     projectFile('server/routes/reports.js'),
   ]);
 
-  assert.match(visitorSource, /FEATURE_REQUEST_SIGNING_SECRET/);
+  assert.match(visitorSource, /FEATURE_REQUESTS_JSON_PATH/);
+  assert.match(visitorSource, /randomUUID/);
   assert.match(visitorSource, /httpOnly:\s*true/);
-  assert.match(visitorSource, /timingSafeEqual/);
   assert.doesNotMatch(visitorSource, /x-forwarded-for|x-real-ip/);
 
   assert.match(reportSource, /SHARED_REPORT_TTL_DAYS/);
@@ -88,11 +100,10 @@ test('public ownership and report links retain abuse controls', async () => {
   assert.match(reportSource, /Cache-Control.*no-store/s);
 });
 
-test('no project-specific Insforge credentials are embedded in source', async () => {
+test('removed backend credentials are not embedded in source', async () => {
   const files = [
     'client/lib/auth.js',
-    'client/lib/serverInsforge.js',
-    'client/app/auth/callback/page.jsx',
+    'client/lib/featureRequestStore.js',
     'server/db/index.js',
     'server/middleware/auth.js',
   ];
@@ -100,7 +111,7 @@ test('no project-specific Insforge credentials are embedded in source', async ()
   for (const path of files) {
     const source = await projectFile(path);
     assert.doesNotMatch(source, /anon_[a-f0-9]{32,}/i, `${path} must not embed an anon key`);
-    assert.doesNotMatch(source, /https:\/\/[a-z0-9-]+\.insforge\.app/i, `${path} must not embed a backend URL`);
+    assert.doesNotMatch(source, /https:\/\/[a-z0-9-]+\.[a-z]+\.app/i, `${path} must not embed a removed backend URL`);
   }
 });
 

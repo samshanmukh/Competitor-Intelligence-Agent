@@ -16,6 +16,7 @@ const EXTRA = `
 ### Contact channels (complete list)
 
 - Support email: ${ORG.email}
+- LinkedIn: ${AUTHOR.linkedin}
 - Website: ${SITE_ORIGIN}
 - About: ${SITE_ORIGIN}/about
 - Team: ${SITE_ORIGIN}/team
@@ -30,6 +31,8 @@ phone number in the email body and a good time window in your local timezone.
 - Brand: ${ORG.name}
 - Founded: ${ORG.foundingDate}
 - Founder: ${AUTHOR.name} (${AUTHOR.jobTitle})
+- Built by: ${AUTHOR.name}
+- LinkedIn: ${AUTHOR.linkedin}
 - Contact type: customer support / press
 - Email: ${ORG.email}
 
@@ -95,9 +98,9 @@ contact pages go stale when numbers change; Mira’s durable public channel is e
 
 ### Security note
 
-Do not send passwords or session tokens to ${ORG.email}. For account access issues,
-describe the symptom and the email on the account. We will never ask you to paste a
-refresh token into email.
+Do not send API keys, access tokens, or sensitive workspace data to ${ORG.email}.
+Describe the symptom and include only the public product URL needed to reproduce it.
+We will never ask you to paste a private provider key into email.
 
 ### Press kit basics
 
@@ -132,6 +135,14 @@ export default function ContactPage() {
           href={`mailto:${ORG.email}?subject=Mira%20inquiry`}
         >
           Email {ORG.email}
+        </a>
+        <a
+          className="ml-3 inline-flex rounded-md border border-white/15 px-5 py-2.5 text-sm font-semibold text-white hover:border-white/30"
+          href={AUTHOR.linkedin}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Sam Karri on LinkedIn
         </a>
       </p>
     </PublicDocShell>

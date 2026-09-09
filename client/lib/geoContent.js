@@ -4,12 +4,14 @@
  */
 
 export const SITE_ORIGIN = 'https://www.joinmira.ai';
+export const LINKEDIN_URL = 'https://www.linkedin.com/in/shanmukhsain';
 
 export const AUTHOR = {
   name: 'Sam Karri',
   jobTitle: 'Founder',
   email: 'support@joinmira.ai',
-  url: `${SITE_ORIGIN}/about`,
+  url: LINKEDIN_URL,
+  linkedin: LINKEDIN_URL,
 };
 
 export const ORG = {
@@ -56,7 +58,7 @@ export const FAQS = [
   {
     question: 'Is Mira free to start?',
     answer:
-      'You can create an account at joinmira.ai and start a workspace at $0 to begin. Live plan details and entitlements are shown in-app after signup. For product questions, email support@joinmira.ai.',
+      'You can open the app at joinmira.ai/app and start a workspace at $0. Live plan details are shown in-app. For product questions, email support@joinmira.ai.',
   },
   {
     question: 'Who should use Mira?',

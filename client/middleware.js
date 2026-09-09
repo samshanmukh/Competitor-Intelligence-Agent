@@ -1,93 +1,27 @@
 import { NextResponse } from 'next/server';
-import { authBypassActiveForHost, DEV_BYPASS_TOKEN } from './lib/authBypass';
 import { countMarkdownTokens, getPageMarkdown, SITE_ORIGIN } from './lib/agentContent';
 import { shouldShowGeoCornerstone } from './lib/geoCrawler';
 
-// Public pages anyone can see without a session.
-const PUBLIC_EXACT = [
-  '/',
-  '/architecture',
-  '/methodology',
-  '/about',
-  '/team',
-  '/contact',
-  '/guide',
-  '/faq',
-  '/privacy',
-  '/terms',
-  '/competitive-intelligence-software',
-  '/competitor-pricing-analysis',
-  '/tam-sam-som',
-  '/find-saas-competitors',
-  '/robots.txt',
-  '/sitemap.xml',
-  '/llms.txt',
-  '/AGENTS.md',
-  '/mira-mark.svg',
-  '/mira-mark.png',
-  '/mira-logo.svg',
-  '/mira-logo.png',
-  '/og-default.png',
-  '/icon.svg',
-  '/favicon-32.png',
-  '/apple-touch-icon.png',
-];
-const PUBLIC_PREFIX = [
-  '/login',
-  '/signup',
-  '/verify',
-  '/oauth',
-  '/auth',
-  '/requests',
-  '/reports/shared',
-  '/invite',
-  '/.well-known',
-];
-
-function tokenLooksCurrent(token) {
-  if (!token) return false;
-  if (token === DEV_BYPASS_TOKEN) return true;
-  try {
-    const [, payload] = token.split('.');
-    if (!payload) return false;
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-    const decoded = JSON.parse(atob(padded));
-    return !decoded.exp || decoded.exp * 1000 > Date.now();
-  } catch {
-    return false;
-  }
-}
-
-function hasRefreshSession(request) {
-  return Boolean(request.cookies.get('cia_refresh')?.value);
-}
-
-function sessionLooksAlive(request) {
-  const token = request.cookies.get('cia_auth')?.value;
-  return tokenLooksCurrent(token) || hasRefreshSession(request);
-}
+const LEGACY_AUTH_PATHS = ['/login', '/signup', '/verify', '/oauth', '/auth/callback'];
 
 function wantsMarkdown(request) {
   const accept = (request.headers.get('accept') || '').toLowerCase();
   if (!accept.includes('text/markdown')) return false;
-  const md = accept.indexOf('text/markdown');
-  const html = accept.indexOf('text/html');
-  if (html === -1) return true;
-  return md <= html;
+  const markdownIndex = accept.indexOf('text/markdown');
+  const htmlIndex = accept.indexOf('text/html');
+  return htmlIndex === -1 || markdownIndex <= htmlIndex;
 }
 
 function markdownResponse(pathname) {
-  const md = getPageMarkdown(pathname);
-  if (!md) return null;
-  const tokens = countMarkdownTokens(md);
-  return new NextResponse(md, {
+  const markdown = getPageMarkdown(pathname);
+  if (!markdown) return null;
+  return new NextResponse(markdown, {
     status: 200,
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'public, max-age=300',
       Vary: 'Accept',
-      'X-Markdown-Tokens': String(tokens),
+      'X-Markdown-Tokens': String(countMarkdownTokens(markdown)),
       Link: [
         `<${SITE_ORIGIN}/llms.txt>; rel="alternate"; type="text/markdown"`,
         `<${SITE_ORIGIN}/sitemap.xml>; rel="sitemap"; type="application/xml"`,
@@ -100,86 +34,30 @@ function markdownResponse(pathname) {
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
-  const hostname = request.nextUrl.hostname;
-  const bypass = authBypassActiveForHost(hostname);
-  const token = request.cookies.get('cia_auth')?.value;
 
-  // AI agents requesting compact Markdown for public docs/marketing pages.
+  if (LEGACY_AUTH_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+    return NextResponse.redirect(new URL('/app', request.url));
+  }
+
   if (wantsMarkdown(request)) {
-    const mdRes = markdownResponse(pathname);
-    if (mdRes) return mdRes;
+    const response = markdownResponse(pathname);
+    if (response) return response;
   }
 
-  const showGeo = shouldShowGeoCornerstone({
-    ua: request.headers.get('user-agent'),
-    referer: request.headers.get('referer'),
-    searchParams: request.nextUrl.searchParams,
-  });
-
-  const withGeoHeader = (response) => {
-    if (pathname === '/' && showGeo) {
-      response.headers.set('x-mira-geo-cornerstone', '1');
-    }
-    // Prevent CDN from mixing bot vs human HTML.
-    if (pathname === '/') {
-      const vary = response.headers.get('Vary');
-      response.headers.set('Vary', vary ? `${vary}, User-Agent` : 'User-Agent, Accept');
-    }
-    return response;
-  };
-
-  if (bypass) {
-    if (PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
-      if (pathname === '/login' || pathname === '/signup') {
-        return withGeoHeader(NextResponse.redirect(new URL('/app', request.url)));
-      }
-    }
-    if (!tokenLooksCurrent(token)) {
-      const response = NextResponse.next();
-      response.cookies.set('cia_auth', DEV_BYPASS_TOKEN, {
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7,
-        sameSite: 'lax',
-      });
-      return withGeoHeader(response);
-    }
-    return withGeoHeader(NextResponse.next());
+  const response = NextResponse.next();
+  if (pathname === '/') {
+    const showGeo = shouldShowGeoCornerstone({
+      ua: request.headers.get('user-agent'),
+      referer: request.headers.get('referer'),
+      searchParams: request.nextUrl.searchParams,
+    });
+    if (showGeo) response.headers.set('x-mira-geo-cornerstone', '1');
+    response.headers.set('Vary', 'User-Agent, Accept');
   }
-
-  const isPublic =
-    PUBLIC_EXACT.includes(pathname)
-    || PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
-  const alive = sessionLooksAlive(request);
-
-  if (!alive && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('from', pathname);
-    const response = NextResponse.redirect(url);
-    response.cookies.delete('cia_auth');
-    response.cookies.delete('cia_workspace_id');
-    response.cookies.delete('cia_refresh');
-    return withGeoHeader(response);
-  }
-
-  if (alive && PUBLIC_PREFIX.some((p) => pathname.startsWith(p)) && !pathname.startsWith('/auth')) {
-    // Keep shared report / invite links usable while logged in.
-    if (
-      pathname.startsWith('/reports/shared')
-      || pathname.startsWith('/invite')
-      || pathname.startsWith('/requests')
-      || pathname.startsWith('/.well-known')
-    ) {
-      return withGeoHeader(NextResponse.next());
-    }
-    return withGeoHeader(NextResponse.redirect(new URL('/app', request.url)));
-  }
-
-  return withGeoHeader(NextResponse.next());
+  return response;
 }
 
 export const config = {
-  // Skip auth for static agent-discovery assets (served from /public).
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|sw.js|manifest.json|robots\\.txt|sitemap\\.xml|llms\\.txt|AGENTS\\.md|\\.well-known/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],

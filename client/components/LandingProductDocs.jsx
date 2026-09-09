@@ -236,7 +236,7 @@ export default function LandingProductDocs() {
             <strong className={strong}>7 days</strong>). Evidence uses{' '}
             <strong className={strong}>4 grades</strong> (A/B/C/D). Market models expose{' '}
             <strong className={strong}>3 layers</strong> (TAM/SAM/SOM). You can start a workspace at{' '}
-            <strong className={strong}>$0</strong>; live entitlements appear after signup. This page
+            <strong className={strong}>$0</strong>; live plan details appear in the app. This page
             was last revised on <time dateTime={GUIDE_UPDATED}>{GUIDE_UPDATED}</time> and first
             published as a public guide on{' '}
             <time dateTime={GUIDE_PUBLISHED}>{GUIDE_PUBLISHED}</time>.
@@ -511,8 +511,8 @@ export default function LandingProductDocs() {
 
           <h2 className={h2}>Architecture snapshot for technical readers</h2>
           <p className={p}>
-            Public product surface: Next.js on Vercel at www.joinmira.ai. Authentication and
-            database: InsForge (PostgreSQL). Intelligence API: Node/Express on Render for discovery,
+            Public product surface: Next.js on Vercel at www.joinmira.ai, open without login.
+            Database: PostgreSQL. Intelligence API: Node/Express for discovery,
             scrape/research waterfall, feature matrix, market model, and distribution views. Research
             providers include You.com contents/research/finance and structured extraction via
             OpenRouter-compatible models. Machine-readable indexes for agents include{' '}
@@ -575,14 +575,14 @@ export default function LandingProductDocs() {
             .
           </p>
           <p className={p}>
-            To start using the product, create an account at{' '}
-            <Link href="/signup" className={a}>
-              /signup
+            To start using the product, open{' '}
+            <Link href="/app" className={a}>
+              /app
             </Link>
             , paste your product URL, and generate your first clarity report, target SLA about{' '}
             <strong className={strong}>2 minutes</strong> for the first snapshot. You can begin a
-            workspace at <strong className={strong}>$0</strong>; live plan details appear in-app
-            after signup. For a short numeric overview, see{' '}
+            workspace at <strong className={strong}>$0</strong>; live plan details appear in-app.
+            For a short numeric overview, see{' '}
             <a href="#mira-overview" className={a}>
               Mira at a glance
             </a>{' '}

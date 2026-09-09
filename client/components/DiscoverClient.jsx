@@ -170,7 +170,7 @@ export default function DiscoverClient() {
             )}
             <div className="flex items-center justify-between pt-1">
               <p className="text-xs text-slate-500">
-                {mode === 'direct' ? 'Pages added directly, no Research call.' : 'Uses You.com Research + Grok.'}
+                {mode === 'direct' ? 'Pages added directly, no Research call.' : 'Uses You.com Research.'}
               </p>
               <button onClick={runDiscovery} disabled={!canRun || loading} className="btn-primary">
                 <Icon name="search" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />

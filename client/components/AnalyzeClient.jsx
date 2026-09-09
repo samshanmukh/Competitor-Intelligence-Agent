@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../lib/api';
+import { api, errorTitle } from '../lib/api';
 import { getWorkspace } from '../lib/auth';
 import { ensureHttps } from '../lib/normalizeUrl';
 import { CompanyLogo, Icon, Shimmer, Skeleton, useToast } from './ui';
@@ -280,7 +280,7 @@ function ProductStage({ product, onSaved, compact }) {
       }));
       toast({ type: 'success', title: 'Found your product' });
     } catch (err) {
-      toast({ type: 'error', title: 'Could not find company info', message: err.message });
+      toast({ type: 'error', title: errorTitle(err, 'Could not find company info'), message: err.message });
     } finally {
       setInferring(false);
     }
@@ -827,15 +827,6 @@ function ReportStage({ competitors, onScored }) {
     check();
   };
 
-  const loadMarket = async () => {
-    try {
-      const { jobId } = await api.marketStart();
-      beginPolling(jobId, Date.now());
-    } catch (err) {
-      toast({ type: 'error', title: 'Could not start research', message: err.message });
-    }
-  };
-
   // Restore last full analysis for this workspace on visit.
   useEffect(() => {
     let cancelled = false;
@@ -903,6 +894,47 @@ function ReportStage({ competitors, onScored }) {
     };
 
     try {
+      setProgress('Researching pricing, positioning, reviews, and strategy…');
+      const { product: savedProduct } = await api.getProduct();
+      const { report } = await api.fullAnalysis(savedProduct, competitors);
+      if (!alive()) return;
+
+      collected.matrix = report.matrix || null;
+      collected.positioning = report.positioning || null;
+      collected.reviews = report.reviews || [];
+      collected.take = report.take || null;
+      collected.product = report.product || savedProduct;
+      collected.strategy = report.strategy || null;
+      setMatrix(collected.matrix);
+      setPositioning(collected.positioning);
+      setReviews(collected.reviews);
+      setTake(collected.take);
+      setProduct(collected.product);
+      setStrategy(collected.strategy);
+      const patches = {};
+      for (const competitor of report.competitors || []) {
+        if (competitor?.id != null) {
+          patches[competitor.id] = {
+            value_score: competitor.value_score,
+            value_analysis: competitor.value_analysis,
+          };
+        }
+      }
+      setScoreOverrides(patches);
+      markLayers(setLayers, LAYER_KEYS, 'done');
+      snapshotRef.current = { ...collected };
+      if (autoSaveRef.current) {
+        await autoSaveReport(collected);
+        toast({
+          type: 'success',
+          title: 'Report ready and saved',
+          message: 'Researched and generated with You.com.',
+        });
+      } else {
+        toast({ type: 'success', title: 'Analysis complete' });
+      }
+      return;
+
       // Wave 0, refresh EVERY rival page. Thin/blocked scrapes used to set
       // hasSnapshot=true and skip research, leaving Pricing/Features empty.
       if (competitors.length) {
@@ -1178,11 +1210,6 @@ function ReportStage({ competitors, onScored }) {
             {autoSave && restoredAt ? ` · saved ${new Date(restoredAt).toLocaleString()}` : ''}
             {!autoSave ? ' · auto save off' : ''}
           </span>
-        )}
-        {!market && !marketLoading && (
-          <button onClick={loadMarket} disabled={running} className="btn-ghost ml-auto px-2.5 py-1.5 text-xs">
-            <Icon name="trending" className="h-3.5 w-3.5" /> Market intel
-          </button>
         )}
         {marketLoading && (
           <div className="ml-auto flex min-w-[7rem] flex-col gap-1">

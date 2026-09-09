@@ -23,7 +23,7 @@ export default function SeoLanderPage({ slug }) {
     <PublicDocShell title={lander.h1} updated={lander.updated}>
       <p className="text-slate-300">{lander.description}</p>
       <p className="mt-4">
-        <Link href="/signup" className="font-semibold text-indigo-300 underline-offset-2 hover:underline">
+        <Link href="/app" className="font-semibold text-indigo-300 underline-offset-2 hover:underline">
           Start with Mira
         </Link>
         {' · '}

@@ -1,8 +1,8 @@
-import insforge from './index.js';
+import databaseClient from './index.js';
 
 // Each workspace has a single primary "my product" profile (the first row).
 export async function getProduct(workspaceId) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('products')
     .select()
     .eq('workspace_id', workspaceId)
@@ -23,7 +23,7 @@ export async function upsertProduct(workspaceId, { name, description, pricing_ur
   };
 
   if (existing) {
-    const { data } = await insforge.database
+    const { data } = await databaseClient.database
       .from('products')
       .update(payload)
       .eq('id', existing.id)
@@ -32,7 +32,7 @@ export async function upsertProduct(workspaceId, { name, description, pricing_ur
     return data;
   }
 
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('products')
     .insert({ workspace_id: workspaceId, ...payload })
     .select()

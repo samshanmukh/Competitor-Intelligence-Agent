@@ -31,12 +31,9 @@ export default function GuidePage() {
         <header className="border-b border-white/10">
           <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
             <BrandLogo href="/" height={28} />
-            <nav className="flex items-center gap-3 text-sm text-slate-400">
-              <Link href="/login" className="hover:text-white">Log in</Link>
-              <Link href="/signup" className="rounded-md bg-white px-3 py-1 text-sm font-semibold text-ink-950 hover:bg-slate-200">
-                Get started
-              </Link>
-            </nav>
+            <Link href="/app" className="rounded-md bg-white px-3 py-1 text-sm font-semibold text-ink-950 hover:bg-slate-200">
+              Open app
+            </Link>
           </div>
         </header>
         <AgentReadableSummary />

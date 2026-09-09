@@ -13,7 +13,7 @@ export const metadata = {
   title: { default: 'Mira', template: '%s · Mira' },
   description: 'Competitive and market intelligence for founders, with decision support for what to do next.',
   metadataBase: new URL('https://www.joinmira.ai'),
-  // Do NOT set a root canonical to "/", it made /login (and other pages) claim the homepage URL.
+  // Do not set a root canonical to "/" because every page needs its own URL.
   alternates: {
     types: {
       'text/markdown': [{ url: '/', title: 'Mira (Markdown)' }],

@@ -1,25 +1,45 @@
-import insforge from './index.js';
+import databaseClient, { unwrap } from './index.js';
 
 export async function getUserWorkspaces(userId) {
-  const { data } = await insforge.database
-    .from('workspace_members')
-    .select('role, workspace_id, workspaces(id, name, slug, plan, created_at)')
-    .eq('user_id', userId);
+  const data = unwrap(
+    await databaseClient.database
+      .from('workspace_members')
+      .select('role, workspace_id, workspaces(id, name, slug, plan, created_at)')
+      .eq('user_id', userId),
+    'loading your workspaces'
+  );
   return (data || []).map((m) => ({ ...m.workspaces, role: m.role }));
 }
 
+export async function getAllWorkspaces() {
+  const data = unwrap(
+    await databaseClient.database
+      .from('workspaces')
+      .select('id, name, slug, plan, created_at')
+      .order('id', { ascending: true }),
+    'loading workspaces'
+  );
+  return data || [];
+}
+
 export async function createWorkspace({ name, slug, ownerId }) {
-  const { data: ws } = await insforge.database
-    .from('workspaces')
-    .insert({ name, slug, owner_id: ownerId, plan: 'free' })
-    .select()
-    .maybeSingle();
+  const ws = unwrap(
+    await databaseClient.database
+      .from('workspaces')
+      .insert({ name, slug, owner_id: ownerId, plan: 'free' })
+      .select()
+      .maybeSingle(),
+    'creating your workspace'
+  );
   if (!ws) throw new Error('Failed to create workspace');
-  await insforge.database.from('workspace_members').insert({
-    workspace_id: ws.id,
-    user_id: ownerId,
-    role: 'admin',
-  });
+  unwrap(
+    await databaseClient.database.from('workspace_members').insert({
+      workspace_id: ws.id,
+      user_id: ownerId,
+      role: 'admin',
+    }),
+    'adding you to the new workspace'
+  );
   return ws;
 }
 
@@ -33,20 +53,43 @@ export async function ensureUserHasWorkspace(userId, email) {
   return ws;
 }
 
+/**
+ * Resolve the shared app workspace. DEFAULT_WORKSPACE_ID can pin a deployment
+ * to one workspace; otherwise preserve existing data by choosing the oldest.
+ */
+export async function getDefaultWorkspace() {
+  const configuredId = Number(process.env.DEFAULT_WORKSPACE_ID);
+  if (Number.isFinite(configuredId) && configuredId > 0) {
+    const configured = await getWorkspace(configuredId);
+    if (configured) return configured;
+  }
+
+  const workspaces = await getAllWorkspaces();
+  if (workspaces[0]) return workspaces[0];
+  return createWorkspace({
+    name: 'Mira Workspace',
+    slug: `mira-${Date.now().toString(36)}`,
+    ownerId: 'mira-app',
+  });
+}
+
 export async function isWorkspaceMember(userId, workspaceId) {
   if (!userId || !Number.isFinite(Number(workspaceId))) return false;
-  const { data } = await insforge.database
-    .from('workspace_members')
-    .select('user_id')
-    .eq('workspace_id', workspaceId)
-    .eq('user_id', userId)
-    .maybeSingle();
+  const data = unwrap(
+    await databaseClient.database
+      .from('workspace_members')
+      .select('user_id')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', userId)
+      .maybeSingle(),
+    'checking your workspace membership'
+  );
   return Boolean(data);
 }
 
 export async function getWorkspaceMember(userId, workspaceId) {
   if (!userId || !Number.isFinite(Number(workspaceId))) return null;
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspace_members')
     .select()
     .eq('workspace_id', workspaceId)
@@ -56,7 +99,7 @@ export async function getWorkspaceMember(userId, workspaceId) {
 }
 
 export async function getWorkspace(id) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspaces')
     .select()
     .eq('id', id)
@@ -65,7 +108,7 @@ export async function getWorkspace(id) {
 }
 
 export async function getWorkspaceMembers(workspaceId) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspace_members')
     .select()
     .eq('workspace_id', workspaceId);
@@ -73,7 +116,7 @@ export async function getWorkspaceMembers(workspaceId) {
 }
 
 export async function addWorkspaceMember(workspaceId, userId, role = 'analyst', invitedEmail = null) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspace_members')
     .insert({ workspace_id: workspaceId, user_id: userId, role, invited_email: invitedEmail })
     .select()
@@ -82,7 +125,7 @@ export async function addWorkspaceMember(workspaceId, userId, role = 'analyst', 
 }
 
 export async function removeWorkspaceMember(workspaceId, userId) {
-  await insforge.database
+  await databaseClient.database
     .from('workspace_members')
     .delete()
     .eq('workspace_id', workspaceId)
@@ -90,7 +133,7 @@ export async function removeWorkspaceMember(workspaceId, userId) {
 }
 
 export async function listDigestWorkspaces() {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspaces')
     .select()
     .eq('digest_enabled', true);
@@ -100,7 +143,7 @@ export async function listDigestWorkspaces() {
 export async function claimPendingInvites(userId, email) {
   if (!userId || !email) return [];
   const pendingId = `invited:${email.toLowerCase()}`;
-  const { data: pending } = await insforge.database
+  const { data: pending } = await databaseClient.database
     .from('workspace_members')
     .select()
     .eq('user_id', pendingId);
@@ -122,7 +165,7 @@ export async function claimPendingInvites(userId, email) {
 export async function findPendingInvite(workspaceId, email) {
   if (!workspaceId || !email) return null;
   const pendingId = `invited:${email.toLowerCase()}`;
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspace_members')
     .select()
     .eq('workspace_id', workspaceId)
@@ -132,7 +175,7 @@ export async function findPendingInvite(workspaceId, email) {
 }
 
 export async function updateWorkspace(id, updates) {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('workspaces')
     .update(updates)
     .eq('id', id)

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, errorTitle } from '../lib/api';
 import { ensureHttps } from '../lib/normalizeUrl';
 import { CompanyLogo, Icon, Skeleton, useToast } from './ui';
 
@@ -39,7 +39,7 @@ export default function MyProductClient() {
       }));
       toast({ type: 'success', title: 'Found your product' });
     } catch (err) {
-      toast({ type: 'error', title: 'Could not find company info', message: err.message });
+      toast({ type: 'error', title: errorTitle(err, 'Could not find company info'), message: err.message });
     } finally {
       setExtracting(false);
     }

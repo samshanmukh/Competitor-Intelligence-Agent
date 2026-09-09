@@ -28,7 +28,7 @@ Enterprise CI platforms (for example Klue or Crayon) are built for sales enablem
 - TAM → SAM → SOM market sizing with editable assumptions
 - Presence estimates, reviews sentiment, and next-move guidance
 
-Create an account at [/signup](/signup) to run a full workspace report.`,
+Open [/app](/app) to run a full workspace report.`,
       },
       {
         heading: 'Who it is (and is not) for',
@@ -79,7 +79,7 @@ Outputs include pricing tables, price-vs-value positioning, and feature matrices
 4. Compare tiers, features, and value scores
 5. Decide whether to reprice, rebundle, or hold
 
-Start free at [/signup](/signup), or read the methodology at [/methodology](/methodology).`,
+Open Mira at [/app](/app), or read the methodology at [/methodology](/methodology).`,
       },
       {
         heading: 'Related pages',
@@ -149,7 +149,7 @@ From there you can approve a watchlist, pull pricing and features, and keep a we
 3. Update one battlecard claim mid-week
 4. Make one product or pricing decision on Friday
 
-That is 52 structured refresh cycles per year. Start at [/signup](/signup).`,
+That is 52 structured refresh cycles per year. Start at [/app](/app).`,
       },
       {
         heading: 'Related pages',

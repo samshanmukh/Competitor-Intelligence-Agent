@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { randomBytes } from 'node:crypto';
 import { requireAuth, resolveWorkspace } from '../middleware/auth.js';
-import insforge, { getSetting } from '../db/index.js';
+import databaseClient, { getSetting } from '../db/index.js';
 import { diffReportDistribution, distributionSnapshotKey } from '../services/marketDistribution.js';
 
 const router = Router();
@@ -14,7 +14,7 @@ function shareExpiresAt(createdAt) {
 
 // List saved reports for the workspace (metadata only).
 router.get('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('reports')
     .select('id, title, token, created_by, created_at')
     .eq('workspace_id', req.workspaceId)
@@ -29,7 +29,7 @@ router.post('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
   const { title, content } = req.body || {};
   if (!content) return res.status(400).json({ error: 'content required' });
   const token = randomBytes(12).toString('hex');
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('reports')
     .insert({
       workspace_id: req.workspaceId,
@@ -45,7 +45,7 @@ router.post('/', requireAuth, resolveWorkspace, wrap(async (req, res) => {
 
 // Public read-only view by share token (no auth). Must be before /:id.
 router.get('/shared/:token', wrap(async (req, res) => {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('reports')
     .select('id, title, content, created_at')
     .eq('token', req.params.token)
@@ -64,7 +64,7 @@ router.get('/shared/:token', wrap(async (req, res) => {
 
 // Fetch one saved report (full content), scoped to the workspace.
 router.get('/:id', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('reports')
     .select()
     .eq('id', req.params.id)
@@ -78,7 +78,7 @@ router.get('/:id', requireAuth, resolveWorkspace, wrap(async (req, res) => {
 
 // Compare a saved report's market distribution to the current workspace snapshot.
 router.get('/:id/distribution-diff', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  const { data } = await insforge.database
+  const { data } = await databaseClient.database
     .from('reports')
     .select('content')
     .eq('id', req.params.id)
@@ -100,7 +100,7 @@ router.get('/:id/distribution-diff', requireAuth, resolveWorkspace, wrap(async (
 }));
 
 router.delete('/:id', requireAuth, resolveWorkspace, wrap(async (req, res) => {
-  await insforge.database
+  await databaseClient.database
     .from('reports')
     .delete()
     .eq('id', req.params.id)

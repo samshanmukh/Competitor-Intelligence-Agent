@@ -27,11 +27,6 @@ Content-Signal: search=yes, ai-input=yes, ai-train=yes
 Allow: /
 Disallow: /api/
 Disallow: /settings
-Disallow: /invite
-Disallow: /login
-Disallow: /signup
-Disallow: /verify
-Disallow: /oauth
 Disallow: /auth
 Disallow: /app
 Disallow: /competitors
