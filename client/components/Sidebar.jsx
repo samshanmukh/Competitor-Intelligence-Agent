@@ -2,11 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
-import { getWorkspace, fetchWorkspaces, saveWorkspace, switchWorkspace } from '../lib/auth';
-import { canAccessPath, tierLabel } from '../lib/entitlements';
-import { Icon, WorkspaceSwitcher, Modal } from './ui';
+import { useState } from 'react';
+import { Icon, Modal } from './ui';
 import BrandLogo from './BrandLogo';
 
 function NavItem({ href, icon, label, badge, exact = false, collapsed = false, onNavigate }) {
@@ -51,95 +48,14 @@ function NavGroup({ label, children, collapsed }) {
 }
 
 export default function Sidebar() {
-  const [unseen, setUnseen] = useState(0);
-  const [workspace, setWorkspace] = useState(null);
-  const [workspaces, setWorkspaces] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [newWsModal, setNewWsModal] = useState(false);
-  const [newWsName, setNewWsName] = useState('');
-  const [entitlements, setEntitlements] = useState(null);
-
-  useEffect(() => {
-    setWorkspace(getWorkspace());
-    fetchWorkspaces().then((items) => {
-      setWorkspaces(items);
-      if (items.length > 0 && !getWorkspace()) {
-        saveWorkspace(items[0]);
-        setWorkspace(items[0]);
-      }
-    });
-    api.me().then((data) => {
-      if (data?.entitlements) setEntitlements(data.entitlements);
-    }).catch(() => null);
-  }, []);
-
-  const allow = (href) => canAccessPath(entitlements, href);
-
-  const refreshUnseen = async () => {
-    try {
-      const { unseen } = await api.unseenCount();
-      setUnseen(unseen);
-    } catch { /* offline */ }
-  };
-
-  useEffect(() => {
-    refreshUnseen();
-    const t = setInterval(refreshUnseen, 30_000);
-    return () => clearInterval(t);
-  }, []);
-
-  const handleCreateWorkspace = async () => {
-    if (!newWsName.trim()) return;
-    const { workspace: ws } = await api.createWorkspace(newWsName.trim());
-    setWorkspaces((w) => [...w, ws]);
-    switchWorkspace(ws);
-    setNewWsModal(false);
-    setNewWsName('');
-  };
 
   const renderNav = (isCollapsed = false, onNavigate) => (
-    <>
-      <NavGroup label="Workspace" collapsed={isCollapsed}>
-        {allow('/app') && <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/analyst') && <NavItem href="/analyst" icon="zap" label="Ask Mira analyst" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/market') && <NavItem href="/market" icon="bar" label="Market model" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/distribution') && <NavItem href="/distribution" icon="trending" label="Distribution" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/competitors') && <NavItem href="/competitors" icon="users" label="Competitors" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/compare') && <NavItem href="/compare" icon="grid" label="Compare" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/company') && <NavItem href="/company" icon="map" label="Deep dive" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/moves') && <NavItem href="/moves" icon="zap" label="Next moves" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/changes') && <NavItem href="/changes" icon="activity" label="Changes" badge={unseen} collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/notifications') && <NavItem href="/notifications" icon="bell" label="Alerts" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/reports') && <NavItem href="/reports" icon="share" label="History" collapsed={isCollapsed} onNavigate={onNavigate} />}
-      </NavGroup>
-
-      {(allow('/positioning') || allow('/pricing-lab') || allow('/gaps')) && (
-        <NavGroup label="Labs" collapsed={isCollapsed}>
-          {allow('/positioning') && <NavItem href="/positioning" icon="sparkle" label="Positioning lab" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/pricing-lab') && <NavItem href="/pricing-lab" icon="card" label="Pricing simulator" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/gaps') && <NavItem href="/gaps" icon="radar" label="Feature gaps" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/evidence') && <NavItem href="/evidence" icon="check" label="Evidence" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/war-room') && <NavItem href="/war-room" icon="shield" label="War room" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/win-loss') && <NavItem href="/win-loss" icon="trending" label="Win / loss" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/market-entry') && <NavItem href="/market-entry" icon="map" label="Market entry" collapsed={isCollapsed} onNavigate={onNavigate} />}
-          {allow('/investor') && <NavItem href="/investor" icon="bar" label="Investor one-pager" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        </NavGroup>
-      )}
-
-      <NavGroup label="Manage" collapsed={isCollapsed}>
-        {allow('/my-product') && <NavItem href="/my-product" icon="card" label="My product" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/discover') && <NavItem href="/discover" icon="plus" label="Discover" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/methodology') && <NavItem href="/methodology" icon="shield" label="Methodology" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/usage') && <NavItem href="/usage" icon="bar" label="Usage" collapsed={isCollapsed} onNavigate={onNavigate} />}
-        {allow('/settings') && <NavItem href="/settings" icon="settings" label="Settings" collapsed={isCollapsed} onNavigate={onNavigate} />}
-      </NavGroup>
-      {!isCollapsed && entitlements?.tier && (
-        <p className="px-2.5 pt-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
-          Plan · {tierLabel(entitlements.tier)}
-        </p>
-      )}
-    </>
+    <NavGroup label="Research" collapsed={isCollapsed}>
+      <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={isCollapsed} onNavigate={onNavigate} />
+      <NavItem href="/company" icon="map" label="Deep market search" collapsed={isCollapsed} onNavigate={onNavigate} />
+    </NavGroup>
   );
 
   return (
@@ -169,17 +85,6 @@ export default function Sidebar() {
           {renderNav(collapsed)}
         </nav>
 
-        {/* Bottom: workspace switcher, isolated so its menu covers nav text. */}
-        <div className={`relative z-30 mt-4 space-y-2 border-t border-ink-800/80 pt-4 ${collapsed ? 'flex flex-col items-center gap-1' : ''}`} style={{ backgroundColor: '#0e1014' }}>
-          {!collapsed && workspace && (
-            <WorkspaceSwitcher
-              workspace={workspace}
-              workspaces={workspaces}
-              onSwitch={switchWorkspace}
-              onCreate={() => setNewWsModal(true)}
-            />
-          )}
-        </div>
       </aside>
 
       {/* Mobile top bar */}
@@ -194,7 +99,6 @@ export default function Sidebar() {
         >
           <Icon name="list" className="h-4 w-4" />
           Menu
-          {unseen > 0 && <span className="h-2 w-2 rounded-full bg-accent" aria-label={`${unseen} unseen changes`} />}
         </button>
       </header>
 
@@ -202,38 +106,6 @@ export default function Sidebar() {
         <nav aria-label="Mobile primary navigation" className="flex max-h-[calc(100dvh-11rem)] flex-col gap-4 overflow-y-auto overscroll-contain pr-1">
           {renderNav(false, () => setMobileOpen(false))}
         </nav>
-        <div className="mt-5 space-y-3 border-t border-ink-700 pt-4">
-          {workspace && (
-            <WorkspaceSwitcher
-              workspace={workspace}
-              workspaces={workspaces}
-              onSwitch={switchWorkspace}
-              onCreate={() => { setMobileOpen(false); setNewWsModal(true); }}
-            />
-          )}
-        </div>
-      </Modal>
-
-      {/* New workspace modal */}
-      <Modal open={newWsModal} onClose={() => setNewWsModal(false)} title="Create workspace" width="max-w-sm">
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="new-workspace-name" className="label">Workspace name</label>
-            <input
-              id="new-workspace-name"
-              className="input"
-              value={newWsName}
-              onChange={(e) => setNewWsName(e.target.value)}
-              placeholder="Acme Corp"
-              autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateWorkspace(); }}
-            />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => setNewWsModal(false)} className="btn-ghost">Cancel</button>
-            <button type="button" onClick={handleCreateWorkspace} className="btn-primary">Create</button>
-          </div>
-        </div>
       </Modal>
     </>
   );

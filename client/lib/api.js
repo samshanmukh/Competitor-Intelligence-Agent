@@ -407,10 +407,12 @@ export const api = {
   factCheckStart: () => request('/intelligence/market-model/fact-check/start', { method: 'POST' }),
   factCheckStatus: (jobId) => request(`/intelligence/market-model/fact-check/status/${jobId}`),
 
-  // Company deep dive, background job
-  deepDiveStart: (company, url) => request('/company/deep-dive/start', { method: 'POST', body: { company, url } }),
-  deepDiveStatus: (jobId) => request(`/company/deep-dive/status/${jobId}`),
-  companyFinancials: (company) => request('/company/financials', { method: 'POST', body: { company } }),
+  // You.com-powered company and market research
+  deepDive: (company, url) => request('/company/deep-dive', { method: 'POST', body: { company, url } }),
+  companyFinancials: (company, url) => request('/company/deep-dive', {
+    method: 'POST',
+    body: { action: 'financials', company, url },
+  }),
 
   // Saved report history
   saveReport: saveLocalReport,
@@ -456,8 +458,14 @@ export const api = {
   saveCompetitorTags: (competitorId, tags) =>
     request('/features/competitor-meta/tags', { method: 'PUT', body: { competitorId, tags } }),
   saveCompetitorAlerts: (payload) => request('/features/competitor-meta/alerts', { method: 'PUT', body: payload }),
-  compareCompanies: (companies) => request('/features/compare-companies', { method: 'POST', body: { companies } }),
-  getImplications: (dossier) => request('/features/implications', { method: 'POST', body: { dossier } }),
+  compareCompanies: async (companies) => {
+    const { product } = await getLocalProduct();
+    return request('/company/deep-dive', { method: 'POST', body: { action: 'compare', companies, product } });
+  },
+  getImplications: async (dossier) => {
+    const { product } = await getLocalProduct();
+    return request('/company/deep-dive', { method: 'POST', body: { action: 'implications', dossier, product } });
+  },
   generateMarketScenarios: (base) => request('/features/market-scenarios', { method: 'POST', body: { base } }),
   getMarketScenarios: () => request('/features/market-scenarios'),
   exportFeatureReport: (snapshot) => exportLocalMarkdown(snapshot),

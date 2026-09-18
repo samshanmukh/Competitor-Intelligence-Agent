@@ -67,7 +67,26 @@ test('mobile shell keeps responsive navigation and content overflow protection',
   assert.match(sidebar, /<aside className=\{`[^`]*\bhidden\b[^`]*\bmd:flex\b/);
   assert.match(sidebar, /Mobile top bar[\s\S]*\bmd:hidden\b/);
   assert.match(sidebar, /Mobile top bar[\s\S]*\bsticky\b[^"]*\btop-0\b/);
-  assert.match(sidebar, /href="\/app"[\s\S]*href="\/competitors"[\s\S]*href="\/settings"/);
+  assert.match(sidebar, /href="\/app"[\s\S]*href="\/company"/);
+  assert.match(sidebar, /label="Deep market search"/);
+  assert.doesNotMatch(sidebar, /href="\/(?:analyst|market|distribution|competitors|compare|moves|changes|notifications|reports|positioning|pricing-lab|gaps|settings)"/);
+  assert.doesNotMatch(sidebar, /WorkspaceSwitcher|api\.me|fetchWorkspaces/);
+});
+
+test('deep market search uses the Vercel-native You.com research route', async () => {
+  const [route, client, api] = await Promise.all([
+    projectFile('client/app/api/company/deep-dive/route.js'),
+    projectFile('client/components/CompanyDeepDiveClient.jsx'),
+    projectFile('client/lib/api.js'),
+  ]);
+
+  assert.match(route, /https:\/\/api\.you\.com\/v1\/research/);
+  assert.match(route, /process\.env\.YOUCOM_API_KEY/);
+  assert.doesNotMatch(route, /xai|grok|insforge|DATABASE_URL/i);
+  assert.match(api, /deepDive:.*request\('\/company\/deep-dive'/);
+  assert.doesNotMatch(api, /company\/deep-dive\/start|company\/deep-dive\/status/);
+  assert.match(client, /title="Deep market search"/);
+  assert.match(client, /Market model · size & growth/);
 });
 
 test('legacy auth URLs redirect to the open app and public tools stay outside its shell', async () => {

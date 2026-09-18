@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { api } from '../lib/api';
-import { getWorkspace } from '../lib/auth';
 import { ensureHttps } from '../lib/normalizeUrl';
 import { Icon, useToast } from './ui';
 import { LabPanel, LabShell, LabShimmerBlock } from './labs/LabShell';
@@ -37,71 +36,35 @@ export default function CompanyDeepDiveClient() {
   const [finRefreshing, setFinRefreshing] = useState(false);
   const toast = useToast();
 
-  const pollRef = useRef(null);
-  const tickRef = useRef(null);
-  const jobKey = () => `cia_deepdive_job_${getWorkspace()?.id || 'x'}`;
-
-  const stop = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (tickRef.current) clearInterval(tickRef.current);
-    pollRef.current = tickRef.current = null;
-    setRunning(false);
-    try { localStorage.removeItem(jobKey()); } catch {}
-  };
-
-  const beginPolling = (jobId, startedAt, label) => {
-    try { localStorage.setItem(jobKey(), JSON.stringify({ jobId, startedAt, label })); } catch {}
-    setRunning(true);
-    setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    tickRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
-    const check = async () => {
-      try {
-        const { status, result, error } = await api.deepDiveStatus(jobId);
-        if (status === 'done') {
-          stop();
-          if (result?.dossier) { setDossier(result.dossier); toast({ type: 'success', title: 'Deep dive ready' }); }
-          else toast({ type: 'info', title: 'No data found' });
-        } else if (status === 'error') {
-          stop();
-          toast({ type: 'error', title: 'Deep dive failed', message: error });
-        }
-      } catch (err) {
-        if (err.code === 'JOB_NOT_FOUND') { stop(); toast({ type: 'error', title: 'Job expired', message: 'Please run it again.' }); }
-      }
-    };
-    pollRef.current = setInterval(check, 5000);
-    check();
-  };
-
   const run = async () => {
     if (!form.company.trim()) { toast({ type: 'error', title: 'Enter a company name' }); return; }
     const siteUrl = ensureHttps(form.url);
     if (siteUrl && siteUrl !== form.url.trim()) setForm((f) => ({ ...f, url: siteUrl }));
+    const startedAt = Date.now();
     setDossier(null);
+    setImplications(null);
+    setRunning(true);
+    setElapsed(0);
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
     try {
-      const { jobId } = await api.deepDiveStart(form.company.trim(), siteUrl);
-      beginPolling(jobId, Date.now(), form.company.trim());
+      const { dossier: result } = await api.deepDive(form.company.trim(), siteUrl);
+      if (!result) throw new Error('You.com did not return a dossier.');
+      setDossier(result);
+      toast({ type: 'success', title: 'Deep market search ready' });
     } catch (err) {
-      toast({ type: 'error', title: 'Could not start', message: err.message });
+      toast({ type: 'error', title: 'Research failed', message: err.message });
+    } finally {
+      clearInterval(timer);
+      setRunning(false);
     }
   };
-
-  // Resume an in-flight deep dive after a refresh / navigation.
-  useEffect(() => {
-    let raw; try { raw = localStorage.getItem(jobKey()); } catch {}
-    if (raw) {
-      try { const { jobId, startedAt, label } = JSON.parse(raw); if (jobId) { setForm((f) => ({ ...f, company: label || f.company })); beginPolling(jobId, startedAt || Date.now(), label); } } catch {}
-    }
-    return () => stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const refreshFinancials = async () => {
     const company = form.company.trim() || dossier?.company || dossier?.overview?.name;
     if (!company) return;
     setFinRefreshing(true);
     try {
-      const res = await api.companyFinancials(company);
+      const res = await api.companyFinancials(company, dossier?.url || ensureHttps(form.url));
       setDossier((d) => d ? { ...d, financials: res.financials || null, market: res.market ?? d.market } : d);
       toast({ type: 'success', title: 'Financials refreshed' });
     } catch (err) {
@@ -113,13 +76,9 @@ export default function CompanyDeepDiveClient() {
 
   return (
     <LabShell
-      title="Deep dive"
-      subtitle="Full dossier: overview, finance research, market value, web traffic, and reviews."
-      skills={[
-        { skill: 'you-research' },
-        { skill: 'you-finance' },
-        { skill: 'you-contents' },
-      ]}
+      title="Deep market search"
+      subtitle="You.com-powered company research with financials, a market model, traffic, reviews, and cited sources."
+      skills={[{ skill: 'you-research' }]}
     >
       <LabPanel title="Company">
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
@@ -143,14 +102,14 @@ export default function CompanyDeepDiveClient() {
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-600">
-          Runs in the background (~2–5 min), you can navigate away; we notify when ready.
+          You.com Research usually returns in under a minute. Keep this page open while it runs.
         </p>
       </LabPanel>
 
       {running && (
         <LabPanel title={`Building dossier · ${form.company}`}>
           <p className="mb-4 text-xs text-slate-500">
-            Layers load in parallel, overview, finance, traffic, reviews.
+            You.com is researching the company, financials, market model, traffic, and reviews.
             <span className="ml-2 tabular-nums text-slate-400">{Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}</span>
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -199,7 +158,7 @@ export default function CompanyDeepDiveClient() {
                 setSavingDossier(true);
                 try {
                   await api.saveReport(
-                    `Deep dive · ${form.company || dossier?.overview?.name || 'Company'} · ${new Date().toLocaleDateString()}`,
+                    `Deep market search · ${form.company || dossier?.overview?.name || 'Company'} · ${new Date().toLocaleDateString()}`,
                     { type: 'deep-dive', dossier, implications, generatedAt: new Date().toISOString() }
                   );
                   toast({ type: 'success', title: 'Saved to history' });
@@ -365,7 +324,7 @@ function Chips({ items, color = 'slate' }) {
 function OverviewSection({ state, company }) {
   const o = state.data;
   return (
-    <SectionCard icon="radar" title="Company overview" loading={state.loading} empty={!o ? 'No overview found.' : null} skills={[{ skill: 'you-research' }, { skill: 'you-contents' }]}>
+    <SectionCard icon="radar" title="Company overview" loading={state.loading} empty={!o ? 'No overview found.' : null} skill="you-research">
       {o && (
         <div className="space-y-3">
           {o.summary && <p className="text-sm text-slate-300 leading-relaxed">{o.summary}</p>}
@@ -395,8 +354,8 @@ function FinancialsSection({ state }) {
   const f = state.data;
   return (
     <SectionCard icon="trending" title="Financials & valuation" loading={state.loading}
-      hint={state.loading ? 'deep research…' : undefined} empty={!f ? 'No financial data found.' : null}
-      skill="you-finance">
+      hint={state.loading ? 'You.com research…' : undefined} empty={!f ? 'No financial data found.' : null}
+      skill="you-research">
       {f && (
         <div className="space-y-3">
           <StatGrid>
@@ -418,13 +377,16 @@ function FinancialsSection({ state }) {
 function MarketSection({ market, loading }) {
   const history = (market?.history || []).filter((h) => h.year && typeof h.size_usd_millions === 'number');
   return (
-    <SectionCard icon="bar" title="Market size & growth" loading={loading}
-      hint={loading ? 'deep research…' : undefined} empty={!loading && !market ? 'No market data found.' : null}
-      skill="you-finance">
+    <SectionCard icon="bar" title="Market model · size & growth" loading={loading}
+      hint={loading ? 'You.com research…' : undefined} empty={!loading && !market ? 'No market data found.' : null}
+      skill="you-research">
       {market && (
         <div className="space-y-3">
-          <StatGrid className="max-w-xl">
-            <Stat label="Market size" value={market.size_current} />
+          {market.category && <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{market.category}</p>}
+          <StatGrid>
+            <Stat label="TAM" value={market.tam || market.size_current} />
+            <Stat label="SAM" value={market.sam} />
+            <Stat label="SOM" value={market.som} />
             <Stat label="Growth" value={market.cagr} accent="text-emerald-400" />
           </StatGrid>
           {history.length >= 2 && (
@@ -439,6 +401,20 @@ function MarketSection({ market, loading }) {
             </ResponsiveContainer>
           )}
           {market.summary && <p className="text-sm text-slate-400 leading-relaxed">{market.summary}</p>}
+          {market.methodology && (
+            <div className="rounded-lg border border-ink-700 bg-ink-850 p-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Model methodology</p>
+              <p className="text-xs leading-relaxed text-slate-400">{market.methodology}</p>
+            </div>
+          )}
+          {market.assumptions?.length > 0 && (
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Assumptions</p>
+              <ul className="space-y-1 pl-4 text-xs text-slate-400 list-disc">
+                {market.assumptions.map((assumption, index) => <li key={index}>{assumption}</li>)}
+              </ul>
+            </div>
+          )}
           <SourceAttribution attribution={market.attribution} sources={market.sources} skill={market.skill} skillLabel={market.skillLabel} compact />
         </div>
       )}
@@ -537,7 +513,7 @@ function ReviewsSection({ state }) {
     negative: 'border-rose-800/50 bg-rose-950/30 text-rose-400',
   };
   return (
-    <SectionCard icon="users" title="User reviews & AI analysis" loading={state.loading}
+    <SectionCard icon="users" title="User reviews & analysis" loading={state.loading}
       empty={!r || !r.sentiment ? 'No public review data found.' : null}
       skill="you-research">
       {r && r.sentiment && (
