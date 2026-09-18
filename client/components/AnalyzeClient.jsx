@@ -10,6 +10,7 @@ export default function AnalyzeClient() {
   const [competitors, setCompetitors] = useState(null);
   // null = not chosen yet; after setup completes we default to collapsed
   const [setupOpen, setSetupOpen] = useState(null);
+  const [analysisRunRequest, setAnalysisRunRequest] = useState(0);
   const toast = useToast();
 
   const load = async () => {
@@ -34,6 +35,12 @@ export default function AnalyzeClient() {
   useEffect(() => { load(); api.recordVisit().catch(() => {}); }, []);
 
   const ready = Boolean(product && competitors?.length > 0);
+
+  const handleCompetitorsSaved = (list) => {
+    setCompetitors(list);
+    setSetupOpen(false);
+    setAnalysisRunRequest((request) => request + 1);
+  };
 
   // If competitors are cleared later, force the setup panel open again.
   useEffect(() => {
@@ -120,7 +127,11 @@ export default function AnalyzeClient() {
             />
           )}
           {ready && (
-            <ReportStage competitors={competitors} onScored={load} />
+            <ReportStage
+              competitors={competitors}
+              onScored={load}
+              autoRunRequest={analysisRunRequest}
+            />
           )}
         </section>
 
@@ -134,6 +145,7 @@ export default function AnalyzeClient() {
           competitors={competitors}
           onProductSaved={(p) => setProduct(p)}
           onCompetitorsChange={(list) => setCompetitors(list)}
+          onCompetitorsSaved={handleCompetitorsSaved}
         />
       </div>
     </div>
@@ -149,6 +161,7 @@ function SetupSidebar({
   competitors,
   onProductSaved,
   onCompetitorsChange,
+  onCompetitorsSaved,
 }) {
   // Collapsed strip (desktop), still shows company + count, expands on click
   if (!open && canCollapse) {
@@ -224,6 +237,7 @@ function SetupSidebar({
               product={product}
               competitors={competitors}
               onChange={onCompetitorsChange}
+              onSaved={onCompetitorsSaved}
               compact
             />
           )}
@@ -380,7 +394,7 @@ function normalizeUrl(u) {
 }
 function originOf(u) { try { return new URL(normalizeUrl(u)).origin; } catch { return null; } }
 
-function CompetitorStage({ product, competitors, onChange }) {
+function CompetitorStage({ product, competitors, onChange, onSaved }) {
   const [discovering, setDiscovering] = useState(false);
   const [candidates, setCandidates] = useState(null);
   const [selected, setSelected] = useState({});
@@ -460,10 +474,12 @@ function CompetitorStage({ product, competitors, onChange }) {
     try {
       await api.addCompetitors(chosen, 'approved');
       const { competitors } = await api.listCompetitors('approved');
-      onChange(competitors || []);
+      const savedCompetitors = competitors || [];
+      onChange(savedCompetitors);
       setCandidates(null);
       setSelected({});
       toast({ type: 'success', title: `${chosen.length} competitor(s) saved` });
+      onSaved?.(savedCompetitors);
     } catch (err) {
       toast({ type: 'error', title: 'Could not save', message: err.message });
     } finally {
@@ -539,7 +555,7 @@ function CompetitorStage({ product, competitors, onChange }) {
           <button onClick={() => { setCandidates(null); setSelected({}); }} className="btn-ghost px-2.5 py-1 text-[11px]">Cancel</button>
           <button onClick={confirm} disabled={saving || candidates.length === 0} className="btn-primary px-2.5 py-1 text-[11px]">
             {saving ? <Icon name="refresh" className="h-3 w-3 animate-spin" /> : <Icon name="check" className="h-3 w-3" />}
-            Confirm
+            Save competitors
           </button>
         </div>
       </Panel>
@@ -605,7 +621,7 @@ function markLayers(setLayers, ids, status) {
 }
 
 /* ───────────────────────── Stage 3: Report ───────────────────────── */
-function ReportStage({ competitors, onScored }) {
+function ReportStage({ competitors, onScored, autoRunRequest = 0 }) {
   const ids = competitors.map((c) => c.id);
   const [matrix, setMatrix] = useState(null);
   const [positioning, setPositioning] = useState(null);
@@ -634,6 +650,7 @@ function ReportStage({ competitors, onScored }) {
   const [scoreOverrides, setScoreOverrides] = useState({});
   const toast = useToast();
   const runIdRef = useRef(0);
+  const handledAutoRunRef = useRef(0);
   const snapshotRef = useRef({});
   const autoSaveRef = useRef(autoSave);
 
@@ -1031,6 +1048,14 @@ function ReportStage({ competitors, onScored }) {
       }
     }
   };
+
+  useEffect(() => {
+    if (hydrating || autoRunRequest <= handledAutoRunRef.current) return;
+    handledAutoRunRef.current = autoRunRequest;
+    runAll();
+    // `runAll` intentionally uses the competitors captured for this save event.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRunRequest, hydrating]);
 
   const hasReport = Boolean(
     matrix || positioning || (reviews && reviews.length) || take || strategy || product

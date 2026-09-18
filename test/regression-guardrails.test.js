@@ -110,6 +110,15 @@ test('market model uses You.com directly without legacy 404-prone jobs', async (
   assert.match(client, /skills=\{\[\{ skill: 'you-research' \}\]\}/);
 });
 
+test('saving competitors collapses setup and automatically starts analysis', async () => {
+  const analyze = await projectFile('client/components/AnalyzeClient.jsx');
+
+  assert.match(analyze, /const handleCompetitorsSaved = \(list\) => \{[\s\S]*setSetupOpen\(false\);[\s\S]*setAnalysisRunRequest\(\(request\) => request \+ 1\);/);
+  assert.match(analyze, /onSaved\?\.\(savedCompetitors\);/);
+  assert.match(analyze, /Save competitors/);
+  assert.match(analyze, /autoRunRequest <= handledAutoRunRef\.current[\s\S]*runAll\(\);/);
+});
+
 test('legacy auth URLs redirect to the open app and public tools stay outside its shell', async () => {
   const [shell, middleware] = await Promise.all([
     projectFile('client/components/AppShell.jsx'),
