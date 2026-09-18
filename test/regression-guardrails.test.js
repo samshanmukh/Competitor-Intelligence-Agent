@@ -67,9 +67,10 @@ test('mobile shell keeps responsive navigation and content overflow protection',
   assert.match(sidebar, /<aside className=\{`[^`]*\bhidden\b[^`]*\bmd:flex\b/);
   assert.match(sidebar, /Mobile top bar[\s\S]*\bmd:hidden\b/);
   assert.match(sidebar, /Mobile top bar[\s\S]*\bsticky\b[^"]*\btop-0\b/);
-  assert.match(sidebar, /href="\/app"[\s\S]*href="\/company"/);
+  assert.match(sidebar, /href="\/app"[\s\S]*href="\/market"[\s\S]*href="\/company"/);
+  assert.match(sidebar, /label="Market model"/);
   assert.match(sidebar, /label="Deep market search"/);
-  assert.doesNotMatch(sidebar, /href="\/(?:analyst|market|distribution|competitors|compare|moves|changes|notifications|reports|positioning|pricing-lab|gaps|settings)"/);
+  assert.doesNotMatch(sidebar, /href="\/(?:analyst|distribution|competitors|compare|moves|changes|notifications|reports|positioning|pricing-lab|gaps|settings)"/);
   assert.doesNotMatch(sidebar, /WorkspaceSwitcher|api\.me|fetchWorkspaces/);
 });
 
@@ -87,6 +88,10 @@ test('deep market search uses the Vercel-native You.com research route', async (
   assert.doesNotMatch(api, /company\/deep-dive\/start|company\/deep-dive\/status/);
   assert.match(client, /title="Deep market search"/);
   assert.match(client, /Market model · size & growth/);
+  assert.match(client, /deep-dive-company[\s\S]*required/);
+  assert.match(client, /deep-dive-url[\s\S]*required/);
+  assert.doesNotMatch(client, /Website \/ domain \(optional\)/);
+  assert.match(route, /Enter the company website or domain\./);
 });
 
 test('legacy auth URLs redirect to the open app and public tools stay outside its shell', async () => {

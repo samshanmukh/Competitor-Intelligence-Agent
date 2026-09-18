@@ -226,6 +226,7 @@ export async function POST(request) {
     const company = textOrNull(body?.company, 120);
     const url = textOrNull(body?.url, 500);
     if (!company) return Response.json({ error: 'Enter a company name.' }, { status: 400 });
+    if (!url) return Response.json({ error: 'Enter the company website or domain.' }, { status: 400 });
 
     if (action === 'financials') {
       const researched = await runResearch(financialsPrompt(company));

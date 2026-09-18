@@ -39,6 +39,7 @@ export default function CompanyDeepDiveClient() {
   const run = async () => {
     if (!form.company.trim()) { toast({ type: 'error', title: 'Enter a company name' }); return; }
     const siteUrl = ensureHttps(form.url);
+    if (!siteUrl) { toast({ type: 'error', title: 'Enter the company website' }); return; }
     if (siteUrl && siteUrl !== form.url.trim()) setForm((f) => ({ ...f, url: siteUrl }));
     const startedAt = Date.now();
     setDossier(null);
@@ -84,18 +85,18 @@ export default function CompanyDeepDiveClient() {
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <div>
             <label htmlFor="deep-dive-company" className="label">Company name</label>
-            <input id="deep-dive-company" className="input" placeholder="Notion" value={form.company} disabled={running}
+            <input id="deep-dive-company" className="input" placeholder="Enter company name" value={form.company} disabled={running} required
               onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
               onKeyDown={(e) => { if (e.key === 'Enter') run(); }} autoFocus />
           </div>
           <div>
-            <label htmlFor="deep-dive-url" className="label">Website / domain (optional)</label>
-            <input id="deep-dive-url" className="input" placeholder="notion.so" value={form.url} disabled={running}
+            <label htmlFor="deep-dive-url" className="label">Website / domain</label>
+            <input id="deep-dive-url" className="input" placeholder="company.com" value={form.url} disabled={running} required
               onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
               onKeyDown={(e) => { if (e.key === 'Enter') run(); }} />
           </div>
           <div className="flex items-end">
-            <button onClick={run} disabled={running} className="btn-primary w-full sm:w-auto">
+            <button onClick={run} disabled={running || !form.company.trim() || !form.url.trim()} className="btn-primary w-full sm:w-auto">
               <Icon name={running ? 'refresh' : 'search'} className={`h-4 w-4 ${running ? 'animate-spin' : ''}`} />
               {running ? 'Researching…' : 'Analyze'}
             </button>
@@ -222,13 +223,14 @@ export default function CompanyDeepDiveClient() {
         <div className="flex gap-2">
           <input
             className="input flex-1"
-            placeholder="Notion, Coda, Airtable"
+            placeholder="Company A, Company B"
             value={compareInput}
+            required
             onChange={(e) => setCompareInput(e.target.value)}
           />
           <button
             className="btn-primary shrink-0"
-            disabled={compareLoading}
+            disabled={compareLoading || compareInput.split(',').map((name) => name.trim()).filter(Boolean).length < 2}
             onClick={async () => {
               const companies = compareInput.split(',').map((s) => s.trim()).filter(Boolean);
               if (companies.length < 2) {

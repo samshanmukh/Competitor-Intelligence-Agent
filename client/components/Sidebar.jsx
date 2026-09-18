@@ -54,6 +54,7 @@ export default function Sidebar() {
   const renderNav = (isCollapsed = false, onNavigate) => (
     <NavGroup label="Research" collapsed={isCollapsed}>
       <NavItem href="/app" icon="sparkle" label="Analysis" exact collapsed={isCollapsed} onNavigate={onNavigate} />
+      <NavItem href="/market" icon="bar" label="Market model" collapsed={isCollapsed} onNavigate={onNavigate} />
       <NavItem href="/company" icon="map" label="Deep market search" collapsed={isCollapsed} onNavigate={onNavigate} />
     </NavGroup>
   );
