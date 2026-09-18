@@ -47,10 +47,10 @@ test('workspace-data routers retain shared actor and workspace resolution', asyn
   );
 });
 
-test('mobile shell keeps responsive navigation and content overflow protection', async () => {
-  const [shell, sidebar] = await Promise.all([
+test('app shell keeps one responsive top navigation and content overflow protection', async () => {
+  const [shell, navigation] = await Promise.all([
     projectFile('client/components/AppShell.jsx'),
-    projectFile('client/components/Sidebar.jsx'),
+    projectFile('client/components/WorkspaceNav.jsx'),
   ]);
 
   // `<main>` may carry a literal className or a conditional expression; every
@@ -64,14 +64,13 @@ test('mobile shell keeps responsive navigation and content overflow protection',
   for (const value of classNames) {
     assert.match(value, /\bmin-w-0\b/, `<main> class list missing min-w-0: ${value}`);
   }
-  assert.match(sidebar, /<aside className=\{`[^`]*\bhidden\b[^`]*\bmd:flex\b/);
-  assert.match(sidebar, /Mobile top bar[\s\S]*\bmd:hidden\b/);
-  assert.match(sidebar, /Mobile top bar[\s\S]*\bsticky\b[^"]*\btop-0\b/);
-  assert.match(sidebar, /href="\/app"[\s\S]*href="\/market"[\s\S]*href="\/company"/);
-  assert.match(sidebar, /label="Market model"/);
-  assert.match(sidebar, /label="Deep market search"/);
-  assert.doesNotMatch(sidebar, /href="\/(?:analyst|distribution|competitors|compare|moves|changes|notifications|reports|positioning|pricing-lab|gaps|settings)"/);
-  assert.doesNotMatch(sidebar, /WorkspaceSwitcher|api\.me|fetchWorkspaces/);
+  assert.match(shell, /<WorkspaceNav \/>/);
+  assert.doesNotMatch(shell, /Sidebar|md:flex-row/);
+  assert.match(navigation, /sticky top-0/);
+  assert.match(navigation, /href: '\/app'[\s\S]*href: '\/market'[\s\S]*href: '\/company'/);
+  assert.match(navigation, /label: 'Market model'/);
+  assert.match(navigation, /label: 'Deep market search'/);
+  assert.doesNotMatch(navigation, /href: '\/(?:analyst|distribution|competitors|compare|moves|changes|notifications|reports|positioning|pricing-lab|gaps|settings)'/);
 });
 
 test('deep market search uses the Vercel-native You.com research route', async () => {
@@ -92,6 +91,23 @@ test('deep market search uses the Vercel-native You.com research route', async (
   assert.match(client, /deep-dive-url[\s\S]*required/);
   assert.doesNotMatch(client, /Website \/ domain \(optional\)/);
   assert.match(route, /Enter the company website or domain\./);
+});
+
+test('market model uses You.com directly without legacy 404-prone jobs', async () => {
+  const [route, client, api] = await Promise.all([
+    projectFile('client/app/api/market-model/route.js'),
+    projectFile('client/components/MarketModelClient.jsx'),
+    projectFile('client/lib/api.js'),
+  ]);
+
+  assert.match(route, /https:\/\/api\.you\.com\/v1\/research/);
+  assert.match(route, /process\.env\.YOUCOM_API_KEY/);
+  assert.doesNotMatch(route, /xai|grok|insforge|DATABASE_URL/i);
+  assert.match(api, /buildMarketModel: buildLocalMarketModel/);
+  assert.match(api, /request\('\/market-model'/);
+  assert.doesNotMatch(api, /intelligence\/market-model/);
+  assert.doesNotMatch(client, /marketModelStart|marketModelStatus|factCheckStart|factCheckStatus|marketPulse|DistributionPanel/);
+  assert.match(client, /skills=\{\[\{ skill: 'you-research' \}\]\}/);
 });
 
 test('legacy auth URLs redirect to the open app and public tools stay outside its shell', async () => {

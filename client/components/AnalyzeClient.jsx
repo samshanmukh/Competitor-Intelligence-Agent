@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { api, errorTitle } from '../lib/api';
-import { getWorkspace } from '../lib/auth';
 import { ensureHttps } from '../lib/normalizeUrl';
 import { CompanyLogo, Icon, Shimmer, Skeleton, useToast } from './ui';
 import ReportView from './ReportView';
@@ -615,8 +614,6 @@ function ReportStage({ competitors, onScored }) {
   const [strategy, setStrategy] = useState(null);
   const [product, setProduct] = useState(null);
   const [market, setMarket] = useState(null);
-  const [marketLoading, setMarketLoading] = useState(false);
-  const [marketElapsed, setMarketElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState('');
   const [layers, setLayers] = useState({});
@@ -651,11 +648,6 @@ function ReportStage({ competitors, onScored }) {
     const patch = scoreOverrides[c.id];
     return patch ? { ...c, ...patch } : c;
   });
-
-  const pollRef = useRef(null);
-  const tickRef = useRef(null);
-
-  const jobKey = () => `cia_market_job_${getWorkspace()?.id || 'x'}`;
 
   useEffect(() => {
     snapshotRef.current = { matrix, positioning, reviews, take, market, product, strategy };
@@ -778,55 +770,6 @@ function ReportStage({ competitors, onScored }) {
       || Boolean(result.matrix || result.positioning || result.take || result.strategy || result.product || result.market);
   };
 
-  const stopPolling = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (tickRef.current) clearInterval(tickRef.current);
-    pollRef.current = null;
-    tickRef.current = null;
-    setMarketLoading(false);
-    try { localStorage.removeItem(jobKey()); } catch { /* ignore */ }
-  };
-
-  const beginPolling = (jobId, startedAt) => {
-    try { localStorage.setItem(jobKey(), JSON.stringify({ jobId, startedAt })); } catch { /* ignore */ }
-    setMarketLoading(true);
-    markLayers(setLayers, ['market'], 'loading');
-    setMarketElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    tickRef.current = setInterval(() => setMarketElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
-
-    const check = async () => {
-      try {
-        const { status, result, error } = await api.marketStatus(jobId);
-        if (status === 'done') {
-          stopPolling();
-          if (result?.market) {
-            setMarket(result.market);
-            markLayers(setLayers, ['market'], 'done');
-            // Merge market into the persisted latest analysis.
-            snapshotRef.current = { ...snapshotRef.current, market: result.market };
-            persistLatest({ market: result.market });
-            toast({ type: 'success', title: 'Market intelligence ready' });
-          } else {
-            markLayers(setLayers, ['market'], 'idle');
-            toast({ type: 'info', title: 'No market data found' });
-          }
-        } else if (status === 'error') {
-          stopPolling();
-          markLayers(setLayers, ['market'], 'error');
-          toast({ type: 'error', title: 'Market research failed', message: error });
-        }
-      } catch (err) {
-        if (err.code === 'JOB_NOT_FOUND') {
-          stopPolling();
-          markLayers(setLayers, ['market'], 'error');
-          toast({ type: 'error', title: 'Market job expired', message: 'Please run it again.' });
-        }
-      }
-    };
-    pollRef.current = setInterval(check, 5000);
-    check();
-  };
-
   // Restore last full analysis for this workspace on visit.
   useEffect(() => {
     let cancelled = false;
@@ -841,19 +784,6 @@ function ReportStage({ competitors, onScored }) {
       }
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let raw;
-    try { raw = localStorage.getItem(jobKey()); } catch { /* ignore */ }
-    if (raw) {
-      try {
-        const { jobId, startedAt } = JSON.parse(raw);
-        if (jobId) beginPolling(jobId, startedAt || Date.now());
-      } catch { /* ignore */ }
-    }
-    return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1211,15 +1141,7 @@ function ReportStage({ competitors, onScored }) {
             {!autoSave ? ' · auto save off' : ''}
           </span>
         )}
-        {marketLoading && (
-          <div className="ml-auto flex min-w-[7rem] flex-col gap-1">
-            <span className="text-xs text-slate-400">
-              Market {Math.floor(marketElapsed / 60)}:{String(marketElapsed % 60).padStart(2, '0')}
-            </span>
-            <Shimmer className="h-1 w-full rounded-full" />
-          </div>
-        )}
-        {loadingCount > 0 && !marketLoading && !running && <span className="ml-auto sm:hidden" />}
+        {loadingCount > 0 && !running && <span className="ml-auto sm:hidden" />}
       </div>
 
       <div className="min-h-0 flex-1">

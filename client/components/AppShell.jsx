@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import Sidebar from './Sidebar';
+import WorkspaceNav from './WorkspaceNav';
 import SupportButton from './SupportButton';
 import ZendeskWidget, { isZendeskEnabled } from './ZendeskWidget';
 
@@ -11,7 +11,7 @@ const NO_SHELL_PREFIXES = [
   '/architecture',
 ];
 
-/** Public marketing docs, no app sidebar (crawlable, shareable). */
+/** Public marketing docs, no workspace navigation (crawlable, shareable). */
 const PUBLIC_DOC_EXACT = new Set([
   '/',
   '/about',
@@ -38,7 +38,7 @@ export default function AppShell({ children }) {
   const pathname = usePathname();
   const zendesk = isZendeskEnabled();
 
-  // Landing and marketing docs render full-width without the app sidebar.
+  // Landing and marketing docs render full-width without workspace navigation.
   const noShell = isPublicMarketing(pathname);
 
   // Marketing pages stay clean; Zendesk (or Help FAB) lives in the app.
@@ -53,13 +53,13 @@ export default function AppShell({ children }) {
   const isAnalysis = pathname === '/app';
 
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-x-hidden md:h-dvh md:flex-row">
-      <Sidebar />
+    <div className="relative flex min-h-dvh flex-col overflow-x-hidden md:h-dvh">
+      <WorkspaceNav />
       <main
         className={
           isAnalysis
             ? 'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:min-h-0'
-            : 'relative min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10'
+            : 'relative min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 sm:py-8 md:px-10 md:py-10'
         }
       >
         {children}

@@ -14,6 +14,8 @@ const LOCAL_PRODUCT_KEY = 'mira_product';
 const LOCAL_COMPETITORS_KEY = 'mira_competitors';
 const LOCAL_ANALYSIS_KEY = 'mira_analysis_latest';
 const LOCAL_REPORTS_KEY = 'mira_reports';
+const LOCAL_MARKET_MODEL_KEY = 'mira_market_model';
+const LOCAL_MARKET_HISTORY_KEY = 'mira_market_model_history';
 
 function readLocalProduct() {
   if (typeof window === 'undefined') return null;
@@ -155,6 +157,57 @@ async function deleteLocalReport(id) {
   const reports = readLocalReports().filter((report) => String(report.id) !== String(id));
   if (typeof window !== 'undefined') localStorage.setItem(LOCAL_REPORTS_KEY, JSON.stringify(reports));
   return { ok: true };
+}
+
+function readLocalMarketModel() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = localStorage.getItem(LOCAL_MARKET_MODEL_KEY);
+    return value ? JSON.parse(value) : null;
+  } catch { return null; }
+}
+
+function readLocalMarketHistory() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const value = JSON.parse(localStorage.getItem(LOCAL_MARKET_HISTORY_KEY) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch { return []; }
+}
+
+async function getLocalMarketModel() {
+  return { model: readLocalMarketModel() };
+}
+
+async function saveLocalMarketModel(model, { snapshot = false } = {}) {
+  if (!model || typeof model !== 'object') throw new Error('A market model is required.');
+  const saved = { ...model, updatedAt: new Date().toISOString() };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_MARKET_MODEL_KEY, JSON.stringify(saved));
+    if (snapshot) {
+      const history = readLocalMarketHistory();
+      history.unshift({
+        created_at: saved.generatedAt || saved.updatedAt,
+        tam: saved.tam?.value_usd ?? null,
+        sam: saved.sam?.value_usd ?? null,
+        som: saved.som?.value_usd ?? null,
+        geography: saved.inputs?.geography ?? null,
+      });
+      localStorage.setItem(LOCAL_MARKET_HISTORY_KEY, JSON.stringify(history.slice(0, 6)));
+    }
+  }
+  return { model: saved };
+}
+
+async function buildLocalMarketModel() {
+  const product = readLocalProduct();
+  const { model } = await request('/market-model', { method: 'POST', body: { action: 'build', product } });
+  return saveLocalMarketModel(model, { snapshot: true });
+}
+
+async function factCheckLocalMarketModel(model) {
+  const product = readLocalProduct();
+  return request('/market-model', { method: 'POST', body: { action: 'fact-check', model, product } });
 }
 
 async function exportLocalMarkdown(snapshot) {
@@ -396,16 +449,12 @@ export const api = {
   saveAnalysisLatest: saveLocalAnalysisLatest,
   methodology: () => request('/methodology'),
 
-  // TAM / SAM / SOM market model
-  marketModelStart: () => request('/intelligence/market-model/start', { method: 'POST' }),
-  marketModelStatus: (jobId) => request(`/intelligence/market-model/status/${jobId}`),
-  getMarketModel: () => request('/intelligence/market-model'),
-  saveMarketModel: (inputs) => request('/intelligence/market-model', { method: 'PUT', body: { inputs } }),
-  applyTam: (tamValue) => request('/intelligence/market-model', { method: 'PUT', body: { tam_value_usd: tamValue } }),
-  reconcileBottomUp: () => request('/intelligence/market-model', { method: 'PUT', body: { reconcile_bottom_up: true } }),
-  marketModelHistory: () => request('/intelligence/market-model/history'),
-  factCheckStart: () => request('/intelligence/market-model/fact-check/start', { method: 'POST' }),
-  factCheckStatus: (jobId) => request(`/intelligence/market-model/fact-check/status/${jobId}`),
+  // You.com TAM / SAM / SOM model, persisted in this browser.
+  buildMarketModel: buildLocalMarketModel,
+  getMarketModel: getLocalMarketModel,
+  saveMarketModel: saveLocalMarketModel,
+  marketModelHistory: async () => ({ history: readLocalMarketHistory() }),
+  factCheckMarketModel: factCheckLocalMarketModel,
 
   // You.com-powered company and market research
   deepDive: (company, url) => request('/company/deep-dive', { method: 'POST', body: { company, url } }),
@@ -466,8 +515,7 @@ export const api = {
     const { product } = await getLocalProduct();
     return request('/company/deep-dive', { method: 'POST', body: { action: 'implications', dossier, product } });
   },
-  generateMarketScenarios: (base) => request('/features/market-scenarios', { method: 'POST', body: { base } }),
-  getMarketScenarios: () => request('/features/market-scenarios'),
+  generateMarketScenarios: (base) => request('/market-model', { method: 'POST', body: { action: 'scenarios', base } }),
   exportFeatureReport: (snapshot) => exportLocalMarkdown(snapshot),
 
   // Push

@@ -3,12 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { Icon, Spinner, useToast } from './ui';
-import { DistributionPanel } from './distribution/DistributionShared';
-import { useMarketResearch } from '../hooks/useMarketResearch';
 import { SkillChipRow, SourceAttribution } from './SourceAttribution';
-
-const JOB_KEY = 'cia_marketmodel_job';
-const FACT_KEY = 'cia_factcheck_job';
 
 const VERDICT = {
   supported: { cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300', icon: 'check', label: 'Supported' },
@@ -85,53 +80,45 @@ export default function MarketModelClient() {
   const [factOpen, setFactOpen] = useState(false);
   const [factBusy, setFactBusy] = useState(false);
   const [factErr, setFactErr] = useState('');
-  const [pulseData, setPulseData] = useState(null);
-  const pollRef = useRef(null);
   const saveRef = useRef(null);
-  const factPollRef = useRef(null);
   const loadHistory = () => api.marketModelHistory().then((r) => setHistory(r.history || [])).catch(() => {});
-  const loadPulse = () => api.marketPulse().then(setPulseData).catch(() => setPulseData(null));
-  const { researching: distResearching, runResearch: runDistributionResearch } = useMarketResearch({
-    onComplete: loadPulse,
-  });
-
-  function factPoll(jobId) {
-    api.factCheckStatus(jobId)
-      .then((res) => {
-        if (res.status === 'done') {
-          localStorage.removeItem(FACT_KEY);
-          setFactBusy(false);
-          if (res.result?.factCheck) setModel((m) => (m ? { ...m, fact_check: res.result.factCheck } : m));
-        } else if (res.status === 'error') {
-          localStorage.removeItem(FACT_KEY);
-          setFactBusy(false);
-          setFactErr(res.error || 'Fact-check failed.');
-        } else {
-          factPollRef.current = setTimeout(() => factPoll(jobId), 5000);
-        }
-      })
-      .catch((err) => {
-        if (/not found|expired|JOB_NOT_FOUND/i.test(err?.message || '')) { localStorage.removeItem(FACT_KEY); setFactBusy(false); return; }
-        factPollRef.current = setTimeout(() => factPoll(jobId), 6000);
-      });
-  }
 
   async function applySourcedTam(value) {
-    try {
-      const { model: updated } = await api.applyTam(value);
-      if (updated) setModel(updated);
-    } catch (err) {
-      toast({ type: 'error', title: 'Could not apply sourced TAM', message: err.message });
-    }
+    if (!value) return;
+    setModel((current) => {
+      if (!current) return current;
+      const baseAcv = current.inputs_base?.acv_usd || current.inputs?.acv_usd;
+      const nextDerived = derive(value, current.inputs, baseAcv);
+      const updated = {
+        ...current,
+        tam: { ...current.tam, value_usd: value, sourced: true, confidence: 'medium', method: 'Adjusted to the You.com fact-check figure' },
+        sam: { ...current.sam, value_usd: nextDerived.sam },
+        som: { ...current.som, value_usd: nextDerived.som },
+        som_timeline: nextDerived.som_timeline,
+      };
+      api.saveMarketModel(updated).catch(() => {});
+      return updated;
+    });
   }
 
-  async function reconcileBottomUp() {
-    try {
-      const { model: updated } = await api.reconcileBottomUp();
-      if (updated) setModel(updated);
-    } catch (err) {
-      toast({ type: 'error', title: 'Could not reconcile model', message: err.message });
-    }
+  function reconcileBottomUp() {
+    setModel((current) => {
+      if (!current?.bottom_up || !current?.tam?.value_usd || !current?.inputs?.acv_usd) return current;
+      const customers = Math.round(current.tam.value_usd / current.inputs.acv_usd);
+      const updated = {
+        ...current,
+        bottom_up: {
+          ...current.bottom_up,
+          customers,
+          customers_sourced: false,
+          acv_usd: current.inputs.acv_usd,
+          value_usd: Math.round(customers * current.inputs.acv_usd),
+          note: 'Reconciled so the bottom-up estimate matches the sourced TAM.',
+        },
+      };
+      api.saveMarketModel(updated).catch(() => {});
+      return updated;
+    });
   }
 
   async function runFactCheck() {
@@ -139,12 +126,14 @@ export default function MarketModelClient() {
     setFactBusy(true);
     setFactOpen(true);
     try {
-      const { jobId } = await api.factCheckStart();
-      localStorage.setItem(FACT_KEY, jobId);
-      factPoll(jobId);
+      const { factCheck } = await api.factCheckMarketModel(model);
+      const updated = { ...model, fact_check: factCheck };
+      setModel(updated);
+      await api.saveMarketModel(updated);
     } catch (e) {
-      setFactBusy(false);
       setFactErr(e?.message || 'Could not start the fact-check.');
+    } finally {
+      setFactBusy(false);
     }
   }
 
@@ -156,54 +145,25 @@ export default function MarketModelClient() {
       } catch (err) {
         setError(err?.message || 'Could not load the saved market model.');
       }
-      loadHistory();
-      loadPulse();
-      const jobId = typeof window !== 'undefined' ? localStorage.getItem(JOB_KEY) : null;
-      if (jobId) { setBuilding(true); poll(jobId); }
-      const factJob = typeof window !== 'undefined' ? localStorage.getItem(FACT_KEY) : null;
-      if (factJob) { setFactBusy(true); factPoll(factJob); }
+      await loadHistory();
       setLoading(false);
     })();
-    return () => { clearTimeout(pollRef.current); clearTimeout(factPollRef.current); };
+    return () => clearTimeout(saveRef.current);
   }, []);
-
-  function poll(jobId) {
-    api.marketModelStatus(jobId)
-      .then((res) => {
-        if (res.status === 'done') {
-          localStorage.removeItem(JOB_KEY);
-          setBuilding(false);
-          if (res.result?.model) { setModel(res.result.model); loadHistory(); }
-          else setError('The model came back empty. Try again, or check that your product is set up.');
-        } else if (res.status === 'error') {
-          localStorage.removeItem(JOB_KEY);
-          setBuilding(false);
-          setError(res.error || 'Market model failed.');
-        } else {
-          pollRef.current = setTimeout(() => poll(jobId), 5000);
-        }
-      })
-      .catch((err) => {
-        // Job gone/expired (e.g. after a restart), stop spinning; the saved model may still load.
-        if (/not found|expired|JOB_NOT_FOUND/i.test(err?.message || '')) {
-          localStorage.removeItem(JOB_KEY);
-          setBuilding(false);
-          return;
-        }
-        pollRef.current = setTimeout(() => poll(jobId), 6000);
-      });
-  }
 
   async function build() {
     setError('');
     setBuilding(true);
     try {
-      const { jobId } = await api.marketModelStart();
-      localStorage.setItem(JOB_KEY, jobId);
-      poll(jobId);
+      const { model: built } = await api.buildMarketModel();
+      if (!built) throw new Error('The model came back empty.');
+      setModel(built);
+      await loadHistory();
+      toast({ type: 'success', title: 'Market model ready' });
     } catch (e) {
-      setBuilding(false);
       setError(e?.message || 'Could not start. Make sure your product is set up first.');
+    } finally {
+      setBuilding(false);
     }
   }
 
@@ -217,7 +177,7 @@ export default function MarketModelClient() {
       const next = { ...m, inputs, sam: { ...m.sam, value_usd: d.sam }, som: { ...m.som, value_usd: d.som }, som_timeline: d.som_timeline };
       clearTimeout(saveRef.current);
       saveRef.current = setTimeout(() => {
-        api.saveMarketModel(inputs).catch((err) => {
+        api.saveMarketModel(next).catch((err) => {
           setError(err?.message || 'Your assumption changes could not be saved.');
         });
       }, 700);
@@ -238,7 +198,7 @@ export default function MarketModelClient() {
           <SkillChipRow
             className="mt-3"
             size="md"
-            skills={[{ skill: 'you-finance' }, { skill: 'tavily' }, { skill: 'grok' }]}
+            skills={[{ skill: 'you-research' }]}
           />
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -257,7 +217,7 @@ export default function MarketModelClient() {
 
       {building && !model && (
         <div className="mt-6 rounded-xl border border-ink-700 bg-ink-900 p-6 text-sm text-slate-400">
-          Researching your market and sizing TAM / SAM / SOM. This runs in the background (1–3 min), you can leave and come back.
+          You.com is researching your market and sizing TAM / SAM / SOM. Keep this page open while it runs.
         </div>
       )}
 
@@ -271,11 +231,9 @@ export default function MarketModelClient() {
         <ModelView
           model={model}
           history={history}
-          pulseData={pulseData}
+          pulseData={null}
           onInputs={applyInputs}
           onReconcile={reconcileBottomUp}
-          onRefreshDistribution={runDistributionResearch}
-          distResearching={distResearching}
         />
       )}
 
@@ -460,7 +418,7 @@ function ChangeCard({ history }) {
   );
 }
 
-function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefreshDistribution, distResearching }) {
+function ModelView({ model, history, pulseData, onInputs, onReconcile }) {
   const blowout = model.bottom_up?.value_usd && model.tam?.value_usd && model.bottom_up.value_usd > model.tam.value_usd * 3;
   const tam = model.tam || {};
   const inputs = model.inputs || {};
@@ -693,33 +651,6 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
         {tam.source_quote && <p className="mt-1.5 text-[11px] italic text-slate-500">“{tam.source_quote}”</p>}
       </div>
 
-      <DistributionPanel
-        pulseData={pulseData}
-        tamContext={{
-          tamValue,
-          somValue: currentSom,
-          targetSharePct: `${Math.round((inputs.target_share || 0) * 100)}%`,
-        }}
-        compact
-        showRefresh
-        onRefresh={onRefreshDistribution}
-        researching={distResearching}
-        showSyndicated
-        showFullLink
-        showPricingChanges={false}
-      />
-
-      {!pulseData?.distribution?.items?.length && (
-        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5 text-sm text-slate-400">
-          No distribution yet.{' '}
-          <button type="button" onClick={onRefreshDistribution} disabled={distResearching} className="text-accent-soft underline">
-            Run market research
-          </button>{' '}
-          or open the{' '}
-          <a href="/distribution" className="text-accent-soft underline">Distribution</a> page.
-        </div>
-      )}
-
       {/* Scenarios */}
       <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
         <div className="flex items-center justify-between gap-2">
@@ -729,7 +660,7 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
           </div>
           <button onClick={runAiScenarios} disabled={scenarioBusy} className="btn-ghost py-1 px-2.5 text-xs shrink-0">
             {scenarioBusy ? <Spinner /> : <Icon name="sparkle" className="h-3.5 w-3.5" />}
-            {scenarioBusy ? 'Building…' : 'AI bull/base/bear'}
+            {scenarioBusy ? 'Building…' : 'Build bull/base/bear'}
           </button>
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -877,8 +808,8 @@ function ModelView({ model, history, pulseData, onInputs, onReconcile, onRefresh
             className="mt-1 border-0 pt-0"
             attribution={model.attribution}
             sources={model.sources}
-            skill={model.skill || 'you-finance'}
-            skillLabel={model.skillLabel || 'You.com Finance'}
+            skill={model.skill || 'you-research'}
+            skillLabel={model.skillLabel || 'You.com Research'}
             engine={model.engine}
           />
         </div>
