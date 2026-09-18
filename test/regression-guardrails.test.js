@@ -67,10 +67,25 @@ test('app shell keeps one responsive top navigation and content overflow protect
   assert.match(shell, /<WorkspaceNav \/>/);
   assert.doesNotMatch(shell, /Sidebar|md:flex-row/);
   assert.match(navigation, /sticky top-0/);
-  assert.match(navigation, /href: '\/app'[\s\S]*href: '\/market'[\s\S]*href: '\/company'/);
-  assert.match(navigation, /label: 'Market model'/);
-  assert.match(navigation, /label: 'Deep market search'/);
+  assert.match(navigation, /href: '\/app'/);
+  assert.doesNotMatch(navigation, /href: '\/(?:market|company)'/);
   assert.doesNotMatch(navigation, /href: '\/(?:analyst|distribution|competitors|compare|moves|changes|notifications|reports|positioning|pricing-lab|gaps|settings)'/);
+});
+
+test('analysis tabs place market tools immediately after Strategy and Take', async () => {
+  const report = await projectFile('client/components/ReportView.jsx');
+  const strategy = report.indexOf("id: 'strategy'");
+  const take = report.indexOf("id: 'take'");
+  const marketModel = report.indexOf("id: 'market-model'");
+  const deepResearch = report.indexOf("id: 'deep-market-research'");
+
+  assert.ok(strategy > -1 && take > strategy, 'Take must follow Strategy');
+  assert.ok(marketModel > take, 'Market model must follow Take');
+  assert.ok(deepResearch > marketModel, 'Deep market research must follow Market model');
+  assert.match(report, /if \(layout === 'tabs'\) \{[\s\S]*id: 'market-model'[\s\S]*id: 'deep-market-research'/);
+  assert.match(report, /dynamic\(\(\) => import\('\.\/MarketModelClient'\)/);
+  assert.match(report, /dynamic\(\(\) => import\('\.\/CompanyDeepDiveClient'\)/);
+  assert.match(report, /id: 'deep-market-research'[\s\S]*keepMounted: true/);
 });
 
 test('deep market search uses the Vercel-native You.com research route', async () => {

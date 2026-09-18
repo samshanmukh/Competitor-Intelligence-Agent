@@ -7,8 +7,6 @@ import { Icon } from './ui';
 
 const ITEMS = [
   { href: '/app', label: 'Analysis', icon: 'sparkle', exact: true },
-  { href: '/market', label: 'Market model', icon: 'bar' },
-  { href: '/company', label: 'Deep market search', icon: 'map' },
 ];
 
 export default function WorkspaceNav() {

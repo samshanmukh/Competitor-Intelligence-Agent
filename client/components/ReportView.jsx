@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, ZAxis, Cell, ReferenceLine, LabelList,
@@ -17,6 +18,16 @@ import {
 } from './distribution/DistributionShared';
 import { SourceAttribution } from './SourceAttribution';
 import ThinkingShimmer from './ThinkingShimmer';
+
+const MarketModelClient = dynamic(() => import('./MarketModelClient'), {
+  ssr: false,
+  loading: () => <LayerPending label="market model" />,
+});
+const CompanyDeepDiveClient = dynamic(() => import('./CompanyDeepDiveClient'), {
+  ssr: false,
+  loading: () => <LayerPending label="deep market research" />,
+});
+
 const TIP_STYLE = { background: '#0e1014', border: '1px solid #181c24', borderRadius: 8, fontSize: 12 };
 const AXIS = { fill: '#64748b', fontSize: 11 };
 
@@ -284,19 +295,27 @@ export default function ReportView({
         ) : <LayerPending label="analyst take" />,
       });
     }
-    if (market || pending('market')) {
+    if (layout === 'tabs') {
       list.push({
-        id: 'market',
-        label: 'Market',
-        icon: 'trending',
-        loading: pending('market') && !market,
-        node: market ? <MarketSection market={market} /> : <LayerPending label="market intelligence" />,
+        id: 'market-model',
+        label: 'Market model',
+        icon: 'bar',
+        loading: false,
+        node: <MarketModelClient />,
+      });
+      list.push({
+        id: 'deep-market-research',
+        label: 'Deep market research',
+        icon: 'search',
+        loading: false,
+        keepMounted: true,
+        node: <CompanyDeepDiveClient />,
       });
     }
     return list.filter((p) => p.node != null);
   }, [
     competitors, matrix, positioning, reviews, take, market, product, strategy,
-    hasIcp, hasPricing, hasFeatures, youName, layers, pricingEntries, matrixColumns,
+    hasIcp, hasPricing, hasFeatures, youName, layers, pricingEntries, matrixColumns, layout,
   ]);
 
   const [tab, setTab] = useState(panels[0]?.id || 'value');
@@ -347,8 +366,20 @@ export default function ReportView({
     }
   }, [panels, tab]);
 
+  const active = panels.find((p) => p.id === tab) || panels.find((p) => !p.loading) || panels[0];
+  const [visitedPersistentTabs, setVisitedPersistentTabs] = useState(() => new Set());
+
+  useEffect(() => {
+    if (!active?.keepMounted) return;
+    setVisitedPersistentTabs((visited) => {
+      if (visited.has(active.id)) return visited;
+      const next = new Set(visited);
+      next.add(active.id);
+      return next;
+    });
+  }, [active?.id, active?.keepMounted]);
+
   if (layout === 'tabs') {
-    const active = panels.find((p) => p.id === tab) || panels.find((p) => !p.loading) || panels[0];
     return (
       <ReportLayoutCtx.Provider value="tabs">
         <div className="flex h-full min-h-0 flex-col">
@@ -407,7 +438,14 @@ export default function ReportView({
             </div>
           </div>
           <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">
-            {active?.node}
+            {panels
+              .filter((panel) => panel.keepMounted && (panel.id === active?.id || visitedPersistentTabs.has(panel.id)))
+              .map((panel) => (
+                <div key={panel.id} hidden={panel.id !== active?.id}>
+                  {panel.node}
+                </div>
+              ))}
+            {active && !active.keepMounted ? active.node : null}
           </div>
           <div className="sr-only" aria-live="polite">
             {[...justReady].map((id) => {
