@@ -1,16 +1,19 @@
-import { createClient } from '@insforge/sdk';
+import { createAdminClient, createClient } from '@insforge/sdk';
 import { createHash } from 'node:crypto';
 
 const baseUrl = process.env.INSFORGE_BASE_URL;
 const anonKey = process.env.INSFORGE_ANON_KEY;
+const apiKey = process.env.INSFORGE_API_KEY;
 if (!baseUrl || !anonKey) {
   throw new Error('INSFORGE_BASE_URL and INSFORGE_ANON_KEY are required');
 }
 
-const insforge = createClient({
-  baseUrl,
-  anonKey,
-});
+// Prefer the project API key (service role) for server-side DB writes so RLS
+// cannot silently block workspace/product inserts. Fall back to anon only when
+// INSFORGE_API_KEY is unset (local/dev).
+const insforge = apiKey
+  ? createAdminClient({ baseUrl, apiKey })
+  : createClient({ baseUrl, anonKey });
 
 export function hashContent(content) {
   return createHash('sha256').update(content || '').digest('hex');

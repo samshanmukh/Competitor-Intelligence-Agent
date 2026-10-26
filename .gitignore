@@ -20,3 +20,18 @@ client/.next/
 # MCP config contains secrets
 .mcp.json
 .vercel
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf

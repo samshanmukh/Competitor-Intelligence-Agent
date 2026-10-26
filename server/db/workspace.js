@@ -9,17 +9,25 @@ export async function getUserWorkspaces(userId) {
 }
 
 export async function createWorkspace({ name, slug, ownerId }) {
-  const { data: ws } = await insforge.database
+  const { data: ws, error } = await insforge.database
     .from('workspaces')
     .insert({ name, slug, owner_id: ownerId, plan: 'free' })
     .select()
     .maybeSingle();
+  if (error) {
+    throw new Error(`Failed to create workspace: ${error.message || error.code || 'unknown error'}`);
+  }
   if (!ws) throw new Error('Failed to create workspace');
-  await insforge.database.from('workspace_members').insert({
+  const { error: memberError } = await insforge.database.from('workspace_members').insert({
     workspace_id: ws.id,
     user_id: ownerId,
     role: 'admin',
   });
+  if (memberError) {
+    throw new Error(
+      `Failed to create workspace membership: ${memberError.message || memberError.code || 'unknown error'}`,
+    );
+  }
   return ws;
 }
 
